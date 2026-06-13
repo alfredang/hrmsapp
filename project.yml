@@ -1,0 +1,32 @@
+name: TertiaryHRMSiOSApp
+
+options:
+  bundleIdPrefix: com.tertiaryinfotech
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: "GU9WTSTX9M"   # Tertiary Infotech Academy (paid) — same team as the other apps
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  TertiaryHRMSiOSApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: TertiaryHRMSiOSApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tertiaryinfotech.hrportal   # matches existing App Store record "Tertiary HRMS"
+        INFOPLIST_FILE: TertiaryHRMSiOSApp/Support/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1"   # iPhone only
+        SUPPORTS_MACCATALYST: NO

@@ -1,0 +1,19 @@
+# Secrets — never commit
+.env
+*.p8
+
+# XcodeGen output (regenerate with `xcodegen generate`)
+*.xcodeproj
+
+# Xcode / build
+.DS_Store
+DerivedData/
+build/
+/tmp/
+*.xcarchive
+*.ipa
+*.dSYM.zip
+xcuserdata/
+
+# Screenshots: keep framed output, ignore raw simulator captures
+screenshots/raw/
