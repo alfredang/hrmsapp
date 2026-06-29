@@ -1,259 +1,106 @@
 ---
 name: mobile-ios-design
-description: Master iOS Human Interface Guidelines and SwiftUI patterns for building native iOS apps. Use when designing iOS interfaces, implementing SwiftUI views, or ensuring apps follow Apple's design principles.
+description: Master SwiftUI and Apple Human Interface Guidelines patterns for building native iOS apps. Use when designing iOS interfaces, implementing SwiftUI UI, adding navigation (TabView / NavigationStack), theming, or following Apple's HIG. Includes the Tertiary Infotech Academy house-style bottom-tab nav with Feedback + About tabs.
+license: MIT
+metadata:
+  version: "1.0.0"
 ---
 
 # iOS Mobile Design
 
-Master iOS Human Interface Guidelines (HIG) and SwiftUI patterns to build polished, native iOS applications that feel at home on Apple platforms.
+Master SwiftUI and the Apple Human Interface Guidelines (HIG) to build modern, adaptive iOS
+applications that feel native on iPhone and iPad. This is the iOS twin of the
+`mobile-android-design` skill.
 
 ## When to Use This Skill
 
-- Designing iOS app interfaces following Apple HIG
-- Building SwiftUI views and layouts
-- Implementing iOS navigation patterns (NavigationStack, TabView, sheets)
-- Creating adaptive layouts for iPhone and iPad
-- Using SF Symbols and system typography
-- Building accessible iOS interfaces
-- Implementing iOS-specific gestures and interactions
-- Designing for Dynamic Type and Dark Mode
+- Designing iOS app interfaces following the Human Interface Guidelines
+- Building SwiftUI views, layouts, and reusable components
+- Implementing iOS navigation patterns (`TabView`, `NavigationStack`, sheets)
+- Adding a **bottom-tab navigation with Feedback + About tabs** (house style — see below)
+- Creating adaptive layouts for iPhone and iPad (size classes, `NavigationSplitView`)
+- Theming with semantic colors, SF Symbols, Dynamic Type, and dark mode
+- Building accessible iOS interfaces (VoiceOver, contrast, hit targets)
 
 ## Core Concepts
 
-### 1. Human Interface Guidelines Principles
+- **SwiftUI-first, declarative.** Describe UI as a function of state; hoist state with
+  `@State` / `@Binding` / `@Observable` (or `ObservableObject` pre-iOS 17). Keep views small
+  and composable.
+- **Semantic over literal.** Use system materials and a central `Theme` of color tokens, never
+  raw `Color(red:…)` scattered inline — this is what gives automatic dark-mode support.
+- **SF Symbols** for iconography (`Image(systemName:)` / `Label`) — they scale with Dynamic Type
+  and adapt to weight and color automatically.
+- **HIG layout rhythm.** Respect safe areas, use system spacing, 44×44pt minimum hit targets,
+  grouped rounded-card surfaces, and large navigation titles for top-level screens.
 
-**Clarity**: Content is legible, icons are precise, adornments are subtle
-**Deference**: UI helps users understand content without competing with it
-**Depth**: Visual layers and motion convey hierarchy and enable navigation
+Deeper material is split into `references/` to keep this body small:
+- `references/swiftui-components.md` — cards, lists, forms, buttons, the quick-start component.
+- `references/ios-navigation.md` — `TabView`, `NavigationStack`, and the **full Feedback + About
+  bottom-nav reference implementation**.
+- `references/hig-theming.md` — `Theme` tokens, dark mode, SF Symbols, Dynamic Type, accessibility.
 
-**Platform Considerations:**
+## Bottom-tab navigation with Feedback + About (house style)
 
-- **iOS**: Touch-first, compact displays, portrait orientation
-- **iPadOS**: Larger canvas, multitasking, pointer support
-- **visionOS**: Spatial computing, eye/hand input
+Add a root `TabView` with the app's content as the first tab, plus **Feedback** and **About**
+tabs in the Tertiary Infotech Academy house style. (Full code: `references/ios-navigation.md`.)
 
-### 2. SwiftUI Layout System
-
-**Stack-Based Layouts:**
-
-```swift
-// Vertical stack with alignment
-VStack(alignment: .leading, spacing: 12) {
-    Text("Title")
-        .font(.headline)
-    Text("Subtitle")
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-}
-
-// Horizontal stack with flexible spacing
-HStack {
-    Image(systemName: "star.fill")
-    Text("Featured")
-    Spacer()
-    Text("View All")
-        .foregroundStyle(.blue)
-}
-```
-
-**Grid Layouts:**
+- **Feedback tab:** `Title` + `Message` fields and a **Send via WhatsApp** button that opens
+  `https://wa.me/6588666375?text=<title + message>`. Build the URL with `URLComponents` /
+  `URLQueryItem` (never string-concatenation) so the text is percent-encoded correctly. The
+  `wa.me` https link works whether or not WhatsApp is installed — no `LSApplicationQueriesSchemes`.
+- **About tab:** an app card (name + description), a **Developer** card ("Tertiary Infotech
+  Academy Pte Ltd" + `tertiaryinfotech.com` link), an optional **Data source** card (mandatory
+  when surfacing government/official data — doubles as App Review attribution), and a **Version**
+  row read from `Bundle.main.infoDictionary` (`CFBundleShortVersionString` + `CFBundleVersion`).
 
 ```swift
-// Adaptive grid that fills available width
-LazyVGrid(columns: [
-    GridItem(.adaptive(minimum: 150, maximum: 200))
-], spacing: 16) {
-    ForEach(items) { item in
-        ItemCard(item: item)
-    }
-}
-
-// Fixed column grid
-LazyVGrid(columns: [
-    GridItem(.flexible()),
-    GridItem(.flexible()),
-    GridItem(.flexible())
-], spacing: 12) {
-    ForEach(items) { item in
-        ItemThumbnail(item: item)
-    }
-}
-```
-
-### 3. Navigation Patterns
-
-**NavigationStack (iOS 16+):**
-
-```swift
-struct ContentView: View {
-    @State private var path = NavigationPath()
-
-    var body: some View {
-        NavigationStack(path: $path) {
-            List(items) { item in
-                NavigationLink(value: item) {
-                    ItemRow(item: item)
-                }
-            }
-            .navigationTitle("Items")
-            .navigationDestination(for: Item.self) { item in
-                ItemDetailView(item: item)
-            }
-        }
-    }
-}
-```
-
-**TabView (iOS 18+):**
-
-```swift
+// MainTabView.swift — make this the root: WindowGroup { MainTabView() }
 struct MainTabView: View {
-    @State private var selectedTab = 0
-
     var body: some View {
-        TabView(selection: $selectedTab) {
-            Tab("Home", systemImage: "house", value: 0) {
-                HomeView()
-            }
-
-            Tab("Search", systemImage: "magnifyingglass", value: 1) {
-                SearchView()
-            }
-
-            Tab("Profile", systemImage: "person", value: 2) {
-                ProfileView()
-            }
+        TabView {
+            ContentScreen()                                   // your existing first tab
+                .tabItem { Label("Home", systemImage: "house.fill") }
+            FeedbackView()
+                .tabItem { Label("Feedback", systemImage: "bubble.left.and.bubble.right.fill") }
+            AboutView()
+                .tabItem { Label("About", systemImage: "info.circle.fill") }
         }
+        .tint(Theme.accent)            // selected-tab color from the central Theme
     }
 }
 ```
 
-### 4. System Integration
-
-**SF Symbols:**
-
-```swift
-// Basic symbol
-Image(systemName: "heart.fill")
-    .foregroundStyle(.red)
-
-// Symbol with rendering mode
-Image(systemName: "cloud.sun.fill")
-    .symbolRenderingMode(.multicolor)
-
-// Variable symbol (iOS 16+)
-Image(systemName: "speaker.wave.3.fill", variableValue: volume)
-
-// Symbol effect (iOS 17+)
-Image(systemName: "bell.fill")
-    .symbolEffect(.bounce, value: notificationCount)
-```
-
-**Dynamic Type:**
-
-```swift
-// Use semantic fonts
-Text("Headline")
-    .font(.headline)
-
-Text("Body text that scales with user preferences")
-    .font(.body)
-
-// Custom font that respects Dynamic Type
-Text("Custom")
-    .font(.custom("Avenir", size: 17, relativeTo: .body))
-```
-
-### 5. Visual Design
-
-**Colors and Materials:**
-
-```swift
-// Semantic colors that adapt to light/dark mode
-Text("Primary")
-    .foregroundStyle(.primary)
-Text("Secondary")
-    .foregroundStyle(.secondary)
-
-// System materials for blur effects
-Rectangle()
-    .fill(.ultraThinMaterial)
-    .frame(height: 100)
-
-// Vibrant materials for overlays
-Text("Overlay")
-    .padding()
-    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-```
-
-**Shadows and Depth:**
-
-```swift
-// Standard card shadow
-RoundedRectangle(cornerRadius: 16)
-    .fill(.background)
-    .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
-
-// Elevated appearance
-.shadow(radius: 2, y: 1)
-.shadow(radius: 8, y: 4)
-```
-
-## Quick Start Component
-
-```swift
-import SwiftUI
-
-struct FeatureCard: View {
-    let title: String
-    let description: String
-    let systemImage: String
-
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: systemImage)
-                .font(.title)
-                .foregroundStyle(.blue)
-                .frame(width: 44, height: 44)
-                .background(.blue.opacity(0.1), in: Circle())
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .foregroundStyle(.tertiary)
-        }
-        .padding()
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-    }
-}
-```
+On a **deployment target < iOS 18** use the classic `.tabItem { Label(...) }` API (the
+`Tab("…", systemImage:)` initializer is iOS 18+). The Feedback `TextEditor` needs
+`.scrollContentBackground(.hidden)` to show a custom background (iOS 16+).
 
 ## Best Practices
 
-1. **Use Semantic Colors**: Always use `.primary`, `.secondary`, `.background` for automatic light/dark mode support
-2. **Embrace SF Symbols**: Use system symbols for consistency and automatic accessibility
-3. **Support Dynamic Type**: Use semantic fonts (`.body`, `.headline`) instead of fixed sizes
-4. **Add Accessibility**: Include `.accessibilityLabel()` and `.accessibilityHint()` modifiers
-5. **Use Safe Areas**: Respect `safeAreaInset` and avoid hardcoded padding at screen edges
-6. **Implement State Restoration**: Use `@SceneStorage` for preserving user state
-7. **Support iPad Multitasking**: Design for split view and slide over
-8. **Test on Device**: Simulator doesn't capture full haptic and performance experience
+1. **Use a central `Theme`**: reference color tokens (`Theme.accent`, `Theme.card`), never raw
+   `Color` literals — guarantees consistent dark mode.
+2. **Semantic colors & materials**: prefer `.background(.regularMaterial)` and system colors so
+   contrast adapts automatically.
+3. **SF Symbols + `Label`**: pair an icon with text; symbols scale with Dynamic Type.
+4. **Dynamic Type**: use text styles (`.body`, `.title3`) not fixed point sizes; test at XXL.
+5. **Hit targets**: minimum 44×44pt for every interactive control.
+6. **Safe areas**: respect them; only ignore deliberately for full-bleed backgrounds.
+7. **State hoisting**: lift state to make views reusable and previewable.
+8. **`#Preview`**: add previews in light + dark and a large Dynamic Type size.
+9. **Adaptive**: use size classes / `NavigationSplitView` for iPad instead of hardcoding widths.
 
 ## Common Issues
 
-- **Layout Breaking**: Use `.fixedSize()` sparingly; prefer flexible layouts
-- **Performance Issues**: Use `LazyVStack`/`LazyHStack` for long scrolling lists
-- **Navigation Bugs**: Ensure `NavigationLink` values are `Hashable`
-- **Dark Mode Problems**: Avoid hardcoded colors; use semantic or asset catalog colors
-- **Accessibility Failures**: Test with VoiceOver enabled
-- **Memory Leaks**: Watch for strong reference cycles in closures
+- **No dark mode**: caused by raw `Color` literals — route everything through `Theme`.
+- **Tab init won't compile**: `Tab(_:systemImage:)` is iOS 18+; below that use `.tabItem`.
+- **`TextEditor` shows default background**: add `.scrollContentBackground(.hidden)`.
+- **Broken WhatsApp/links text**: build URLs with `URLComponents`, not string concatenation.
+- **Janky long lists**: use `List`/`LazyVStack`, not a plain `VStack` in a `ScrollView`.
+- **VoiceOver gaps**: add `.accessibilityLabel` to icon-only buttons; group related elements.
+- **Layout fights safe area**: prefer `safeAreaInset`/`padding` over magic numbers.
+
+## Verify
+
+If the project is XcodeGen-based, run `xcodegen generate`, then a Debug build
+(`xcodebuild -scheme <Scheme> -destination 'platform=iOS Simulator,name=iPhone 16' build`)
+before shipping. Pair with `ios-feedback-about` for a turn-key Feedback/About drop-in.

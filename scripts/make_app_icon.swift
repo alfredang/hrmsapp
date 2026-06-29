@@ -1,7 +1,8 @@
-// Generates the Tertiary HRMS 1024×1024 App Store icon — "Premier Blue" design.
+// Generates the Tertiary HRMS 1024×1024 App Store icon — refined "Premier Blue".
 // App Store compliant: opaque, NO alpha channel (CGContext with .noneSkipLast).
-// Design: a bold white people mark (SF Symbol "person.2.fill") with a check badge,
-// on a deep-navy → premier-blue → azure diagonal gradient.
+// Design: a glossy deep-navy → premier-blue → azure gradient with a top sheen and
+// bottom vignette, a soft white "badge ring", a bold white people mark, and a small
+// premier-blue check disc (managed / approved).
 // Usage:  swift scripts/make_app_icon.swift [outputPath]
 import AppKit
 import UniformTypeIdentifiers
@@ -22,30 +23,39 @@ NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: false)
 let ctx = cg
 let full = NSRect(x: 0, y: 0, width: S, height: S)
 
-// --- Background: Premier Blue diagonal gradient (navy → premier → azure) ---
-let navy    = NSColor(srgbRed: 0.039, green: 0.122, blue: 0.267, alpha: 1)  // #0A1F44
+// --- Base gradient (deep navy → premier → azure), vertical for a clean look ---
+let navy    = NSColor(srgbRed: 0.031, green: 0.094, blue: 0.243, alpha: 1)  // #08183E
 let premier = NSColor(srgbRed: 0.114, green: 0.306, blue: 0.847, alpha: 1)  // #1D4ED8
-let azure   = NSColor(srgbRed: 0.231, green: 0.510, blue: 0.965, alpha: 1)  // #3B82F6
-NSGradient(colors: [navy, premier, azure], atLocations: [0.0, 0.62, 1.0],
-           colorSpace: .sRGB)!.draw(in: full, angle: -55)
-// Soft radial highlight (upper-left) for depth.
-let hi = NSGradient(colors: [NSColor(white: 1, alpha: 0.18), NSColor(white: 1, alpha: 0)])!
-hi.draw(in: full, relativeCenterPosition: NSPoint(x: -0.35, y: 0.45))
+let azure   = NSColor(srgbRed: 0.243, green: 0.530, blue: 0.980, alpha: 1)  // #3E87FA
+NSGradient(colors: [navy, premier, azure], atLocations: [0.0, 0.58, 1.0], colorSpace: .sRGB)!
+    .draw(in: full, angle: -90)
 
-// --- Subtle concentric "reach" rings behind the mark (lower-right glow) ---
+// --- Diagonal sheen (top-left light) for a glossy, premium feel ---
+let sheen = NSGradient(colors: [NSColor(white: 1, alpha: 0.22), NSColor(white: 1, alpha: 0)])!
+sheen.draw(in: full, relativeCenterPosition: NSPoint(x: -0.45, y: 0.6))
+
+// --- Bottom vignette for depth ---
 ctx.saveGState()
-for (i, r) in [0.52, 0.40, 0.28].enumerated() {
-    let rr = S * CGFloat(r)
-    let ring = NSBezierPath(ovalIn: NSRect(x: S*0.5 - rr, y: S*0.46 - rr, width: rr*2, height: rr*2))
-    ring.lineWidth = S * 0.006
-    NSColor(white: 1, alpha: 0.06 + Double(i) * 0.02).setStroke()
-    ring.stroke()
-}
+let vig = NSGradient(colors: [NSColor(white: 0, alpha: 0), NSColor(red: 0.02, green: 0.06, blue: 0.18, alpha: 0.45)])!
+vig.draw(in: full, angle: -90)
 ctx.restoreGState()
 
-// --- People mark (SF Symbol "person.2.fill"), tinted white, centered ---
-func tintedSymbol(_ name: String, pointSize: CGFloat, color: NSColor) -> NSImage? {
-    let cfg = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .semibold)
+// --- Soft "badge" ring behind the mark ---
+ctx.saveGState()
+let ringR = S * 0.30
+let ringRect = NSRect(x: S*0.5 - ringR, y: S*0.52 - ringR, width: ringR*2, height: ringR*2)
+let ring = NSBezierPath(ovalIn: ringRect)
+ring.lineWidth = S * 0.012
+NSColor(white: 1, alpha: 0.16).setStroke()
+ring.stroke()
+// faint inner fill glow
+NSColor(white: 1, alpha: 0.05).setFill()
+NSBezierPath(ovalIn: ringRect.insetBy(dx: S*0.006, dy: S*0.006)).fill()
+ctx.restoreGState()
+
+// --- People mark (SF Symbol "person.2.fill"), white, centered ---
+func tintedSymbol(_ name: String, pointSize: CGFloat, weight: NSFont.Weight, color: NSColor) -> NSImage? {
+    let cfg = NSImage.SymbolConfiguration(pointSize: pointSize, weight: weight)
     guard let base = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
         .withSymbolConfiguration(cfg) else { return nil }
     let img = NSImage(size: base.size)
@@ -58,30 +68,35 @@ func tintedSymbol(_ name: String, pointSize: CGFloat, color: NSColor) -> NSImage
     return img
 }
 
-if let people = tintedSymbol("person.2.fill", pointSize: 560, color: .white) {
-    let targetW = S * 0.62
+if let people = tintedSymbol("person.2.fill", pointSize: 520, weight: .semibold, color: .white) {
+    let targetW = S * 0.50
     let scale = targetW / people.size.width
     let h = people.size.height * scale
-    let rect = NSRect(x: S*0.5 - targetW/2, y: S*0.42 - h/2, width: targetW, height: h)
+    let rect = NSRect(x: S*0.5 - targetW/2, y: S*0.52 - h/2, width: targetW, height: h)
     ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -12), blur: 34,
-                  color: NSColor(white: 0, alpha: 0.28).cgColor)
+    ctx.setShadow(offset: CGSize(width: 0, height: -10), blur: 28,
+                  color: NSColor(red: 0.02, green: 0.06, blue: 0.2, alpha: 0.45).cgColor)
     people.draw(in: rect)
     ctx.restoreGState()
 }
 
-// --- Check badge (bottom-right) signalling "managed / approved" ---
+// --- Check disc (bottom-right) — white disc, premier-blue check, thin ring ---
 ctx.saveGState()
-let bd = S * 0.20
-let bx = S*0.70, by = S*0.16
+let bd = S * 0.215
+let bx = S*0.665, by = S*0.145
 let badgeRect = NSRect(x: bx, y: by, width: bd, height: bd)
-ctx.setShadow(offset: CGSize(width: 0, height: -8), blur: 24,
+ctx.setShadow(offset: CGSize(width: 0, height: -6), blur: 20,
               color: NSColor(white: 0, alpha: 0.30).cgColor)
 NSColor.white.setFill()
 NSBezierPath(ovalIn: badgeRect).fill()
 ctx.restoreGState()
-if let check = tintedSymbol("checkmark", pointSize: 240, color: premier) {
-    let cw = bd * 0.52
+// thin premier ring inside the disc
+let cr = NSBezierPath(ovalIn: badgeRect.insetBy(dx: S*0.012, dy: S*0.012))
+cr.lineWidth = S * 0.006
+premier.withAlphaComponent(0.25).setStroke()
+cr.stroke()
+if let check = tintedSymbol("checkmark", pointSize: 240, weight: .bold, color: premier) {
+    let cw = bd * 0.5
     let chScale = cw / check.size.width
     let ch = check.size.height * chScale
     check.draw(in: NSRect(x: bx + (bd - cw)/2, y: by + (bd - ch)/2, width: cw, height: ch))

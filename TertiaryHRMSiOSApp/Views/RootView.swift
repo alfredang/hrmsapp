@@ -15,12 +15,40 @@ struct RootView: View {
                 LoginView()
                     .transition(.opacity)
             case .signedIn:
-                MainTabView()
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                if Self.previewScreenKey != nil {
+                    NavigationStack { Self.previewScreen }.transition(.opacity)
+                } else {
+                    MainTabView()
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
             }
         }
         .animation(.easeInOut(duration: 0.35), value: auth.phase)
         .task { await auth.bootstrap() }
+    }
+
+    /// Screenshot-only deep link: when launched with `-uiPreview -uiPreviewScreen <key>`,
+    /// render a single module directly so App Store captures are deterministic. Only ever
+    /// active alongside `-uiPreview`, so it never affects a real install.
+    private static var previewScreenKey: String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard args.contains("-uiPreview"),
+              let i = args.firstIndex(of: "-uiPreviewScreen"), i + 1 < args.count
+        else { return nil }
+        return args[i + 1]
+    }
+
+    @ViewBuilder private static var previewScreen: some View {
+        switch previewScreenKey {
+        case "leave":     LeaveView()
+        case "team":      TeamView()
+        case "payslips":  PayslipsView()
+        case "expenses":  ExpensesView()
+        case "calendar":  CalendarListView()
+        case "timesheet": TimesheetView()
+        case "profile":   ProfileView()
+        default:          DashboardView()
+        }
     }
 }
 

@@ -16,6 +16,16 @@ struct ApplyLeaveView: View {
     @State private var done = false
 
     private var isSingleDay: Bool { Calendar.current.isDate(start, inSameDayAs: end) }
+    private var isMedical: Bool {
+        guard let t = types.first(where: { $0.id == typeId }) else { return false }
+        return t.code == "MC" || t.code == "SL" || t.name.localizedCaseInsensitiveContains("medical")
+    }
+
+    /// Default the picker to Annual Leave so applying is one tap away.
+    private func defaultType() {
+        guard typeId.isEmpty else { return }
+        typeId = types.first(where: { $0.code == "AL" })?.id ?? types.first?.id ?? ""
+    }
 
     var body: some View {
         NavigationStack {
@@ -30,6 +40,18 @@ struct ApplyLeaveView: View {
                                 ForEach(types) { t in Text(t.name).tag(t.id) }
                             }
                             .pickerStyle(.menu).tint(.white)
+                        }
+
+                        if isMedical {
+                            HStack(spacing: 8) {
+                                Image(systemName: "doc.text.magnifyingglass")
+                                Text("For medical leave, please email your medical certificate to HR or attach it on the web portal.")
+                                    .font(.caption)
+                            }
+                            .foregroundStyle(.white.opacity(0.8))
+                            .padding(12)
+                            .background(.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
 
                         field("From") {
@@ -69,6 +91,7 @@ struct ApplyLeaveView: View {
             .alert("Request submitted", isPresented: $done) {
                 Button("Done") { dismiss() }
             } message: { Text("Your leave request was submitted for approval.") }
+            .onAppear(perform: defaultType)
         }
     }
 

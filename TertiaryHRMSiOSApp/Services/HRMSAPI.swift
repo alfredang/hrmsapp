@@ -36,16 +36,20 @@ actor HRMSAPI {
         }
     }
 
+    // Screenshot/demo seed: when launched with `-uiPreview`, every read returns realistic
+    // sample data instead of hitting the backend (no fake data ships to real installs).
+    private let isPreview = ProcessInfo.processInfo.arguments.contains("-uiPreview")
+
     // MARK: - Typed reads
 
-    func summary()  async throws -> DashboardSummary { try await get("api/mobile/summary") }
-    func leave()    async throws -> LeaveResponse     { try await get("api/mobile/leave") }
-    func employees()async throws -> EmployeesResponse { try await get("api/mobile/employees") }
-    func expenses() async throws -> ExpensesResponse  { try await get("api/mobile/expenses") }
-    func payslips() async throws -> PayslipsResponse  { try await get("api/mobile/payslips") }
-    func calendar() async throws -> CalendarResponse  { try await get("api/mobile/calendar") }
-    func profile()  async throws -> ProfileResponse   { try await get("api/mobile/profile") }
-    func timesheet()async throws -> TimesheetResponse { try await get("api/timesheet") }
+    func summary()  async throws -> DashboardSummary { isPreview ? PreviewData.summary   : try await get("api/mobile/summary") }
+    func leave()    async throws -> LeaveResponse     { isPreview ? PreviewData.leave     : try await get("api/mobile/leave") }
+    func employees()async throws -> EmployeesResponse { isPreview ? PreviewData.employees : try await get("api/mobile/employees") }
+    func expenses() async throws -> ExpensesResponse  { isPreview ? PreviewData.expenses  : try await get("api/mobile/expenses") }
+    func payslips() async throws -> PayslipsResponse  { isPreview ? PreviewData.payslips  : try await get("api/mobile/payslips") }
+    func calendar() async throws -> CalendarResponse  { isPreview ? PreviewData.calendar  : try await get("api/mobile/calendar") }
+    func profile()  async throws -> ProfileResponse   { isPreview ? PreviewData.profile   : try await get("api/mobile/profile") }
+    func timesheet()async throws -> TimesheetResponse { isPreview ? PreviewData.timesheet : try await get("api/timesheet") }
 
     // MARK: - Apply for leave (POST /api/leave)
 

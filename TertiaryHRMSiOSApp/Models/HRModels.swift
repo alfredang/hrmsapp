@@ -215,4 +215,15 @@ struct TimesheetDay: Codable, Identifiable {
         if let s = try? c.decode(String.self, forKey: k), let d = Double(s) { return d }
         return 0
     }
+
+    // Memberwise init (the custom `init(from:)` above suppresses the synthesized one);
+    // used to build the `-uiPreview` sample timesheet.
+    init(date: String, dayName: String, isWeekend: Bool, isPublicHoliday: Bool,
+         phName: String?, isNonWorkDay: Bool, hours: Double, otCredited: Double,
+         status: String?, adminComment: String?, isSubmittable: Bool) {
+        self.date = date; self.dayName = dayName; self.isWeekend = isWeekend
+        self.isPublicHoliday = isPublicHoliday; self.phName = phName
+        self.isNonWorkDay = isNonWorkDay; self.hours = hours; self.otCredited = otCredited
+        self.status = status; self.adminComment = adminComment; self.isSubmittable = isSubmittable
+    }
 }

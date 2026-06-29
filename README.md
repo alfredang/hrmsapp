@@ -13,15 +13,22 @@ data live from the company's HRMS backend on Coolify.
 ![Swift](https://img.shields.io/badge/Swift-5-1D4ED8?logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-3B82F6)
 ![Backend](https://img.shields.io/badge/backend-Next.js%20on%20Coolify-0A1F44)
+![App Store](https://img.shields.io/badge/App%20Store-Live%20(Singapore)-0A1F44?logo=appstore)
 ![License](https://img.shields.io/badge/license-Proprietary-555)
 
 </div>
 
 ## Screenshots
 
-| Sign in | Secure login | One-time code | Dashboard |
+![Tertiary HRMS — dashboard](screenshot.png)
+
+| Dashboard | Leave | Team | Payslips |
 |---|---|---|---|
-| ![](screenshots/01_email.png) | ![](screenshots/02_password.png) | ![](screenshots/03_otp.png) | ![](screenshots/04_home.png) |
+| ![](screenshots/01-dashboard.png) | ![](screenshots/02-leave.png) | ![](screenshots/03-team.png) | ![](screenshots/04-payslips.png) |
+
+| Calendar | Profile | Expenses | Timesheet |
+|---|---|---|---|
+| ![](screenshots/05-calendar.png) | ![](screenshots/06-profile.png) | ![](screenshots/07-expenses.png) | ![](screenshots/08-timesheet.png) |
 
 ## What it is
 
@@ -101,14 +108,16 @@ TertiaryHRMSiOSApp/
 │  ├─ Views/                   # Login + tabbed feature screens
 │  └─ Support/                 # Info.plist, PrivacyInfo.xcprivacy
 ├─ scripts/                    # Premier Blue icon + screenshot framer
-└─ .claude/skills/             # app-store-submission, mobile-ios-design, ipados-design-guidelines
+└─ .claude/skills/             # app-store-submission, ios-auto-release, mobile-ios-design, ipados-design-guidelines
 ```
 
 ## App Store
 
-Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record.
-Submission is automated via the bundled `app-store-submission` skill and `scripts/asc_submit.py`
-(App Store Connect API). Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
+Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
+(ASC app `6759821144`). **Status: live — v1.0 (build 4) approved and available in the Singapore
+App Store.** Submission is automated via the bundled `app-store-submission` skill and
+`scripts/asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for future
+builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
 
 ---
 

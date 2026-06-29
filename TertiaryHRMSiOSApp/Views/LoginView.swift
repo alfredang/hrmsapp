@@ -8,8 +8,8 @@ struct LoginView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 28) {
-                Spacer(minLength: 40)
+            VStack(spacing: 16) {
+                Spacer(minLength: 24)
                 BrandHeader()
 
                 VStack(spacing: 16) {

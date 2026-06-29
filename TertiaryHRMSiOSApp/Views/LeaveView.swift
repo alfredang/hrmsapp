@@ -10,6 +10,10 @@ struct LeaveView: View {
             AsyncContent(state: $state, load: load) { data in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        PremierButton(title: "Apply for Leave", systemImage: "plus.circle.fill") {
+                            showApply = true
+                        }
+
                         if !data.balances.isEmpty {
                             Text("Balances").font(.headline).foregroundStyle(.white.opacity(0.9))
                             ForEach(data.balances) { b in balanceCard(b) }

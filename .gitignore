@@ -17,3 +17,10 @@ xcuserdata/
 
 # Screenshots: keep framed output, ignore raw simulator captures
 screenshots/raw/
+
+# iOS signing credentials imported with skills — never commit
+.claude/skills/**/org-credentials.env
+.claude/skills/**/*.env
+.playwright-mcp/
+__pycache__/
+*.pyc
