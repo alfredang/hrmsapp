@@ -9,6 +9,10 @@
 A fully native iPhone app (no Capacitor, no WebView) that signs employees in and pulls their HR
 data live from the company's HRMS backend on Coolify.
 
+<a href="https://apps.apple.com/app/tertiary-hrms/id6759821144">
+  <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="48" />
+</a>
+
 ![Platform](https://img.shields.io/badge/platform-iOS%2016%2B-0A1F44?logo=apple)
 ![Swift](https://img.shields.io/badge/Swift-5-1D4ED8?logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-3B82F6)
@@ -115,7 +119,7 @@ TertiaryHRMSiOSApp/
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
 (ASC app `6759821144`). **Status: live — v1.0 (build 4) approved and available in the Singapore
-App Store.** Submission is automated via the bundled `app-store-submission` skill and
+App Store: [apps.apple.com/app/tertiary-hrms/id6759821144](https://apps.apple.com/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 `scripts/asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for future
 builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
 
