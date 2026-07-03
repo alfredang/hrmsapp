@@ -143,6 +143,23 @@ enum PreviewData {
         startDate: "2015-01-05T09:00:00Z", endDate: nil, status: "Active", avatarUrl: nil,
         monthlyLeaveRate: 1.33, roles: ["ADMIN", "HR"], role: "ADMIN"))
 
+    // MARK: Attendance (clock in/out)
+    static let attendance = AttendanceResponse(
+        today: AttendancePunch(id: "a0", date: "2026-06-17T00:00:00Z",
+                               clockIn: "2026-06-17T01:02:00Z", clockOut: nil),
+        recent: [
+            AttendancePunch(id: "a0", date: "2026-06-17T00:00:00Z",
+                            clockIn: "2026-06-17T01:02:00Z", clockOut: nil),
+            AttendancePunch(id: "a1", date: "2026-06-16T00:00:00Z",
+                            clockIn: "2026-06-16T00:58:00Z", clockOut: "2026-06-16T09:34:00Z"),
+            AttendancePunch(id: "a2", date: "2026-06-15T00:00:00Z",
+                            clockIn: "2026-06-15T01:05:00Z", clockOut: "2026-06-15T09:02:00Z"),
+            AttendancePunch(id: "a3", date: "2026-06-12T00:00:00Z",
+                            clockIn: "2026-06-12T00:55:00Z", clockOut: "2026-06-12T05:31:00Z"),
+            AttendancePunch(id: "a4", date: "2026-06-11T00:00:00Z",
+                            clockIn: "2026-06-11T01:10:00Z", clockOut: "2026-06-11T09:12:00Z"),
+        ])
+
     // MARK: Timesheet
     static let timesheet: TimesheetResponse = {
         let days = [

@@ -37,6 +37,10 @@
 		<false/>
 	</dict>
 
+	<!-- Camera: receipt photos for expense / medical claims. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Tertiary HRMS uses the camera to photograph receipts when you submit an expense or medical claim.</string>
+
 	<!-- ===== App Store compliance ===== -->
 	<!-- App uses only standard HTTPS (URLSession TLS) — no non-exempt encryption. Skips export-compliance prompt. -->
 	<key>ITSAppUsesNonExemptEncryption</key>

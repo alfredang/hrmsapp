@@ -1,14 +1,19 @@
 import SwiftUI
 
-/// Expense claims — personal claims from /api/mobile/expenses.
+/// Expense claims — personal claims from /api/mobile/expenses, plus the
+/// snap-a-receipt submission flow (camera → Google Drive → approval).
 struct ExpensesView: View {
     @State private var state: LoadState<ExpensesResponse> = .idle
+    @State private var showNewClaim = false
 
     var body: some View {
         GradientScreen {
             AsyncContent(state: $state, load: load) { data in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
+                        PremierButton(title: "New claim — snap receipt", systemImage: "camera.fill") {
+                            showNewClaim = true
+                        }
                         StatTile(value: Fmt.money(data.approvedTotal), label: "Approved total", icon: "checkmark.seal.fill", tint: .green)
 
                         Text("Claims").font(.headline).foregroundStyle(.white.opacity(0.9))
@@ -21,10 +26,23 @@ struct ExpensesView: View {
                     .padding(20)
                 }
                 .refreshable { await load() }
+                .sheet(isPresented: $showNewClaim, onDismiss: { Task { await load() } }) {
+                    NavigationStack {
+                        NewClaimView(categories: data.categories)
+                    }
+                    .preferredColorScheme(.dark)
+                }
             }
         }
         .navigationTitle("Expenses")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showNewClaim = true } label: {
+                    Image(systemName: "plus.circle.fill").foregroundStyle(.white)
+                }
+            }
+        }
     }
 
     private func row(_ c: ExpenseClaim) -> some View {

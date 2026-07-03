@@ -8,15 +8,31 @@
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 
-	<!-- Data collected: the work email address is sent to the employer's HRMS
-	     server solely to authenticate the employee. Linked to the user's
-	     identity (it is their login), used only for App Functionality, never
-	     for tracking. No other data is collected by the app. -->
+	<!-- Data collected:
+	     • Work email address — sent to the employer's HRMS server solely to
+	       authenticate the employee (it is their login).
+	     • Photos — receipt photos the employee chooses to attach to an expense
+	       or medical claim, uploaded to the employer's HRMS server and filed in
+	       the employee's Google Drive folder.
+	     Both linked to the user's identity, used only for App Functionality,
+	     never for tracking. No other data is collected by the app. -->
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePhotosorVideos</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<true/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>

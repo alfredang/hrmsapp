@@ -18,13 +18,16 @@ struct MoreView: View {
                             divider
                             link("Calendar", "calendar", Theme.sky) { CalendarListView() }
                             divider
+                            link("Clock in / out", "clock.badge.checkmark.fill", .yellow) { ClockView() }
+                            divider
                             link("Timesheet", "clock.fill", .mint) { TimesheetView() }
                             divider
                             link("My profile", "person.crop.circle.fill", Theme.azure) { ProfileView() }
                         }
                     }
                     signOut
-                    Text("Tertiary HRMS · v1.0").font(.caption2).foregroundStyle(.white.opacity(0.5))
+                    Text("Tertiary HRMS · v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1")")
+                        .font(.caption2).foregroundStyle(.white.opacity(0.5))
                         .padding(.top, 6)
                 }
                 .padding(20)

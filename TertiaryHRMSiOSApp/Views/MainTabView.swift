@@ -33,5 +33,25 @@ struct MainTabView: View {
                 .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }
         }
         .tint(Theme.sky)
+        .fullScreenCover(isPresented: $showPreviewScreen) {
+            NavigationStack {
+                switch Self.previewOpen {
+                case "clock": ClockView()
+                case "claim": NewClaimView()
+                default: EmptyView()
+                }
+            }
+            .preferredColorScheme(.dark)
+        }
     }
+
+    // Screenshot/preview capture only (`-uiPreviewOpen clock|claim`), like `-uiPreview`:
+    // deep-opens a feature screen so it can be screenshotted without UI automation.
+    @State private var showPreviewScreen = MainTabView.previewOpen != nil
+    private static let previewOpen: String? = {
+        let a = ProcessInfo.processInfo.arguments
+        guard let i = a.firstIndex(of: "-uiPreviewOpen"), i + 1 < a.count,
+              a.contains("-uiPreview") else { return nil }
+        return a[i + 1]
+    }()
 }

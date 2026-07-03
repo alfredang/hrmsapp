@@ -50,6 +50,7 @@ actor HRMSAPI {
     func calendar() async throws -> CalendarResponse  { isPreview ? PreviewData.calendar  : try await get("api/mobile/calendar") }
     func profile()  async throws -> ProfileResponse   { isPreview ? PreviewData.profile   : try await get("api/mobile/profile") }
     func timesheet()async throws -> TimesheetResponse { isPreview ? PreviewData.timesheet : try await get("api/timesheet") }
+    func attendance() async throws -> AttendanceResponse { isPreview ? PreviewData.attendance : try await get("api/mobile/attendance") }
 
     // MARK: - Apply for leave (POST /api/leave)
 
@@ -69,6 +70,61 @@ actor HRMSAPI {
             let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
             throw NSError(domain: "HRMS", code: code,
                           userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not submit your leave request."])
+        }
+    }
+
+    // MARK: - Clock in / out (POST /api/mobile/attendance/clock-{in,out})
+
+    enum ClockAction: String { case clockIn = "clock-in", clockOut = "clock-out" }
+
+    func clock(_ action: ClockAction) async throws {
+        if isPreview { return }
+        var req = URLRequest(url: base.appendingPathComponent("api/mobile/attendance/\(action.rawValue)"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 || code == 403 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw NSError(domain: "HRMS", code: code,
+                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not record the punch."])
+        }
+    }
+
+    // MARK: - Submit a claim with receipt photo (POST /api/mobile/claims, multipart)
+
+    func submitClaim(claimType: String, categoryId: String?, description: String,
+                     amount: Double, expenseDate: String,
+                     imageData: Data, fileName: String) async throws {
+        if isPreview { return }
+        let boundary = "hrms-\(UUID().uuidString)"
+        var req = URLRequest(url: base.appendingPathComponent("api/mobile/claims"))
+        req.httpMethod = "POST"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        req.timeoutInterval = 90
+
+        var body = Data()
+        func field(_ name: String, _ value: String) {
+            body.append(Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"\r\n\r\n\(value)\r\n".utf8))
+        }
+        field("claimType", claimType)
+        if let categoryId { field("categoryId", categoryId) }
+        field("description", description)
+        field("amount", String(format: "%.2f", amount))
+        field("expenseDate", expenseDate)
+        body.append(Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"receipt\"; filename=\"\(fileName)\"\r\nContent-Type: image/jpeg\r\n\r\n".utf8))
+        body.append(imageData)
+        body.append(Data("\r\n--\(boundary)--\r\n".utf8))
+        req.httpBody = body
+
+        let (data, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 || code == 403 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw NSError(domain: "HRMS", code: code,
+                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not submit your claim."])
         }
     }
 

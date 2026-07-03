@@ -171,6 +171,26 @@ struct EmployeeProfile: Codable {
     let role: String
 }
 
+// MARK: - Attendance clock in/out  (/api/mobile/attendance)
+struct AttendanceResponse: Codable {
+    let today: AttendancePunch?
+    let recent: [AttendancePunch]
+}
+
+/// One punch record per day. `date` is present in `recent` items only.
+struct AttendancePunch: Codable, Identifiable {
+    let id: String
+    let date: String?
+    let clockIn: String?
+    let clockOut: String?
+
+    /// Worked hours for a completed punch (nil while still clocked in).
+    var hours: Double? {
+        guard let i = Fmt.dateObj(clockIn), let o = Fmt.dateObj(clockOut) else { return nil }
+        return max(0, o.timeIntervalSince(i) / 3600)
+    }
+}
+
 // MARK: - Timesheet  (existing /api/timesheet)
 struct TimesheetResponse: Codable {
     let weekStart: String

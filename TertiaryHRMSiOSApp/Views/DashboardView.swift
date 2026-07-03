@@ -20,6 +20,12 @@ struct DashboardView: View {
                             }
                         }
 
+                        sectionTitle("Quick actions")
+                        HStack(spacing: 12) {
+                            quickAction("Clock in / out", "clock.badge.checkmark.fill", .yellow) { ClockView() }
+                            quickAction("Snap a claim", "camera.fill", .orange) { NewClaimView() }
+                        }
+
                         sectionTitle("My balances")
                         HStack(spacing: 12) {
                             StatTile(value: fmt(s.alAvailable), label: "Annual leave", icon: "sun.max.fill", tint: Theme.sky)
@@ -48,6 +54,18 @@ struct DashboardView: View {
                     .font(.caption.weight(.semibold))
                     .padding(.horizontal, 10).padding(.vertical, 4)
                     .background(.white.opacity(0.16)).clipShape(Capsule()).foregroundStyle(.white)
+            }
+        }
+    }
+
+    private func quickAction<D: View>(_ title: String, _ icon: String, _ tint: Color,
+                                      @ViewBuilder _ dest: () -> D) -> some View {
+        NavigationLink(destination: dest()) {
+            Card {
+                VStack(alignment: .leading, spacing: 6) {
+                    Image(systemName: icon).foregroundStyle(tint)
+                    Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                }
             }
         }
     }

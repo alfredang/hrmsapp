@@ -25,11 +25,13 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   is stored in the shared cookie jar and reused for every subsequent API call, exactly as a browser
   would. Both **email + password** and **email one-time-code (OTP)** sign-in are supported.
 - **Data endpoints**: the web app's pages are server-rendered (React Server Components) and don't
-  expose JSON, so a small, **additive, read-only `/api/mobile/*` namespace was added to the web
+  expose JSON, so a small, **additive `/api/mobile/*` namespace was added to the web
   backend** purely to feed this app (`summary`, `profile`, `leave`, `employees`, `expenses`,
-  `payslips`, `calendar`). These endpoints only re-expose data the web app already shows and do
-  **not** change any existing web page or behaviour. The app also calls a few pre-existing endpoints
-  (`/api/timesheet`, `/api/leave` POST for applying, `/api/payroll/payslip/{id}/pdf`).
+  `payslips`, `calendar`, plus writes: `claims` POST for receipt-photo claim submission and
+  `attendance` + `attendance/clock-{in,out}` for clock punches). These endpoints only re-expose
+  data/flows the web app already owns and do **not** change any existing web page or behaviour.
+  The app also calls a few pre-existing endpoints (`/api/timesheet`, `/api/leave` POST for
+  applying, `/api/payroll/payslip/{id}/pdf`).
 - **Deploy coupling**: because the mobile data endpoints live in the web backend, new mobile data
   needs (new fields/endpoints) require a change in the `tertiary-hrms` repo and a Coolify redeploy
   (its build runs `prisma db push`). Changing the deployed URL/scheme means updating
@@ -43,7 +45,13 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Leave** — balances, full request history, and **apply for leave** (posts to the server, which computes working days/proration).
 - **Team** — company directory (richer contact fields for supervisory roles).
 - **Payslips** — list of personal payslips with a native **PDFKit** viewer for the authenticated payslip PDF.
-- **Expenses** — personal expense claims with status and approved totals.
+- **Expenses** — personal expense claims with status and approved totals, plus **submit a claim
+  with a receipt photo** (camera or library → `POST /api/mobile/claims` multipart → the server
+  files the photo in the employee's own Google Drive folder under "Expense Claims" /
+  "Medical Claims" and raises the approval). Expense and Medical claim types.
+- **Clock in / out** — one-tap attendance punches for part-time/contract/intern time logging,
+  stored centrally (`AttendancePunch` table) via `/api/mobile/attendance*`; live elapsed timer
+  and last-7-days log. Surfaced as a Dashboard quick action and in More.
 - **Calendar** — public holidays, the user's events, and their approved leave, grouped by month.
 - **Timesheet** — the current week's hours / OT.
 - **Profile** — full employee record.
