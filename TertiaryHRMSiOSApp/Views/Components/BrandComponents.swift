@@ -120,6 +120,15 @@ struct PremierField: View {
     }
 }
 
+extension View {
+    /// Resign whatever text field is first responder — used by the
+    /// keyboard-toolbar "Done" buttons on forms whose keyboards (e.g. the
+    /// decimal pad) have no return key.
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+
 /// Inline status banner (error / info) on the dark surface.
 struct StatusBanner: View {
     enum Kind { case error, info }

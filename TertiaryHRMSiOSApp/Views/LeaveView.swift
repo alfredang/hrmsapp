@@ -3,7 +3,20 @@ import SwiftUI
 /// Leave tab — balances, request history, and apply-for-leave.
 struct LeaveView: View {
     @State private var state: LoadState<LeaveResponse> = .idle
-    @State private var showApply = false
+    @State private var applySheet: ApplySheet?
+
+    /// Sheet payload carrying the leave types captured at tap time, so the
+    /// sheet content never depends on re-matching `state` (a stale match
+    /// presents an empty sheet).
+    private struct ApplySheet: Identifiable {
+        let id = UUID()
+        let types: [LeaveType]
+    }
+
+    private var loadedTypes: [LeaveType]? {
+        if case .loaded(let data) = state { return data.types }
+        return nil
+    }
 
     var body: some View {
         GradientScreen {
@@ -11,7 +24,7 @@ struct LeaveView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         PremierButton(title: "Apply for Leave", systemImage: "plus.circle.fill") {
-                            showApply = true
+                            applySheet = ApplySheet(types: data.types)
                         }
 
                         if !data.balances.isEmpty {
@@ -34,14 +47,16 @@ struct LeaveView: View {
         .navigationTitle("Leave")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showApply = true } label: { Image(systemName: "plus.circle.fill") }
+                Button {
+                    if let types = loadedTypes { applySheet = ApplySheet(types: types) }
+                } label: { Image(systemName: "plus.circle.fill") }
                     .tint(Theme.sky)
+                    .disabled(loadedTypes == nil)
             }
         }
-        .sheet(isPresented: $showApply, onDismiss: { Task { await load() } }) {
-            if case .loaded(let data) = state {
-                ApplyLeaveView(types: data.types)
-            }
+        .sheet(item: $applySheet, onDismiss: { Task { await load() } }) { sheet in
+            ApplyLeaveView(types: sheet.types)
+                .preferredColorScheme(.dark)
         }
     }
 

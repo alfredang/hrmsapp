@@ -63,9 +63,16 @@ struct NewClaimView: View {
                 }
                 .padding(20)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationTitle("New claim")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { hideKeyboard() }.tint(Theme.sky).fontWeight(.semibold)
+            }
+        }
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker { image = $0 }
                 .ignoresSafeArea()

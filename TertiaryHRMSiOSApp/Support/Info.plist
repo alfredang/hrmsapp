@@ -37,9 +37,9 @@
 		<false/>
 	</dict>
 
-	<!-- Camera: receipt photos for expense / medical claims. -->
+	<!-- Camera: receipt photos for expense / medical claims and MC photos for medical leave. -->
 	<key>NSCameraUsageDescription</key>
-	<string>Tertiary HRMS uses the camera to photograph receipts when you submit an expense or medical claim.</string>
+	<string>Tertiary HRMS uses the camera to photograph receipts for expense and medical claims, and medical certificates for medical leave.</string>
 
 	<!-- ===== App Store compliance ===== -->
 	<!-- App uses only standard HTTPS (URLSession TLS) — no non-exempt encryption. Skips export-compliance prompt. -->

@@ -55,14 +55,17 @@ actor HRMSAPI {
     // MARK: - Apply for leave (POST /api/leave)
 
     func applyLeave(leaveTypeId: String, startDate: String, endDate: String,
-                    dayType: String, reason: String) async throws {
+                    dayType: String, reason: String,
+                    documentUrl: String? = nil, documentFileName: String? = nil) async throws {
         var req = URLRequest(url: base.appendingPathComponent("api/leave"))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "leaveTypeId": leaveTypeId, "startDate": startDate, "endDate": endDate,
             "dayType": dayType, "reason": reason,
         ]
+        if let documentUrl { body["documentUrl"] = documentUrl }
+        if let documentFileName { body["documentFileName"] = documentFileName }
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, resp) = try await safe(req)
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
@@ -90,6 +93,37 @@ actor HRMSAPI {
             throw NSError(domain: "HRMS", code: code,
                           userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not record the punch."])
         }
+    }
+
+    // MARK: - Upload a supporting document (POST /api/upload, multipart)
+
+    /// Uploads a photo (e.g. a medical certificate) to the web app's existing
+    /// upload endpoint and returns the `{url, fileName}` pair that
+    /// `POST /api/leave` accepts as `documentUrl`/`documentFileName`.
+    func uploadDocument(imageData: Data, fileName: String) async throws -> (url: String, fileName: String) {
+        if isPreview { return ("/api/uploads/preview.jpg", fileName) }
+        let boundary = "hrms-\(UUID().uuidString)"
+        var req = URLRequest(url: base.appendingPathComponent("api/upload"))
+        req.httpMethod = "POST"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        req.timeoutInterval = 90
+
+        var body = Data()
+        body.append(Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\nContent-Type: image/jpeg\r\n\r\n".utf8))
+        body.append(imageData)
+        body.append(Data("\r\n--\(boundary)--\r\n".utf8))
+        req.httpBody = body
+
+        let (data, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 || code == 403 { throw APIError.unauthorized }
+        let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        guard (200..<300).contains(code), let url = json?["url"] as? String else {
+            let msg = json?["error"] as? String
+            throw NSError(domain: "HRMS", code: code,
+                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not upload the photo."])
+        }
+        return (url, (json?["fileName"] as? String) ?? fileName)
     }
 
     // MARK: - Submit a claim with receipt photo (POST /api/mobile/claims, multipart)
