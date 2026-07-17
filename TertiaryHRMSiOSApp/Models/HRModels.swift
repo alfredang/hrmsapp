@@ -59,6 +59,37 @@ struct LeaveRequest: Codable, Identifiable {
     let createdAt: String?
 }
 
+// MARK: - Pending approvals  (/api/mobile/approvals — MANAGER/HR/ADMIN)
+struct ApprovalsResponse: Codable {
+    let leaves: [PendingLeave]
+    let claims: [PendingClaim]
+}
+
+struct PendingLeave: Codable, Identifiable {
+    let id: String
+    let employee: String
+    let leaveType: String
+    let leaveCode: String
+    let startDate: String?
+    let endDate: String?
+    let days: Double
+    let dayType: String
+    let reason: String?
+    let documentUrl: String?
+    let createdAt: String?
+}
+
+struct PendingClaim: Codable, Identifiable {
+    let id: String
+    let employee: String
+    let category: String?
+    let description: String
+    let amount: Double
+    let expenseDate: String?
+    let receiptUrl: String?
+    let createdAt: String?
+}
+
 // MARK: - Employees  (/api/mobile/employees)
 struct EmployeesResponse: Codable {
     let isAdmin: Bool

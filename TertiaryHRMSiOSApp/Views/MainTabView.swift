@@ -38,6 +38,7 @@ struct MainTabView: View {
                 switch Self.previewOpen {
                 case "clock": ClockView()
                 case "claim": NewClaimView()
+                case "approvals": ApprovalsView()
                 default: EmptyView()
                 }
             }

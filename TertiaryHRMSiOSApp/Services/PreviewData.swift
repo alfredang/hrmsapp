@@ -13,6 +13,25 @@ enum PreviewData {
         alAvailable: 12.5, mcAvailable: 14, otRemaining: 8,
         expenseYtd: 1860.50, pendingLeaves: 3, pendingClaims: 2)
 
+    // MARK: Approvals
+    static let approvals = ApprovalsResponse(
+        leaves: [
+            PendingLeave(id: "pl1", employee: "Sarah Lim", leaveType: "Annual Leave", leaveCode: "AL",
+                         startDate: "2026-07-20T00:00:00.000Z", endDate: "2026-07-22T00:00:00.000Z",
+                         days: 3, dayType: "FULL_DAY", reason: "Family trip", documentUrl: nil,
+                         createdAt: "2026-07-14T03:20:00.000Z"),
+            PendingLeave(id: "pl2", employee: "Daniel Tan", leaveType: "Medical Leave", leaveCode: "MC",
+                         startDate: "2026-07-17T00:00:00.000Z", endDate: "2026-07-17T00:00:00.000Z",
+                         days: 1, dayType: "FULL_DAY", reason: "Flu", documentUrl: "/api/uploads/mc.jpg",
+                         createdAt: "2026-07-16T22:05:00.000Z"),
+        ],
+        claims: [
+            PendingClaim(id: "pc1", employee: "Sarah Lim", category: "Travel",
+                         description: "Client visit — taxi", amount: 24.80,
+                         expenseDate: "2026-07-13T00:00:00.000Z", receiptUrl: nil,
+                         createdAt: "2026-07-13T09:30:00.000Z"),
+        ])
+
     // MARK: Leave
     static let leave = LeaveResponse(
         balances: [

@@ -15,8 +15,12 @@ struct DashboardView: View {
                         if s.isAdmin {
                             sectionTitle("Approvals queue")
                             HStack(spacing: 12) {
-                                StatTile(value: "\(s.pendingLeaves)", label: "Pending leave", icon: "calendar.badge.exclamationmark", tint: .yellow)
-                                StatTile(value: "\(s.pendingClaims)", label: "Pending claims", icon: "doc.badge.clock", tint: .orange)
+                                NavigationLink(destination: ApprovalsView()) {
+                                    StatTile(value: "\(s.pendingLeaves)", label: "Pending leave", icon: "calendar.badge.exclamationmark", tint: .yellow)
+                                }
+                                NavigationLink(destination: ApprovalsView()) {
+                                    StatTile(value: "\(s.pendingClaims)", label: "Pending claims", icon: "doc.badge.clock", tint: .orange)
+                                }
                             }
                         }
 
@@ -42,6 +46,21 @@ struct DashboardView: View {
             }
         }
         .navigationTitle("Dashboard")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 10) {
+                    Image("CompanyLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 30, height: 30)
+                        .clipShape(Circle())
+                    Text("Tertiary Infotech Academy")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.white)
+                }
+            }
+        }
     }
 
     private func greeting(_ s: DashboardSummary) -> some View {

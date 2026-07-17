@@ -52,6 +52,35 @@ actor HRMSAPI {
     func timesheet()async throws -> TimesheetResponse { isPreview ? PreviewData.timesheet : try await get("api/timesheet") }
     func attendance() async throws -> AttendanceResponse { isPreview ? PreviewData.attendance : try await get("api/mobile/attendance") }
 
+    func approvals() async throws -> ApprovalsResponse { isPreview ? PreviewData.approvals : try await get("api/mobile/approvals") }
+
+    // MARK: - Approve / reject pending requests (existing web routes)
+
+    enum ApprovalKind: String {
+        case leave = "api/leave"
+        case claim = "api/expenses"
+    }
+
+    /// POST /api/{leave|expenses}/{id}/{approve|reject} — MANAGER/HR/ADMIN only.
+    func decide(_ kind: ApprovalKind, id: String, approve: Bool, reason: String? = nil) async throws {
+        if isPreview { return }
+        let action = approve ? "approve" : "reject"
+        var req = URLRequest(url: base.appendingPathComponent("\(kind.rawValue)/\(id)/\(action)"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var body: [String: Any] = [:]
+        if !approve, let reason, !reason.isEmpty { body["reason"] = reason }
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw NSError(domain: "HRMS", code: code,
+                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not \(action) the request."])
+        }
+    }
+
     // MARK: - Apply for leave (POST /api/leave)
 
     func applyLeave(leaveTypeId: String, startDate: String, endDate: String,
