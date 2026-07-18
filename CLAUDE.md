@@ -16,6 +16,14 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - The web app is a **Next.js 14** application deployed on **Coolify** at
   **`https://hrms.tertiaryinfotech.com`**, backed by a **PostgreSQL** database that also runs on
   the company's Coolify host. (The same Next.js codebase lives in the `tertiary-hrms` repo.)
+- **The parent web tool's source is checked out locally at
+  `/Users/alfredang/projects/tertiary/tertiary-hrms`** — refer to it directly to confirm how
+  anything is done server-side (API route contracts under `src/app/api/**`, RBAC in
+  `src/lib/mobile-api.ts` + `src/lib/utils.ts` `hasAdminAccess`, Prisma schema, validation
+  schemas). It is the source of truth for the mobile app's endpoints. Note: the Coolify
+  PostgreSQL (`DATABASE_URL` in that repo's `.env`) is on a private host and is **not reachable
+  from a dev machine** — verify data through the authenticated API or the web admin UI, not a
+  direct DB connection.
 - The iOS app **pulls all of its data from that Coolify deployment over HTTPS**. It never talks to
   PostgreSQL directly; every read/write goes through the web app's authenticated API, so all
   business rules, RBAC, and validation stay on the server — the single source of truth.
