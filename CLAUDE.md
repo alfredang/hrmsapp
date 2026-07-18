@@ -49,24 +49,38 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 
 **Included** (HR modules — mirrors the web app for an employee):
 - **Login frontend** — Premier Blue email + password and email-OTP sign-in; session persists across launches.
-- **Dashboard** — leave balances (AL / MC / OT), expenses YTD, and (for ADMIN/HR/MANAGER) the pending approvals queue.
-- **Leave** — balances, full request history, and **apply for leave** (posts to the server, which computes working days/proration).
+- **Dashboard** — leave balances (AL / MC / OT), expenses YTD, quick actions, and (for
+  approvers — role ADMIN/HR/MANAGER, i.e. `summary.isAdmin`) the **actionable approvals queue**.
+  Carries the notifications **bell with unread badge** (`brandBar(bell:)`).
+- **Leave** — balances, full request history, and **apply for leave** with a **live working-days
+  preview** (weekends + SG public holidays auto-excluded, computed client-side in
+  `Theme/WorkingDays.swift` from the public `GET /api/public-holidays?year=` — plain `yyyy-MM-dd`,
+  parsed via `Fmt.ymdDate`; the server still computes the authoritative deduction/proration).
+  Medical leave attaches an **MC photo** (camera/library → `POST /api/upload` → attached to the request).
+- **Approvals** (approvers only) — approve/reject pending **leave & expense** requests in-app
+  (`GET /api/mobile/approvals`; actions `POST /api/leave|expenses/{id}/approve|reject`). Gated by
+  `summary.isAdmin`; **enforced server-side** (403 for staff/interns), not just hidden in the UI.
 - **Team** — company directory (richer contact fields for supervisory roles).
 - **Payslips** — list of personal payslips with a native **PDFKit** viewer for the authenticated payslip PDF.
 - **Expenses** — personal expense claims with status and approved totals, plus **submit a claim
   with a receipt photo** (camera or library → `POST /api/mobile/claims` multipart → the server
   files the photo in the employee's own Google Drive folder under "Expense Claims" /
   "Medical Claims" and raises the approval). Expense and Medical claim types.
-- **Clock in / out** — one-tap attendance punches for part-time/contract/intern time logging,
-  stored centrally (`AttendancePunch` table) via `/api/mobile/attendance*`; live elapsed timer
-  and last-7-days log. Surfaced as a Dashboard quick action and in More.
+- **Timesheet** — a simple **clock in / out** with a live elapsed timer and last-7-days log
+  (one-tap attendance punches stored centrally in `AttendancePunch` via `/api/mobile/attendance*`).
+  `TimesheetView` renders the clock experience (`ClockView`); also a Dashboard quick action.
+- **Notifications** — in-app list + nav-bar bell with unread badge. `GET /api/notifications`
+  (raw array), mark-read `POST /api/notifications/{id}/read`; filtered to staff-relevant types
+  (LEAVE_/OT_/WOODS_SQUARE_ APPROVED/REJECTED/DECLINED, INFO). `NotificationStore` keeps the badge in sync.
 - **Calendar** — public holidays, the user's events, and their approved leave, grouped by month.
-- **Timesheet** — the current week's hours / OT.
-- **Profile** — full employee record.
+- **Profile** — full employee record, with **self-service Edit** (`PATCH /api/employees/{id}`,
+  `personalInfo` block; `id` = internal employee id) and **Change Password**
+  (`PATCH /api/profile/password`, min-6). Employment/role fields stay admin-only (web).
 
 **Excluded** (by product decision):
 - **Accounting module** entirely (bank-statement import, transaction dedupe, reconciliation, income/expense tracking) — finance/back-office only, not part of the mobile employee experience.
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
+- **Woods Square building access** — not part of the mobile employee experience (product decision).
 
 ## Build & run
 
@@ -81,10 +95,14 @@ xcodebuild build -project TertiaryHRMSiOSApp.xcodeproj -scheme TertiaryHRMSiOSAp
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   -derivedDataPath /tmp/hrms_dd CODE_SIGNING_ALLOWED=NO
 
-# Install on a connected iPhone
+# Install on a connected iPhone.
+# NOTE: this Mac has no Xcode account, so automatic signing fails ("No Accounts").
+# Sideload via the ASC API instead: create an IOS_APP_DEVELOPMENT profile
+# (bundle com.tertiaryinfotech.hrportal + the local "Apple Development" cert + the device),
+# install it to ~/Library/MobileDevice/Provisioning Profiles/, build with MANUAL signing
+# (PROVISIONING_PROFILE_SPECIFIER + CODE_SIGN_IDENTITY), and `xcrun devicectl device install app`.
+# Use the device's UUID (`-destination 'id=<UUID>'`); `name=` does not resolve here.
 xcrun devicectl list devices
-xcodebuild build -project TertiaryHRMSiOSApp.xcodeproj -scheme TertiaryHRMSiOSApp \
-  -destination 'platform=iOS,name=<device name>' -allowProvisioningUpdates
 ```
 
 New Swift files under `TertiaryHRMSiOSApp/` are picked up automatically on the next
@@ -98,9 +116,17 @@ password|otp`) — used only for App Store capture; no fake data ships to real i
 ## Architecture
 
 Single-coordinator MVVM around `AuthViewModel` (`@MainActor`). Networking is two actors:
-`AuthService` (NextAuth sign-in) and `HRMSAPI` (typed reads + apply-leave + PDF download), both
-riding the shared cookie store. `RootView` routes loading → `LoginView` → `MainTabView`
-(Home / Leave / Team / More). Reusable Premier Blue controls live in `Views/Components/`.
+`AuthService` (NextAuth sign-in) and `HRMSAPI` (typed reads + writes — apply-leave, submit-claim,
+clock, approve/reject, upload, notifications, profile update, change password, public holidays —
+plus PDF download), both riding the shared cookie store. `RootView` routes loading → `LoginView`
+→ `MainTabView` (Home / Leave / Team / More). Reusable Premier Blue controls live in `Views/Components/`.
+
+**Security model — the app holds NO secrets.** It ships zero API keys/credentials; every call
+rides the user's own NextAuth session cookie, and all RBAC/validation stays on the server (the
+single source of truth). **Never** put a key (Coolify, DB, admin, etc.) in `Info.plist` or the
+bundle — it is extractable from any App Store download. Approval access = role ∈ {ADMIN, HR,
+MANAGER} (`hasAdminAccess` in the web repo `src/lib/utils.ts`), enforced server-side; the client
+merely hides the UI behind `summary.isAdmin`.
 
 ## App Store submission
 
