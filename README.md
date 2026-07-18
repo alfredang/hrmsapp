@@ -58,13 +58,14 @@ business rules locally; the server remains the single source of truth.
 |---|---|
 | 🔐 **Login** | Premier-Blue email + password and email-OTP sign-in; session persists across launches |
 | 🏠 **Dashboard** | Annual / medical / OT leave balances, expenses YTD, and (for ADMIN/HR/MANAGER) the pending-approvals queue |
-| 🗓️ **Leave** | Balances, full request history, and **apply for leave** (server computes working days & proration) |
+| 🗓️ **Leave** | Balances, full request history, and **apply for leave** — with a **live working-days preview** (weekends & SG public holidays auto-excluded) and MC-photo attach for medical leave |
 | 👥 **Team** | Company directory (richer contact details for supervisory roles) |
 | 🧾 **Payslips** | Personal payslips with a native **PDFKit** viewer for the authenticated PDF |
-| 💳 **Expenses** | Personal expense claims with status and approved totals |
+| 💳 **Expenses** | Personal expense claims with status and approved totals, plus **submit a claim with a receipt photo** (camera or library) |
 | 📅 **Calendar** | Public holidays, your events, and your approved leave, grouped by month |
-| ⏱️ **Timesheet** | The current week's hours and OT |
-| 🙋 **Profile** | Your full employee record |
+| ⏱️ **Timesheet** | One-tap **clock in / out** with a live elapsed timer and last-7-days log |
+| 🔔 **Notifications** | In-app bell with unread badge — leave/OT approvals & rejections, marked read on tap |
+| 🙋 **Profile** | Your full employee record, with **self-service edit** and **change password** |
 
 **Excluded** — by product decision:
 
@@ -118,8 +119,9 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: live — v1.0 (build 4) approved and available in the Singapore
-App Store: [apps.apple.com/app/tertiary-hrms/id6759821144](https://apps.apple.com/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
+(ASC app `6759821144`). **Status: live in the Singapore App Store — v1.4 (build 9) in preparation
+(notifications, profile edit/password, timesheet clock-in/out, leave working-days preview):
+[apps.apple.com/app/tertiary-hrms/id6759821144](https://apps.apple.com/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 `scripts/asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for future
 builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
 

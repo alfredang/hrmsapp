@@ -23,8 +23,7 @@ struct PayslipsView: View {
                 .refreshable { await load() }
             }
         }
-        .navigationTitle("Payslips")
-        .navigationBarTitleDisplayMode(.inline)
+        .brandBar()
     }
 
     private func row(_ p: Payslip) -> some View {

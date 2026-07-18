@@ -32,6 +32,40 @@ struct BrandHeader: View {
     }
 }
 
+/// The company lockup (logo + name) shown as the inline nav-bar title on
+/// every screen, so no screen has an empty large-title deadspace and the
+/// brand is present everywhere.
+struct BrandBarTitle: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            Image("CompanyLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 30, height: 30)
+                .clipShape(Circle())
+            Text("Tertiary Infotech Academy")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
+        }
+    }
+}
+
+extension View {
+    /// Give a screen the shared inline brand nav bar (logo + company name).
+    /// Collapses the empty large-title area so there is no top deadspace.
+    /// `bell: true` adds the notifications bell (with unread badge) on the trailing edge.
+    func brandBar(bell: Bool = false) -> some View {
+        self
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) { BrandBarTitle() }
+                if bell {
+                    ToolbarItem(placement: .topBarTrailing) { NotificationBell() }
+                }
+            }
+    }
+}
+
 /// A large, branded primary button (≥56pt) with a working spinner.
 struct PremierButton: View {
     let title: String
@@ -129,25 +163,47 @@ extension View {
     }
 }
 
-/// Inline status banner (error / info) on the dark surface.
+/// Inline status banner (error / info / success) on the dark surface.
 struct StatusBanner: View {
-    enum Kind { case error, info }
+    enum Kind { case error, info, success }
     let kind: Kind
     let text: String
 
+    private var icon: String {
+        switch kind {
+        case .error: return "exclamationmark.triangle.fill"
+        case .info: return "envelope.badge.fill"
+        case .success: return "checkmark.circle.fill"
+        }
+    }
+    private var fill: Color {
+        switch kind {
+        case .error: return .red
+        case .info: return Theme.premier
+        case .success: return .green
+        }
+    }
+    private var stroke: Color {
+        switch kind {
+        case .error: return .red
+        case .info: return Theme.sky
+        case .success: return .green
+        }
+    }
+
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: kind == .error ? "exclamationmark.triangle.fill" : "envelope.badge.fill")
+            Image(systemName: icon)
             Text(text).font(.footnote)
             Spacer(minLength: 0)
         }
         .foregroundStyle(.white)
         .padding(12)
-        .background((kind == .error ? Color.red : Theme.premier).opacity(0.28))
+        .background(fill.opacity(0.28))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke((kind == .error ? Color.red : Theme.sky).opacity(0.5), lineWidth: 1)
+                .stroke(stroke.opacity(0.5), lineWidth: 1)
         )
     }
 }

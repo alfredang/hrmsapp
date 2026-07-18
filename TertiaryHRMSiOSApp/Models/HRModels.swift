@@ -202,6 +202,36 @@ struct EmployeeProfile: Codable {
     let role: String
 }
 
+// MARK: - Public holidays  (/api/public-holidays?year= — public, no auth)
+struct PublicHolidaysResponse: Codable {
+    let holidays: [PublicHoliday]
+}
+
+struct PublicHoliday: Codable, Identifiable {
+    var id: String { date }
+    /// Plain `yyyy-MM-dd` (NOT ISO8601) — parse with a dedicated formatter.
+    let date: String
+    let name: String
+}
+
+// MARK: - Notifications  (/api/notifications — returns a raw array)
+struct AppNotification: Codable, Identifiable {
+    let id: String
+    let title: String
+    let message: String
+    let type: String
+    let read: Bool
+    let link: String?
+    let createdAt: String?
+
+    /// Only these types are relevant to a staff member's mobile view.
+    static let staffTypes: Set<String> = [
+        "LEAVE_APPROVED", "LEAVE_REJECTED", "OT_APPROVED", "OT_REJECTED",
+        "WOODS_SQUARE_APPROVED", "WOODS_SQUARE_DECLINED", "INFO",
+    ]
+    var isStaffRelevant: Bool { AppNotification.staffTypes.contains(type) }
+}
+
 // MARK: - Attendance clock in/out  (/api/mobile/attendance)
 struct AttendanceResponse: Codable {
     let today: AttendancePunch?

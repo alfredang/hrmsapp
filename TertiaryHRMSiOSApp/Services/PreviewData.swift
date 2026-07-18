@@ -162,6 +162,31 @@ enum PreviewData {
         startDate: "2015-01-05T09:00:00Z", endDate: nil, status: "Active", avatarUrl: nil,
         monthlyLeaveRate: 1.33, roles: ["ADMIN", "HR"], role: "ADMIN"))
 
+    // MARK: Public holidays
+    static func holidays(_ year: Int) -> [PublicHoliday] {
+        [
+            PublicHoliday(date: "\(year)-01-01", name: "New Year's Day"),
+            PublicHoliday(date: "\(year)-08-09", name: "National Day"),
+            PublicHoliday(date: "\(year)-12-25", name: "Christmas Day"),
+        ]
+    }
+
+    // MARK: Notifications
+    static let notifications: [AppNotification] = [
+        AppNotification(id: "n1", title: "Leave approved",
+                        message: "Your annual leave (22–23 Jun) was approved by Jasmine Lee.",
+                        type: "LEAVE_APPROVED", read: false, link: "/leave",
+                        createdAt: "2026-07-17T02:10:00.000Z"),
+        AppNotification(id: "n2", title: "Off-in-lieu approved",
+                        message: "Your overtime on 14 Jun was approved — 1 day credited.",
+                        type: "OT_APPROVED", read: false, link: "/timesheet",
+                        createdAt: "2026-07-15T08:00:00.000Z"),
+        AppNotification(id: "n3", title: "Leave rejected",
+                        message: "Your leave request for 30 Jun was declined.",
+                        type: "LEAVE_REJECTED", read: true, link: "/leave",
+                        createdAt: "2026-07-12T04:30:00.000Z"),
+    ]
+
     // MARK: Attendance (clock in/out)
     static let attendance = AttendanceResponse(
         today: AttendancePunch(id: "a0", date: "2026-06-17T00:00:00Z",

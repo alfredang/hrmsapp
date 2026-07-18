@@ -44,7 +44,7 @@ struct LeaveView: View {
                 .refreshable { await load() }
             }
         }
-        .navigationTitle("Leave")
+        .brandBar()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

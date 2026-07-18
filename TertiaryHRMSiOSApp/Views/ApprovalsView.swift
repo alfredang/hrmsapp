@@ -42,7 +42,7 @@ struct ApprovalsView: View {
                 .refreshable { await load() }
             }
         }
-        .navigationTitle("Approvals")
+        .brandBar()
         .alert("Reject request", isPresented: Binding(
             get: { rejecting != nil },
             set: { if !$0 { rejecting = nil; rejectReason = "" } }

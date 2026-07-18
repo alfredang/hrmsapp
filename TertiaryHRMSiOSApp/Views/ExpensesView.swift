@@ -34,8 +34,7 @@ struct ExpensesView: View {
                 }
             }
         }
-        .navigationTitle("Expenses")
-        .navigationBarTitleDisplayMode(.inline)
+        .brandBar()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showNewClaim = true } label: {

@@ -20,7 +20,13 @@ struct ApplyLeaveView: View {
     @State private var submitting = false
     @State private var error: String?
     @State private var done = false
+    @State private var holidayKeys: Set<String> = []
+    @State private var loadedYears: Set<Int> = []
     @FocusState private var reasonFocused: Bool
+
+    private var workingDays: WorkingDays.Result {
+        WorkingDays.compute(start: start, end: end, holidayKeys: holidayKeys)
+    }
 
     private var isSingleDay: Bool { Calendar.current.isDate(start, inSameDayAs: end) }
     private var isMedical: Bool {
@@ -70,6 +76,8 @@ struct ApplyLeaveView: View {
                             }
                         }
 
+                        workingDaysPreview
+
                         field("Reason (optional)") {
                             TextField("", text: $reason, prompt: Text("e.g. Family matters").foregroundColor(.white.opacity(0.5)), axis: .vertical)
                                 .lineLimit(2...4).foregroundStyle(.white)
@@ -97,7 +105,12 @@ struct ApplyLeaveView: View {
             .alert("Request submitted", isPresented: $done) {
                 Button("Done") { dismiss() }
             } message: { Text("Your leave request was submitted for approval.") }
-            .onAppear(perform: defaultType)
+            .onAppear { defaultType(); loadHolidays() }
+            .onChange(of: start) { _ in
+                if end < start { end = start }
+                loadHolidays()
+            }
+            .onChange(of: end) { _ in loadHolidays() }
             .fullScreenCover(isPresented: $showCamera) {
                 CameraPicker { mcImage = $0 }
                     .ignoresSafeArea()
@@ -163,6 +176,63 @@ struct ApplyLeaveView: View {
                 .opacity(disabled ? 0.45 : 1)
         }
         .disabled(disabled)
+    }
+
+    /// Live working-days count (weekends + SG public holidays excluded). Purely
+    /// informational — the server computes the real deduction on submit.
+    private var workingDaysPreview: some View {
+        let r = workingDays
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Number of working days").font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.85))
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("\(r.workingDays)").font(.title.weight(.bold)).foregroundStyle(.white)
+                        .monospacedDigit()
+                    Text(r.workingDays == 1 ? "working day" : "working days")
+                        .font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                    Spacer()
+                    Image(systemName: "calendar.badge.checkmark").foregroundStyle(Theme.sky)
+                }
+                if r.allNonWorking {
+                    Text("This range falls entirely on weekends / public holidays.")
+                        .font(.caption).foregroundStyle(.yellow)
+                } else if r.calendarDays != r.workingDays {
+                    Text(breakdown(r)).font(.caption).foregroundStyle(.white.opacity(0.7))
+                }
+                Text("Weekends and Singapore public holidays are automatically excluded.")
+                    .font(.caption2).foregroundStyle(.white.opacity(0.5))
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+
+    private func breakdown(_ r: WorkingDays.Result) -> String {
+        var parts: [String] = []
+        if r.weekendsSkipped > 0 { parts.append("\(r.weekendsSkipped) weekend\(r.weekendsSkipped == 1 ? "" : "s") skipped") }
+        if r.holidaysSkipped > 0 { parts.append("\(r.holidaysSkipped) public holiday\(r.holidaysSkipped == 1 ? "" : "s") skipped") }
+        let detail = parts.isEmpty ? "" : " (\(parts.joined(separator: ", ")))"
+        return "\(r.calendarDays) calendar day\(r.calendarDays == 1 ? "" : "s") → \(r.workingDays) working day\(r.workingDays == 1 ? "" : "s")\(detail)"
+    }
+
+    /// Fetch the SG public-holiday keys for every year the range spans (once each).
+    private func loadHolidays() {
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "UTC")!
+        let years = Set([cal.component(.year, from: start), cal.component(.year, from: end)])
+        let missing = years.subtracting(loadedYears)
+        guard !missing.isEmpty else { return }
+        Task {
+            var keys = holidayKeys
+            for y in missing {
+                if let hs = try? await HRMSAPI.shared.publicHolidays(year: y) {
+                    keys.formUnion(hs.map(\.date))
+                    loadedYears.insert(y)
+                }
+            }
+            holidayKeys = keys
+        }
     }
 
     private func field<C: View>(_ label: String, @ViewBuilder _ content: () -> C) -> some View {

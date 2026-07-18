@@ -24,8 +24,7 @@ struct ClockView: View {
                 .refreshable { await load() }
             }
         }
-        .navigationTitle("Clock in / out")
-        .navigationBarTitleDisplayMode(.inline)
+        .brandBar()
     }
 
     // MARK: Today

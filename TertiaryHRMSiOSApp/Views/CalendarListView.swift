@@ -24,8 +24,7 @@ struct CalendarListView: View {
                 .refreshable { await load() }
             }
         }
-        .navigationTitle("Calendar")
-        .navigationBarTitleDisplayMode(.inline)
+        .brandBar()
     }
 
     private func row(_ e: CalendarEvent) -> some View {

@@ -45,22 +45,8 @@ struct DashboardView: View {
                 .refreshable { await load() }
             }
         }
-        .navigationTitle("Dashboard")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                HStack(spacing: 10) {
-                    Image("CompanyLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 30, height: 30)
-                        .clipShape(Circle())
-                    Text("Tertiary Infotech Academy")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
-                }
-            }
-        }
+        .brandBar(bell: true)
+        .task { await NotificationStore.shared.refresh() }
     }
 
     private func greeting(_ s: DashboardSummary) -> some View {

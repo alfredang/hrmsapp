@@ -54,6 +54,32 @@ actor HRMSAPI {
 
     func approvals() async throws -> ApprovalsResponse { isPreview ? PreviewData.approvals : try await get("api/mobile/approvals") }
 
+    /// Curated SG public holidays (public endpoint). `date` is plain `yyyy-MM-dd`.
+    func publicHolidays(year: Int) async throws -> [PublicHoliday] {
+        if isPreview { return PreviewData.holidays(year) }
+        let resp: PublicHolidaysResponse = try await get("api/public-holidays?year=\(year)")
+        return resp.holidays
+    }
+
+    /// Staff-relevant notifications (raw array). Newest first.
+    func notifications() async throws -> [AppNotification] {
+        if isPreview { return PreviewData.notifications }
+        let all: [AppNotification] = try await get("api/notifications")
+        return all.filter(\.isStaffRelevant)
+    }
+
+    /// Mark a single notification read (owner only). POST /api/notifications/{id}/read.
+    func markNotificationRead(id: String) async throws {
+        if isPreview { return }
+        var req = URLRequest(url: base.appendingPathComponent("api/notifications/\(id)/read"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (_, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 || code == 403 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else { throw APIError.http(code) }
+    }
+
     // MARK: - Approve / reject pending requests (existing web routes)
 
     enum ApprovalKind: String {
@@ -188,6 +214,44 @@ actor HRMSAPI {
             let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
             throw NSError(domain: "HRMS", code: code,
                           userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not submit your claim."])
+        }
+    }
+
+    // MARK: - Profile: self-edit + change password
+
+    /// PATCH /api/employees/{id} with a `personalInfo` block. `id` is the
+    /// internal employee id (== the session's employeeId claim), which the
+    /// server's self-edit check requires. Only the provided keys are updated.
+    func updateProfile(employeeId: String, personalInfo: [String: Any]) async throws {
+        if isPreview { return }
+        var req = URLRequest(url: base.appendingPathComponent("api/employees/\(employeeId)"))
+        req.httpMethod = "PATCH"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["personalInfo": personalInfo])
+        let (data, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 || code == 403 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw NSError(domain: "HRMS", code: code,
+                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not save your profile."])
+        }
+    }
+
+    /// PATCH /api/profile/password {currentPassword, newPassword}. newPassword ≥ 6 chars.
+    func changePassword(current: String, new: String) async throws {
+        if isPreview { return }
+        var req = URLRequest(url: base.appendingPathComponent("api/profile/password"))
+        req.httpMethod = "PATCH"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["currentPassword": current, "newPassword": new])
+        let (data, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw NSError(domain: "HRMS", code: code,
+                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not update your password."])
         }
     }
 

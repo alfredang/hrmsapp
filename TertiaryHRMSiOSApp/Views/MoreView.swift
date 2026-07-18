@@ -18,9 +18,7 @@ struct MoreView: View {
                             divider
                             link("Calendar", "calendar", Theme.sky) { CalendarListView() }
                             divider
-                            link("Clock in / out", "clock.badge.checkmark.fill", .yellow) { ClockView() }
-                            divider
-                            link("Timesheet", "clock.fill", .mint) { TimesheetView() }
+                            link("Timesheet", "clock.badge.checkmark.fill", .yellow) { TimesheetView() }
                             divider
                             link("My profile", "person.crop.circle.fill", Theme.azure) { ProfileView() }
                         }
@@ -33,7 +31,7 @@ struct MoreView: View {
                 .padding(20)
             }
         }
-        .navigationTitle("More")
+        .brandBar()
     }
 
     private var header: some View {

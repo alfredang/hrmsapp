@@ -3,6 +3,8 @@ import SwiftUI
 /// My profile — full employee record from /api/mobile/profile.
 struct ProfileView: View {
     @State private var state: LoadState<ProfileResponse> = .idle
+    @State private var showEdit = false
+    @State private var showPassword = false
 
     var body: some View {
         GradientScreen {
@@ -11,6 +13,10 @@ struct ProfileView: View {
                     ScrollView {
                         VStack(spacing: 18) {
                             avatar(e)
+                            HStack(spacing: 10) {
+                                actionButton("Edit profile", "square.and.pencil") { showEdit = true }
+                                actionButton("Password", "lock.fill") { showPassword = true }
+                            }
                             Card {
                                 detail("Employee ID", e.employeeId)
                                 detail("Email", e.email)
@@ -35,8 +41,24 @@ struct ProfileView: View {
                 }
             }
         }
-        .navigationTitle("My profile")
-        .navigationBarTitleDisplayMode(.inline)
+        .brandBar()
+        .sheet(isPresented: $showEdit) {
+            if case .loaded(let data) = state, let e = data.employee {
+                EditProfileView(employee: e) { Task { await load() } }
+            }
+        }
+        .sheet(isPresented: $showPassword) { ChangePasswordView() }
+    }
+
+    private func actionButton(_ title: String, _ icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity).frame(height: 44)
+                .background(.white.opacity(0.1)).foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.white.opacity(0.18), lineWidth: 1))
+        }
     }
 
     private func avatar(_ e: EmployeeProfile) -> some View {

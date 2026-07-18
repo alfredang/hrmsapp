@@ -20,7 +20,7 @@ struct TeamView: View {
                 .refreshable { await load() }
             }
         }
-        .navigationTitle("Team")
+        .brandBar()
         .searchable(text: $query, prompt: "Search name or role")
     }
 
