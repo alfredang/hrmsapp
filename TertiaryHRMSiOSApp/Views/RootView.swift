@@ -45,7 +45,9 @@ struct RootView: View {
         case "payslips":  PayslipsView()
         case "expenses":  ExpensesView()
         case "calendar":  CalendarListView()
-        case "timesheet": TimesheetView()
+        case "timesheet": WeeklyTimesheetView()
+        case "timeoff":   TimeOffView()
+        case "clock":     ClockView()
         case "profile":   ProfileView()
         default:          DashboardView()
         }

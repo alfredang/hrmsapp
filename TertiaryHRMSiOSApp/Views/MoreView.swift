@@ -18,7 +18,11 @@ struct MoreView: View {
                             divider
                             link("Calendar", "calendar", Theme.sky) { CalendarListView() }
                             divider
-                            link("Timesheet", "clock.badge.checkmark.fill", .yellow) { TimesheetView() }
+                            link("Clock In / Out", "clock.badge.checkmark.fill", .yellow) { ClockView() }
+                            divider
+                            link("Timesheet", "tablecells.badge.ellipsis", .mint) { WeeklyTimesheetView() }
+                            divider
+                            link("Time Off", "hourglass", .purple) { TimeOffView() }
                             divider
                             link("My profile", "person.crop.circle.fill", Theme.azure) { ProfileView() }
                         }

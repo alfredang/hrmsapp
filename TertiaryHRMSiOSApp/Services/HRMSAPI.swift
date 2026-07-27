@@ -49,8 +49,24 @@ actor HRMSAPI {
     func payslips() async throws -> PayslipsResponse  { isPreview ? PreviewData.payslips  : try await get("api/mobile/payslips") }
     func calendar() async throws -> CalendarResponse  { isPreview ? PreviewData.calendar  : try await get("api/mobile/calendar") }
     func profile()  async throws -> ProfileResponse   { isPreview ? PreviewData.profile   : try await get("api/mobile/profile") }
-    func timesheet()async throws -> TimesheetResponse { isPreview ? PreviewData.timesheet : try await get("api/timesheet") }
     func attendance() async throws -> AttendanceResponse { isPreview ? PreviewData.attendance : try await get("api/mobile/attendance") }
+
+    /// Weekly timesheet (existing /api/timesheet). `weekStart` is a Monday
+    /// `yyyy-MM-dd`; nil returns the server's current week.
+    func timesheet(weekStart: String? = nil) async throws -> TimesheetResponse {
+        if isPreview { return PreviewData.timesheet }
+        guard let weekStart else { return try await get("api/timesheet") }
+        // Note: appendingPathComponent percent-encodes "?", so build the query URL properly.
+        var comps = URLComponents(url: base.appendingPathComponent("api/timesheet"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "weekStart", value: weekStart)]
+        return try await get(url: comps.url!)
+    }
+
+    /// The employee's hourly time-off requests (raw array, newest first).
+    func timeOff() async throws -> [TimeOffRequest] {
+        isPreview ? PreviewData.timeOff : try await get("api/time-off")
+    }
 
     func approvals() async throws -> ApprovalsResponse { isPreview ? PreviewData.approvals : try await get("api/mobile/approvals") }
 
@@ -128,6 +144,71 @@ actor HRMSAPI {
             let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
             throw NSError(domain: "HRMS", code: code,
                           userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not submit your leave request."])
+        }
+    }
+
+    // MARK: - Time off (hourly): request + cancel (existing /api/time-off routes)
+
+    /// POST /api/time-off. Times are "HH:mm" 24-hour; `reasonDetail` is
+    /// required by the server when reason == OTHERS.
+    func submitTimeOff(date: String, startTime: String, endTime: String,
+                       reason: String, reasonDetail: String? = nil) async throws {
+        if isPreview { return }
+        var req = URLRequest(url: base.appendingPathComponent("api/time-off"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var body: [String: Any] = [
+            "date": date, "startTime": startTime, "endTime": endTime, "reason": reason,
+        ]
+        if let reasonDetail, !reasonDetail.isEmpty { body["reasonDetail"] = reasonDetail }
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw NSError(domain: "HRMS", code: code,
+                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not submit your time-off request."])
+        }
+    }
+
+    /// POST /api/time-off/{id}/cancel — owner's PENDING requests only.
+    func cancelTimeOff(id: String) async throws {
+        if isPreview { return }
+        var req = URLRequest(url: base.appendingPathComponent("api/time-off/\(id)/cancel"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw NSError(domain: "HRMS", code: code,
+                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not cancel the request."])
+        }
+    }
+
+    // MARK: - Submit weekly timesheet (POST /api/timesheet)
+
+    /// POST /api/timesheet {weekStart, entries:[{date, hours}]} — weekend /
+    /// public-holiday hours for Off-In-Lieu credit.
+    func submitTimesheet(weekStart: String, entries: [TimesheetEntry]) async throws {
+        if isPreview { return }
+        var req = URLRequest(url: base.appendingPathComponent("api/timesheet"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "weekStart": weekStart,
+            "entries": entries.map { ["date": $0.date, "hours": $0.hours] },
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw NSError(domain: "HRMS", code: code,
+                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not submit your timesheet."])
         }
     }
 
@@ -269,7 +350,11 @@ actor HRMSAPI {
     // MARK: - Plumbing
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
-        var req = URLRequest(url: base.appendingPathComponent(path))
+        try await get(url: base.appendingPathComponent(path))
+    }
+
+    private func get<T: Decodable>(url: URL) async throws -> T {
+        var req = URLRequest(url: url)
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, resp) = try await safe(req)
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0

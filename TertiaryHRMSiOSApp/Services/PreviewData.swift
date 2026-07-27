@@ -204,6 +204,26 @@ enum PreviewData {
                             clockIn: "2026-06-11T01:10:00Z", clockOut: "2026-06-11T09:12:00Z"),
         ])
 
+    // MARK: Time off (hourly)
+    static let timeOff: [TimeOffRequest] = [
+        TimeOffRequest(id: "to1", date: "2026-07-30T00:00:00.000Z",
+                       startTime: "14:00", endTime: "16:30", hours: 2.5,
+                       reason: "EXAMS", reasonDetail: nil, status: "PENDING",
+                       approvalComment: nil, rejectionReason: nil,
+                       createdAt: "2026-07-20T02:00:00.000Z"),
+        TimeOffRequest(id: "to2", date: "2026-07-08T00:00:00.000Z",
+                       startTime: "09:00", endTime: "13:00", hours: 4,
+                       reason: "EMERGENCY", reasonDetail: nil, status: "APPROVED",
+                       approvalComment: "Take care!", rejectionReason: nil,
+                       createdAt: "2026-07-07T01:15:00.000Z"),
+        TimeOffRequest(id: "to3", date: "2026-06-19T00:00:00.000Z",
+                       startTime: "15:00", endTime: "18:00", hours: 3,
+                       reason: "OTHERS", reasonDetail: "School enrolment appointment",
+                       status: "REJECTED", approvalComment: nil,
+                       rejectionReason: "Please reschedule — project deadline that day.",
+                       createdAt: "2026-06-15T06:40:00.000Z"),
+    ]
+
     // MARK: Timesheet
     static let timesheet: TimesheetResponse = {
         let days = [

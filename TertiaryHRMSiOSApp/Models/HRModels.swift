@@ -252,6 +252,70 @@ struct AttendancePunch: Codable, Identifiable {
     }
 }
 
+// MARK: - Time off (hourly, for interns)  (/api/time-off — returns a raw array)
+struct TimeOffRequest: Codable, Identifiable {
+    let id: String
+    /// ISO date of the time off (formatted at the view layer via `Fmt`).
+    let date: String
+    /// "HH:mm" 24-hour strings, converted to 12-hour at the view layer.
+    let startTime: String
+    let endTime: String
+    let hours: Double
+    /// EXAMS | EMERGENCY | OTHERS
+    let reason: String
+    let reasonDetail: String?
+    /// PENDING | APPROVED | REJECTED | CANCELLED
+    let status: String
+    let approvalComment: String?
+    let rejectionReason: String?
+    let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, date, startTime, endTime, hours, reason, reasonDetail, status,
+             approvalComment, rejectionReason, createdAt
+    }
+    // `hours` arrives as a decimal string (e.g. "2.50") — decode leniently.
+    init(from d: Decoder) throws {
+        let c = try d.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        date = (try? c.decode(String.self, forKey: .date)) ?? ""
+        startTime = (try? c.decode(String.self, forKey: .startTime)) ?? ""
+        endTime = (try? c.decode(String.self, forKey: .endTime)) ?? ""
+        hours = TimeOffRequest.flexNumber(c, .hours)
+        reason = (try? c.decode(String.self, forKey: .reason)) ?? "OTHERS"
+        reasonDetail = try? c.decodeIfPresent(String.self, forKey: .reasonDetail)
+        status = (try? c.decode(String.self, forKey: .status)) ?? "PENDING"
+        approvalComment = try? c.decodeIfPresent(String.self, forKey: .approvalComment)
+        rejectionReason = try? c.decodeIfPresent(String.self, forKey: .rejectionReason)
+        createdAt = try? c.decodeIfPresent(String.self, forKey: .createdAt)
+    }
+    private static func flexNumber(_ c: KeyedDecodingContainer<CodingKeys>, _ k: CodingKeys) -> Double {
+        if let d = try? c.decode(Double.self, forKey: k) { return d }
+        if let s = try? c.decode(String.self, forKey: k), let d = Double(s) { return d }
+        return 0
+    }
+
+    // Memberwise init (the custom `init(from:)` above suppresses the synthesized one);
+    // used to build the `-uiPreview` sample data.
+    init(id: String, date: String, startTime: String, endTime: String, hours: Double,
+         reason: String, reasonDetail: String?, status: String,
+         approvalComment: String?, rejectionReason: String?, createdAt: String?) {
+        self.id = id; self.date = date; self.startTime = startTime; self.endTime = endTime
+        self.hours = hours; self.reason = reason; self.reasonDetail = reasonDetail
+        self.status = status; self.approvalComment = approvalComment
+        self.rejectionReason = rejectionReason; self.createdAt = createdAt
+    }
+
+    /// Display label for the reason enum.
+    var reasonLabel: String {
+        switch reason.uppercased() {
+        case "EXAMS": return "Exams"
+        case "EMERGENCY": return "Emergency"
+        default: return "Others"
+        }
+    }
+}
+
 // MARK: - Timesheet  (existing /api/timesheet)
 struct TimesheetResponse: Codable {
     let weekStart: String
@@ -307,4 +371,10 @@ struct TimesheetDay: Codable, Identifiable {
         self.isNonWorkDay = isNonWorkDay; self.hours = hours; self.otCredited = otCredited
         self.status = status; self.adminComment = adminComment; self.isSubmittable = isSubmittable
     }
+}
+
+/// One editable day sent back in `POST /api/timesheet`.
+struct TimesheetEntry: Codable {
+    let date: String
+    let hours: Double
 }
