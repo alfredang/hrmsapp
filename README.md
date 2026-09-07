@@ -64,7 +64,7 @@ business rules locally; the server remains the single source of truth.
 | 👥 **Team** | Company directory (richer contact details for supervisory roles) |
 | 🧾 **Payslips** | Personal payslips with a native **PDFKit** viewer for the authenticated PDF |
 | 💳 **Expenses** | Personal expense claims with status and approved totals, plus **submit a claim with a receipt photo** (camera or library) |
-| 📅 **Calendar** | Public holidays, your events, and your approved leave, grouped by month |
+| 📅 **Calendar** | A month grid of the **whole team's approved leave** — filter to *Only me*; tap a day for who's out. Colleagues' leave *type* stays private unless you're an approver |
 | ⏱️ **Timesheet** | One-tap **clock in / out** with a live elapsed timer and last-7-days log |
 | 🔔 **Notifications** | In-app bell with unread badge — leave/OT approvals & rejections, marked read on tap |
 | 🙋 **Profile** | Your full employee record, with **self-service edit** and **change password** |
@@ -122,7 +122,8 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: v1.5 (build 11) live in the Singapore App Store:
+(ASC app `6759821144`). **Status: v1.5 (build 11) live in the Singapore App Store; v1.6
+(build 12 — Google sign-in + team calendar) submitted and awaiting review:
 [apps.apple.com/sg/app/tertiary-hrms/id6759821144](https://apps.apple.com/sg/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 its bundled `asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for
 future builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.

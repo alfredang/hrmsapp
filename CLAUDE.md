@@ -93,7 +93,10 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Notifications** — in-app list + nav-bar bell with unread badge. `GET /api/notifications`
   (raw array), mark-read `POST /api/notifications/{id}/read`; filtered to staff-relevant types
   (LEAVE_/OT_/WOODS_SQUARE_ APPROVED/REJECTED/DECLINED, INFO). `NotificationStore` keeps the badge in sync.
-- **Calendar** — public holidays, the user's events, and their approved leave, grouped by month.
+- **Calendar** — a **month grid of the whole team's approved leave** (`GET /api/mobile/team-calendar`),
+  with an Everyone / Only me filter and a per-day detail sheet. A colleague's leave **type** is masked
+  server-side unless the viewer is the person themselves or an approver — medical leave would otherwise
+  disclose health information company-wide. Only APPROVED leave is returned.
 - **Profile** — full employee record, with **self-service Edit** (`PATCH /api/employees/{id}`,
   `personalInfo` block; `id` = internal employee id) and **Change Password**
   (`PATCH /api/profile/password`, min-6). Employment/role fields stay admin-only (web).
@@ -140,7 +143,7 @@ Single-coordinator MVVM around `AuthViewModel` (`@MainActor`). Networking is two
 `AuthService` (NextAuth sign-in) and `HRMSAPI` (typed reads + writes — apply-leave, submit-claim,
 clock, approve/reject, upload, notifications, profile update, change password, public holidays —
 plus PDF download), both riding the shared cookie store. `RootView` routes loading → `LoginView`
-→ `MainTabView` (Home / Leave / Team / More). Reusable Premier Blue controls live in `Views/Components/`.
+→ `MainTabView` (Home / Leave / Calendar / Team / More). Reusable Premier Blue controls live in `Views/Components/`.
 
 **Security model — the app holds NO secrets.** It ships zero API keys/credentials; every call
 rides the user's own NextAuth session cookie, and all RBAC/validation stays on the server (the
