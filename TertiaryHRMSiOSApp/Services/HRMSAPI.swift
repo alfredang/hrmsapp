@@ -49,6 +49,12 @@ actor HRMSAPI {
     func payslips() async throws -> PayslipsResponse  { isPreview ? PreviewData.payslips  : try await get("api/mobile/payslips") }
     func calendar() async throws -> CalendarResponse  { isPreview ? PreviewData.calendar  : try await get("api/mobile/calendar") }
     func profile()  async throws -> ProfileResponse   { isPreview ? PreviewData.profile   : try await get("api/mobile/profile") }
+
+    /// Company-wide approved leave for the team calendar.
+    func teamCalendar(year: Int) async throws -> TeamCalendarResponse {
+        if isPreview { return PreviewData.teamCalendar }
+        return try await get("api/mobile/team-calendar?year=\(year)")
+    }
     func attendance() async throws -> AttendanceResponse { isPreview ? PreviewData.attendance : try await get("api/mobile/attendance") }
 
     /// Weekly timesheet (existing /api/timesheet). `weekStart` is a Monday

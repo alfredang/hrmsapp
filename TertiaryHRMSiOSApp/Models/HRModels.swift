@@ -164,6 +164,36 @@ struct CalendarResponse: Codable {
     let events: [CalendarEvent]
 }
 
+/// Company-wide approved leave for the team calendar (`/api/mobile/team-calendar`).
+/// `leaveType` is nil when the viewer may not see a colleague's leave type — the
+/// server masks it rather than trusting the client to hide it.
+struct TeamCalendarResponse: Codable {
+    let year: Int
+    let canSeeTypes: Bool
+    let entries: [TeamLeaveEntry]
+    let holidays: [TeamHoliday]
+}
+
+struct TeamLeaveEntry: Codable, Identifiable {
+    let id: String
+    let employeeId: String
+    let employeeName: String
+    let department: String?
+    let startDate: String?
+    let endDate: String?
+    let days: Double
+    let halfDay: Bool
+    let leaveType: String?
+    let isSelf: Bool
+}
+
+struct TeamHoliday: Codable, Identifiable {
+    let id: String
+    let title: String
+    let startDate: String?
+    let endDate: String?
+}
+
 struct CalendarEvent: Codable, Identifiable {
     let id: String
     let title: String

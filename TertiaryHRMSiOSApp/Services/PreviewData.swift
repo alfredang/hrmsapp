@@ -139,6 +139,27 @@ enum PreviewData {
     }
 
     // MARK: Calendar
+    static let teamCalendar = TeamCalendarResponse(
+        year: 2026,
+        canSeeTypes: true,
+        entries: [
+            TeamLeaveEntry(id: "tl1", employeeId: "E0001", employeeName: "Alfred Ang", department: "Management",
+                           startDate: "2026-09-08T00:00:00Z", endDate: "2026-09-09T00:00:00Z",
+                           days: 2, halfDay: false, leaveType: "Annual Leave", isSelf: true),
+            TeamLeaveEntry(id: "tl2", employeeId: "E0002", employeeName: "Femina Jasmin", department: "Engineering",
+                           startDate: "2026-09-10T00:00:00Z", endDate: "2026-09-10T00:00:00Z",
+                           days: 1, halfDay: false, leaveType: "Annual Leave", isSelf: false),
+            TeamLeaveEntry(id: "tl3", employeeId: "E0003", employeeName: "Amanda Halim", department: "Operations",
+                           startDate: "2026-09-15T00:00:00Z", endDate: "2026-09-16T00:00:00Z",
+                           days: 1.5, halfDay: true, leaveType: "Annual Leave", isSelf: false),
+            TeamLeaveEntry(id: "tl4", employeeId: "E0004", employeeName: "Tan Yong Huat", department: "Training",
+                           startDate: "2026-09-10T00:00:00Z", endDate: "2026-09-10T00:00:00Z",
+                           days: 1, halfDay: false, leaveType: "Medical Leave", isSelf: false),
+        ],
+        holidays: [
+            TeamHoliday(id: "h1", title: "Public Holiday", startDate: "2026-09-21T00:00:00Z", endDate: "2026-09-21T00:00:00Z"),
+        ])
+
     static let calendar = CalendarResponse(events: [
         CalendarEvent(id: "ev1", title: "Hari Raya Haji", startDate: "2026-06-06T09:00:00Z", endDate: "2026-06-06T09:00:00Z",
                       allDay: true, type: "HOLIDAY", color: "#E11D48", description: "Public Holiday"),

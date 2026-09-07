@@ -27,6 +27,8 @@ struct MainTabView: View {
                 .tabItem { Label("Home", systemImage: "house.fill") }
             NavigationStack { LeaveView() }
                 .tabItem { Label("Leave", systemImage: "calendar.badge.clock") }
+            NavigationStack { TeamCalendarView() }
+                .tabItem { Label("Calendar", systemImage: "calendar") }
             NavigationStack { TeamView() }
                 .tabItem { Label("Team", systemImage: "person.2.fill") }
             NavigationStack { MoreView() }
@@ -39,6 +41,7 @@ struct MainTabView: View {
                 case "clock": ClockView()
                 case "claim": NewClaimView()
                 case "approvals": ApprovalsView()
+                case "calendar": TeamCalendarView()
                 default: EmptyView()
                 }
             }
