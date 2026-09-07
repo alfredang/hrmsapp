@@ -46,7 +46,9 @@ business rules locally; the server remains the single source of truth.
   authenticated API — it never touches the database directly.
 - **Auth** reuses the web app's **NextAuth (Auth.js)** session: a standard
   `csrf → callback → session` flow, with the session cookie persisted so employees stay signed in.
-  Both **email + password** and **email one-time-code (OTP)** are supported.
+  **Email + password**, **email one-time-code (OTP)** and **Google sign-in** are supported —
+  the last via Apple's `ASWebAuthenticationSession` with an OAuth 2.0 PKCE flow (no third-party
+  SDK), whose Google `id_token` the backend verifies before issuing the session.
 - A small, **additive, read-only `/api/mobile/*`** namespace was added to the web backend to expose
   (as JSON) the same data the web pages render. It changes no existing web behaviour.
 
@@ -56,7 +58,7 @@ business rules locally; the server remains the single source of truth.
 
 | Module | What you get |
 |---|---|
-| 🔐 **Login** | Premier-Blue email + password and email-OTP sign-in; session persists across launches |
+| 🔐 **Login** | Premier-Blue email + password, email-OTP, and **Continue with Google**; session persists across launches |
 | 🏠 **Dashboard** | Annual / medical / OT leave balances, expenses YTD, and (for ADMIN/HR/MANAGER) the pending-approvals queue |
 | 🗓️ **Leave** | Balances, full request history, and **apply for leave** — with a **live working-days preview** (weekends & SG public holidays auto-excluded) and MC-photo attach for medical leave |
 | 👥 **Team** | Company directory (richer contact details for supervisory roles) |
@@ -108,7 +110,8 @@ TertiaryHRMSiOSApp/
 │  ├─ App/                     # @main entry
 │  ├─ Theme/                   # Premier Blue palette + formatters
 │  ├─ Models/                  # Codable models for the mobile API
-│  ├─ Services/                # AuthService (NextAuth) + HRMSAPI
+│  ├─ Resources/               # Asset catalog (app icon, colours)
+│  ├─ Services/                # AuthService (NextAuth), GoogleSignInService (OAuth+PKCE), HRMSAPI
 │  ├─ ViewModels/              # AuthViewModel
 │  ├─ Views/                   # Login + tabbed feature screens
 │  └─ Support/                 # Info.plist, PrivacyInfo.xcprivacy
@@ -119,11 +122,10 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: live in the Singapore App Store — v1.4 (build 9) in preparation
-(notifications, profile edit/password, timesheet clock-in/out, leave working-days preview):
+(ASC app `6759821144`). **Status: v1.5 (build 11) live in the Singapore App Store:
 [apps.apple.com/app/tertiary-hrms/id6759821144](https://apps.apple.com/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
-`scripts/asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for future
-builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
+its bundled `asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for
+future builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
 
 ---
 

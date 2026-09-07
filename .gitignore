@@ -24,3 +24,14 @@ screenshots/raw/
 .playwright-mcp/
 __pycache__/
 *.pyc
+
+# Distribution archives (rebuildable — never pushed to GitHub)
+*.zip
+
+# Source material the project was derived from — not ours to republish.
+**/reference/
+
+# Signing assets — never committed
+*.mobileprovision
+*.pem
+*.key
