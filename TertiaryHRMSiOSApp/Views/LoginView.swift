@@ -56,6 +56,7 @@ struct LoginView: View {
             rememberRow
             PremierButton(title: "Continue", systemImage: "arrow.right",
                           enabled: !auth.email.isEmpty, action: auth.continueFromEmail)
+            googleOption
         }
     }
 
@@ -69,6 +70,7 @@ struct LoginView: View {
             PremierButton(title: "Sign in", systemImage: "checkmark.circle.fill",
                           loading: auth.isWorking, enabled: !auth.password.isEmpty,
                           action: { Task { await auth.signInWithPassword() } })
+            googleOption
 
             HStack {
                 Button("Use a one-time code", action: auth.switchToOTP)
@@ -102,6 +104,17 @@ struct LoginView: View {
     }
 
     // MARK: Bits
+
+    /// Google sign-in, offered alongside password and OTP. Hidden entirely when the
+    /// build carries no Google iOS client id, so it can never dead-end the user.
+    @ViewBuilder
+    private var googleOption: some View {
+        if auth.googleSignInAvailable {
+            OrDivider()
+            GoogleSignInButton(loading: auth.isWorking, enabled: !auth.isWorking,
+                               action: { Task { await auth.signInWithGoogle() } })
+        }
+    }
 
     private var rememberRow: some View {
         Toggle(isOn: $auth.rememberEmail) {

@@ -41,6 +41,29 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Tertiary HRMS uses the camera to photograph receipts for expense and medical claims, and medical certificates for medical leave.</string>
 
+	<!-- ===== Google Sign-In ===== -->
+	<!-- The iOS OAuth client id, supplied by the GOOGLE_IOS_CLIENT_ID build setting
+	     (project.yml). NOT a secret: native OAuth clients are public by design and
+	     carry no client secret — the backend independently verifies every id_token
+	     with Google and checks it against its own audience allow-list. When the
+	     setting is empty the app simply hides the Google button. -->
+	<key>GIDClientID</key>
+	<string>$(GOOGLE_IOS_CLIENT_ID)</string>
+	<!-- Google's iOS redirect convention: the client id reversed as a URL scheme. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.googleusercontent.apps</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(GOOGLE_IOS_URL_SCHEME)</string>
+			</array>
+		</dict>
+	</array>
+
 	<!-- ===== App Store compliance ===== -->
 	<!-- App uses only standard HTTPS (URLSession TLS) — no non-exempt encryption. Skips export-compliance prompt. -->
 	<key>ITSAppUsesNonExemptEncryption</key>

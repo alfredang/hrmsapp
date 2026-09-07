@@ -11,6 +11,13 @@ settings:
     MARKETING_VERSION: "1.5"
     CURRENT_PROJECT_VERSION: "11"
     SWIFT_VERSION: "5.0"
+    # Google Sign-In (native, ASWebAuthenticationSession + PKCE).
+    # Paste the "iOS" OAuth client id from Google Cloud Console here; the URL scheme
+    # is that same id with its dot-separated parts reversed. Leave BOTH empty to ship
+    # a build with the Google button hidden. Public values, not secrets — a native
+    # OAuth client has no secret and the backend verifies every token with Google.
+    GOOGLE_IOS_CLIENT_ID: ""
+    GOOGLE_IOS_URL_SCHEME: ""
     DEVELOPMENT_TEAM: "GU9WTSTX9M"   # Tertiary Infotech Academy (paid) — same team as the other apps
     CODE_SIGN_STYLE: Automatic
 

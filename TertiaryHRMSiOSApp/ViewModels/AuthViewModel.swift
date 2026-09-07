@@ -143,6 +143,25 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
+    /// Sign in with Google (native consent sheet → backend-verified NextAuth session).
+    func signInWithGoogle() async {
+        guard !isWorking else { return }
+        errorMessage = nil; infoMessage = nil
+        isWorking = true; defer { isWorking = false }
+        do {
+            let u = try await GoogleSignInService.shared.signIn()
+            // Carry the Google account forward so "remember my email" and a later
+            // password/OTP sign-in both land on the right address.
+            if let signedInEmail = u.email, !signedInEmail.isEmpty { email = signedInEmail }
+            persistRememberedEmail()
+            finishSignIn(u)
+        } catch GoogleSignInService.GoogleAuthError.cancelled {
+            // Someone simply backed out of the consent sheet — no error banner.
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? "Google sign-in failed."
+        }
+    }
+
     func signOut() async {
         await AuthService.shared.signOut()
         user = nil
@@ -152,6 +171,9 @@ final class AuthViewModel: ObservableObject {
     }
 
     // MARK: - Helpers
+
+    /// Whether this build ships a Google iOS client id (hides the button otherwise).
+    var googleSignInAvailable: Bool { GoogleSignInService.isConfigured }
 
     private func finishSignIn(_ u: SessionUser) {
         user = u

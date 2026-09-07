@@ -31,7 +31,25 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   performs the standard NextAuth flow against Coolify: `GET /api/auth/csrf` →
   `POST /api/auth/callback/{credentials|otp}` → `GET /api/auth/session`. The resulting session cookie
   is stored in the shared cookie jar and reused for every subsequent API call, exactly as a browser
-  would. Both **email + password** and **email one-time-code (OTP)** sign-in are supported.
+  would. **Email + password**, **email one-time-code (OTP)**, and **Google** sign-in are supported.
+- **Google sign-in** (`Services/GoogleSignInService.swift`) uses Apple's `ASWebAuthenticationSession`
+  with an OAuth 2.0 **authorization-code + PKCE** flow — no third-party SDK, so the project stays on
+  system frameworks only. It exchanges the code for a Google `id_token` and POSTs it to the
+  pre-existing **`POST /api/auth/google-mobile`**, which verifies the token with Google, checks the
+  audience against `GOOGLE_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` / `GOOGLE_ANDROID_CLIENT_ID`, blocks
+  INACTIVE employees, and sets the same NextAuth session cookie. Setup, both sides:
+  1. **Google Cloud Console** → *APIs & Services → Credentials → Create credentials → OAuth client
+     ID → iOS*, bundle id `com.tertiaryinfotech.hrportal`. An iOS client has **no secret** — the id
+     is a public value, and trust comes from the server verifying every token.
+  2. In `project.yml`, set `GOOGLE_IOS_CLIENT_ID` to that id and `GOOGLE_IOS_URL_SCHEME` to the same
+     id with its dot-separated components **reversed** (`123-abc.apps.googleusercontent.com` →
+     `com.googleusercontent.apps.123-abc`), then `xcodegen generate`. Both feed `Info.plist`
+     (`GIDClientID` + `CFBundleURLTypes`). Left empty, the app **hides the Google button** entirely.
+  3. On **Coolify**, set `GOOGLE_IOS_CLIENT_ID` to the same id and redeploy, so the backend accepts
+     tokens minted for the iOS client.
+- **Expired company Google token**: the Gmail/Drive refresh token that sends OTP emails expires
+  periodically. An admin renews it in one click at **Settings → Credentials → "Sign in with Google
+  to renew token"** (`/api/settings/google-oauth/start`) — the OAuth Playground is only a fallback.
 - **Data endpoints**: the web app's pages are server-rendered (React Server Components) and don't
   expose JSON, so a small, **additive `/api/mobile/*` namespace was added to the web
   backend** purely to feed this app (`summary`, `profile`, `leave`, `employees`, `expenses`,
@@ -48,7 +66,8 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 ## Features
 
 **Included** (HR modules — mirrors the web app for an employee):
-- **Login frontend** — Premier Blue email + password and email-OTP sign-in; session persists across launches.
+- **Login frontend** — Premier Blue email + password, email-OTP, and **Google sign-in**; session
+  persists across launches.
 - **Dashboard** — leave balances (AL / MC / OT), expenses YTD, quick actions, and (for
   approvers — role ADMIN/HR/MANAGER, i.e. `summary.isAdmin`) the **actionable approvals queue**.
   Carries the notifications **bell with unread badge** (`brandBar(bell:)`).
