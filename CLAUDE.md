@@ -45,8 +45,10 @@ This native app is a **client of the existing HRMS web backend** — it has no d
      id with its dot-separated components **reversed** (`123-abc.apps.googleusercontent.com` →
      `com.googleusercontent.apps.123-abc`), then `xcodegen generate`. Both feed `Info.plist`
      (`GIDClientID` + `CFBundleURLTypes`). Left empty, the app **hides the Google button** entirely.
-  3. On **Coolify**, set `GOOGLE_IOS_CLIENT_ID` to the same id and redeploy, so the backend accepts
-     tokens minted for the iOS client.
+  3. On the **web app**, paste the same id into *Settings → Credentials → **Mobile Sign-In
+     (Google)*** so the backend accepts tokens minted for the iOS client. It is stored in
+     `CompanyCredential` and read live — **no redeploy needed**. (A `GOOGLE_IOS_CLIENT_ID` env var
+     on Coolify still works as a fallback.)
 - **Expired company Google token**: the Gmail/Drive refresh token that sends OTP emails expires
   periodically. An admin renews it in one click at **Settings → Credentials → "Sign in with Google
   to renew token"** (`/api/settings/google-oauth/start`) — the OAuth Playground is only a fallback.
