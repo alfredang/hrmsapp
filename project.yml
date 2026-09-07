@@ -16,8 +16,8 @@ settings:
     # is that same id with its dot-separated parts reversed. Leave BOTH empty to ship
     # a build with the Google button hidden. Public values, not secrets — a native
     # OAuth client has no secret and the backend verifies every token with Google.
-    GOOGLE_IOS_CLIENT_ID: ""
-    GOOGLE_IOS_URL_SCHEME: ""
+    GOOGLE_IOS_CLIENT_ID: "530515169905-6gi9km2pf28varo4is8obmmhr4t23pg4.apps.googleusercontent.com"
+    GOOGLE_IOS_URL_SCHEME: "com.googleusercontent.apps.530515169905-6gi9km2pf28varo4is8obmmhr4t23pg4"
     DEVELOPMENT_TEAM: "GU9WTSTX9M"   # Tertiary Infotech Academy (paid) — same team as the other apps
     CODE_SIGN_STYLE: Automatic
 
