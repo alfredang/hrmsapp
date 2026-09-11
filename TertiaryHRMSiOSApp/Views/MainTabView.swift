@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The signed-in app shell. Four tabs cover the HR modules (Accounting is
+/// The signed-in app shell. Five tabs cover the HR modules (Accounting is
 /// intentionally excluded). Each tab is its own navigation stack on the
 /// Premier Blue surface.
 struct MainTabView: View {

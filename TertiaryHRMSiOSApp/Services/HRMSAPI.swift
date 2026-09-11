@@ -53,7 +53,13 @@ actor HRMSAPI {
     /// Company-wide approved leave for the team calendar.
     func teamCalendar(year: Int) async throws -> TeamCalendarResponse {
         if isPreview { return PreviewData.teamCalendar }
-        return try await get("api/mobile/team-calendar?year=\(year)")
+        // A query string passed to appendingPathComponent is treated as part of
+        // the path and turns `?` into `%3F`, which makes this endpoint 404.
+        // Build the query separately so the server receives the intended route.
+        var comps = URLComponents(url: base.appendingPathComponent("api/mobile/team-calendar"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "year", value: String(year))]
+        return try await get(url: comps.url!)
     }
     func attendance() async throws -> AttendanceResponse { isPreview ? PreviewData.attendance : try await get("api/mobile/attendance") }
 
