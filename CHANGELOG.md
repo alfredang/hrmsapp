@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.8]
+## [1.8] — submitted for App Review 2026-10-08 (build 14)
 - Clock In / Out now shows your daily check-in and check-out history for any month, with total hours and days worked.
 - Admins: new Intern Attendance screen (More menu) lists every intern's days worked and total hours for the month, with each intern's daily history.
 
