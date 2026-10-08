@@ -87,8 +87,12 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   with a receipt photo** (camera or library → `POST /api/mobile/claims` multipart → the server
   files the photo in the employee's own Google Drive folder under "Expense Claims" /
   "Medical Claims" and raises the approval). Expense and Medical claim types.
-- **Timesheet** — a simple **clock in / out** with a live elapsed timer and last-7-days log
-  (one-tap attendance punches stored centrally in `AttendancePunch` via `/api/mobile/attendance*`).
+- **Timesheet** — a simple **clock in / out** with a live elapsed timer and a **monthly daily
+  history** (check-in, check-out, hours, month total — `AttendanceHistorySection` over
+  `/api/mobile/attendance/history?month=`), one-tap punches stored centrally in `AttendancePunch`.
+- **Intern Attendance** (approvers only, More menu) — `InternAttendanceView` over
+  `/api/mobile/attendance/summary?month=`: each intern's days worked + total hours, drilling into
+  that intern's daily history. Mirrors the web's `/attendance/overview`.
   `TimesheetView` renders the clock experience (`ClockView`); also a Dashboard quick action.
 - **Notifications** — in-app list + nav-bar bell with unread badge. `GET /api/notifications`
   (raw array), mark-read `POST /api/notifications/{id}/read`; filtered to staff-relevant types

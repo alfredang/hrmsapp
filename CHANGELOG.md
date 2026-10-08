@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8]
+- Clock In / Out now shows your daily check-in and check-out history for any month, with total hours and days worked.
+- Admins: new Intern Attendance screen (More menu) lists every intern's days worked and total hours for the month, with each intern's daily history.
+
 ## [1.7]
 - Fixed the Calendar tab failing with a 404 by sending the selected year as a real URL query parameter.
 

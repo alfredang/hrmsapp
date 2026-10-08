@@ -282,6 +282,49 @@ struct AttendancePunch: Codable, Identifiable {
     }
 }
 
+// MARK: - Attendance history  (/api/mobile/attendance/history?month=YYYY-MM[&employeeId=])
+/// One employee's punches for a month, newest first, plus the month's totals.
+struct AttendanceHistory: Codable {
+    let month: String
+    let employee: AttendanceEmployee?
+    let days: [AttendanceDay]
+    let totalHours: Double
+    let daysWorked: Int
+}
+
+struct AttendanceEmployee: Codable {
+    let id: String
+    let name: String
+    let employeeCode: String
+}
+
+/// A day's punch. `date` is a plain `yyyy-MM-dd`; `hours` is nil until clocked out.
+struct AttendanceDay: Codable, Identifiable {
+    let id: String
+    let date: String
+    let clockIn: String?
+    let clockOut: String?
+    let hours: Double?
+}
+
+// MARK: - Intern attendance summary (admin)  (/api/mobile/attendance/summary?month=YYYY-MM)
+struct AttendanceSummary: Codable {
+    let month: String
+    let employees: [AttendanceSummaryRow]
+    let totalHours: Double
+}
+
+struct AttendanceSummaryRow: Codable, Identifiable {
+    let id: String
+    let name: String
+    let employeeCode: String
+    let isIntern: Bool
+    let daysWorked: Int
+    let totalHours: Double
+    let lastPunchDate: String?
+    let clockedInNow: Bool
+}
+
 // MARK: - Time off (hourly, for interns)  (/api/time-off — returns a raw array)
 struct TimeOffRequest: Codable, Identifiable {
     let id: String

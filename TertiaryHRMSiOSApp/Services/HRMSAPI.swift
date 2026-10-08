@@ -63,6 +63,26 @@ actor HRMSAPI {
     }
     func attendance() async throws -> AttendanceResponse { isPreview ? PreviewData.attendance : try await get("api/mobile/attendance") }
 
+    /// One month of daily check-in/out history. Without `employeeId` the
+    /// server returns the signed-in user's own; admins may pass anyone's.
+    func attendanceHistory(month: String, employeeId: String? = nil) async throws -> AttendanceHistory {
+        if isPreview { return PreviewData.attendanceHistory(month: month) }
+        var comps = URLComponents(url: base.appendingPathComponent("api/mobile/attendance/history"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "month", value: month)]
+        if let employeeId { comps.queryItems?.append(URLQueryItem(name: "employeeId", value: employeeId)) }
+        return try await get(url: comps.url!)
+    }
+
+    /// Admin roll-up: each intern's days worked + total hours for the month.
+    func attendanceSummary(month: String) async throws -> AttendanceSummary {
+        if isPreview { return PreviewData.attendanceSummary(month: month) }
+        var comps = URLComponents(url: base.appendingPathComponent("api/mobile/attendance/summary"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "month", value: month)]
+        return try await get(url: comps.url!)
+    }
+
     /// Weekly timesheet (existing /api/timesheet). `weekStart` is a Monday
     /// `yyyy-MM-dd`; nil returns the server's current week.
     func timesheet(weekStart: String? = nil) async throws -> TimesheetResponse {

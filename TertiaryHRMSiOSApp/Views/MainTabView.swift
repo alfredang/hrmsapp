@@ -42,6 +42,7 @@ struct MainTabView: View {
                 case "claim": NewClaimView()
                 case "approvals": ApprovalsView()
                 case "calendar": TeamCalendarView()
+                case "interns": InternAttendanceView()
                 default: EmptyView()
                 }
             }

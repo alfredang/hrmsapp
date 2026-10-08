@@ -3,11 +3,14 @@ import SwiftUI
 /// Clock in / out — one-tap attendance punches for part-time contractors and
 /// interns. Every punch is stored centrally (AttendancePunch table) via
 /// /api/mobile/attendance; this screen shows today's state live plus the
-/// last 7 days.
+/// monthly daily history with total hours (same as the web Clock In / Out page).
 struct ClockView: View {
     @State private var state: LoadState<AttendanceResponse> = .idle
     @State private var punching = false
     @State private var errorMessage: String?
+    @State private var historyMonth = AttendanceMonth.current()
+    /// Bumped after each punch so the history refetches.
+    @State private var punchCount = 0
 
     var body: some View {
         GradientScreen {
@@ -16,8 +19,7 @@ struct ClockView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         todayCard(data)
                         if let errorMessage { StatusBanner(kind: .error, text: errorMessage) }
-                        weekSummary(data)
-                        recentList(data)
+                        AttendanceHistorySection(month: $historyMonth, reloadToken: punchCount)
                     }
                     .padding(20)
                 }
@@ -109,44 +111,6 @@ struct ClockView: View {
         .disabled(punching)
     }
 
-    // MARK: Week + history
-
-    private func weekSummary(_ data: AttendanceResponse) -> some View {
-        let total = data.recent.compactMap(\.hours).reduce(0, +)
-        return HStack(spacing: 12) {
-            StatTile(value: String(format: "%.1f h", total), label: "Logged (last 7 days)",
-                     icon: "sum", tint: .mint)
-            StatTile(value: "\(data.recent.filter { $0.clockIn != nil }.count)",
-                     label: "Days worked", icon: "calendar.badge.checkmark", tint: Theme.sky)
-        }
-    }
-
-    @ViewBuilder
-    private func recentList(_ data: AttendanceResponse) -> some View {
-        Text("Recent days").font(.headline).foregroundStyle(.white.opacity(0.9))
-        if data.recent.isEmpty {
-            EmptyHint(icon: "clock.badge.questionmark", text: "No punches yet. Your log appears here.")
-        } else {
-            ForEach(data.recent) { p in
-                Card {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(Fmt.date(p.date ?? p.clockIn)).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                            Text("\(timeString(Fmt.dateObj(p.clockIn))) – \(p.clockOut == nil ? "…" : timeString(Fmt.dateObj(p.clockOut)))")
-                                .font(.caption).foregroundStyle(.white.opacity(0.7))
-                        }
-                        Spacer()
-                        if let h = p.hours {
-                            Text(String(format: "%.1f h", h)).font(.subheadline.weight(.bold)).foregroundStyle(.mint)
-                        } else if p.clockIn != nil {
-                            StatusPill(status: "WORKING")
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     // MARK: Actions & helpers
 
     private func punch(_ action: HRMSAPI.ClockAction) async {
@@ -157,6 +121,7 @@ struct ClockView: View {
         do {
             try await HRMSAPI.shared.clock(action)
             await load()
+            punchCount += 1
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription
                 ?? (error as NSError).localizedDescription

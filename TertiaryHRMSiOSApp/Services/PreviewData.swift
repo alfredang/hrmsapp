@@ -225,6 +225,31 @@ enum PreviewData {
                             clockIn: "2026-06-11T01:10:00Z", clockOut: "2026-06-11T09:12:00Z"),
         ])
 
+    // MARK: Attendance history + admin summary
+    static func attendanceHistory(month: String) -> AttendanceHistory {
+        let days = [
+            AttendanceDay(id: "h0", date: "\(month)-17", clockIn: "\(month)-17T01:02:00Z", clockOut: nil, hours: nil),
+            AttendanceDay(id: "h1", date: "\(month)-16", clockIn: "\(month)-16T00:58:00Z", clockOut: "\(month)-16T09:34:00Z", hours: 8.6),
+            AttendanceDay(id: "h2", date: "\(month)-15", clockIn: "\(month)-15T01:05:00Z", clockOut: "\(month)-15T09:02:00Z", hours: 7.95),
+            AttendanceDay(id: "h3", date: "\(month)-12", clockIn: "\(month)-12T00:55:00Z", clockOut: "\(month)-12T05:31:00Z", hours: 4.6),
+            AttendanceDay(id: "h4", date: "\(month)-11", clockIn: "\(month)-11T01:10:00Z", clockOut: "\(month)-11T09:12:00Z", hours: 8.03),
+        ]
+        return AttendanceHistory(month: month,
+                                 employee: AttendanceEmployee(id: "e1", name: "Amanda Halim", employeeCode: "I0002"),
+                                 days: days, totalHours: 29.18, daysWorked: 5)
+    }
+
+    static func attendanceSummary(month: String) -> AttendanceSummary {
+        AttendanceSummary(month: month, employees: [
+            AttendanceSummaryRow(id: "e1", name: "Amanda Halim", employeeCode: "I0002", isIntern: true,
+                                 daysWorked: 5, totalHours: 29.18, lastPunchDate: "\(month)-17", clockedInNow: true),
+            AttendanceSummaryRow(id: "e2", name: "Kenneth Wang", employeeCode: "I0012", isIntern: true,
+                                 daysWorked: 9, totalHours: 71.5, lastPunchDate: "\(month)-16", clockedInNow: false),
+            AttendanceSummaryRow(id: "e3", name: "Rachel Chua", employeeCode: "I0011", isIntern: true,
+                                 daysWorked: 0, totalHours: 0, lastPunchDate: nil, clockedInNow: false),
+        ], totalHours: 100.68)
+    }
+
     // MARK: Time off (hourly)
     static let timeOff: [TimeOffRequest] = [
         TimeOffRequest(id: "to1", date: "2026-07-30T00:00:00.000Z",

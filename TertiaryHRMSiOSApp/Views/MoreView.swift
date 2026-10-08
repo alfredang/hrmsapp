@@ -5,6 +5,9 @@ struct MoreView: View {
     @EnvironmentObject private var auth: AuthViewModel
     @State private var signingOut = false
 
+    /// Approver roles (mirrors the web's `hasAdminAccess`) see the intern attendance roll-up.
+    private var isAdmin: Bool { ["ADMIN", "HR", "MANAGER"].contains(auth.user?.primaryRole.uppercased() ?? "") }
+
     var body: some View {
         GradientScreen {
             ScrollView {
@@ -20,6 +23,10 @@ struct MoreView: View {
                             divider
                             link("Clock In / Out", "clock.badge.checkmark.fill", .yellow) { ClockView() }
                             divider
+                            if isAdmin {
+                                link("Intern Attendance", "person.badge.clock.fill", .teal) { InternAttendanceView() }
+                                divider
+                            }
                             link("Timesheet", "tablecells.badge.ellipsis", .mint) { WeeklyTimesheetView() }
                             divider
                             link("Time Off", "hourglass", .purple) { TimeOffView() }
