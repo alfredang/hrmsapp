@@ -49,8 +49,10 @@ business rules locally; the server remains the single source of truth.
   **Email + password**, **email one-time-code (OTP)** and **Google sign-in** are supported —
   the last via Apple's `ASWebAuthenticationSession` with an OAuth 2.0 PKCE flow (no third-party
   SDK), whose Google `id_token` the backend verifies before issuing the session.
-- A small, **additive, read-only `/api/mobile/*`** namespace was added to the web backend to expose
-  (as JSON) the same data the web pages render. It changes no existing web behaviour.
+- A small, **additive `/api/mobile/*`** namespace was added to the web backend to expose (as JSON)
+  the same data the web pages render, plus the app's writes (receipt-photo claims, clock in/out).
+  It changes no existing web behaviour; approver-only data (approvals, intern attendance, a
+  colleague's records) is enforced server-side.
 
 ## Features
 
@@ -61,7 +63,7 @@ business rules locally; the server remains the single source of truth.
 | 🔐 **Login** | Premier-Blue email + password, email-OTP, and **Continue with Google**; session persists across launches |
 | 🏠 **Dashboard** | Annual / medical / OT leave balances, expenses YTD, and (for ADMIN/HR/MANAGER) the pending-approvals queue |
 | 🗓️ **Leave** | Balances, full request history, and **apply for leave** — with a **live working-days preview** (weekends & SG public holidays auto-excluded) and MC-photo attach for medical leave |
-| 👥 **Team** | Company directory (richer contact details for supervisory roles) |
+| 👥 **Team** | Company directory (richer contact details for supervisory roles). Approvers tap a person for their **clock-in history** (every clock in/out, grouped by month), **MC history** and **leave history** |
 | 🧾 **Payslips** | Personal payslips with a native **PDFKit** viewer for the authenticated PDF |
 | 💳 **Expenses** | Personal expense claims with status and approved totals, plus **submit a claim with a receipt photo** (camera or library) |
 | 📅 **Calendar** | A month grid of the **whole team's approved leave** — filter to *Only me*; tap a day for who's out. Colleagues' leave *type* stays private unless you're an approver |
@@ -80,8 +82,8 @@ business rules locally; the server remains the single source of truth.
 ## Tech
 
 - **Swift 5 / SwiftUI**, MVVM, single coordinator (`AuthViewModel`).
-- Networking: two `actor`s — `AuthService` (NextAuth sign-in) and `HRMSAPI` (typed reads +
-  apply-leave + PDF download) over a shared cookie store.
+- Networking: two `actor`s — `AuthService` (NextAuth sign-in) and `HRMSAPI` (typed reads and
+  writes — apply-leave, claims, clock, approvals, profile — plus PDF download) over a shared cookie store.
 - **System frameworks only** — SwiftUI, Foundation/URLSession, PDFKit. No third-party dependencies.
 - **XcodeGen** project generation (`project.yml`); the `.xcodeproj` is gitignored.
 - iOS 16+, iPhone, portrait. Theme: **Premier Blue** (navy → premier-blue → azure).
@@ -123,8 +125,8 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: v1.6 (build 12) live in the Singapore App Store; v1.7
-(build 13 — Calendar 404 fix) submitted and awaiting review:
+(ASC app `6759821144`). **Status: v1.8 (build 14) live in the Singapore App Store; v1.9
+(build 15 — Team drill-down into a person's clock-in, MC and leave history) submitted and awaiting review:
 [apps.apple.com/sg/app/tertiary-hrms/id6759821144](https://apps.apple.com/sg/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 its bundled `asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for
 future builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
