@@ -226,6 +226,23 @@ enum PreviewData {
         ])
 
     // MARK: Attendance history + admin summary
+    static func employeeRecords(id: String) -> EmployeeRecords {
+        let person = employees.employees.first { $0.id == id }
+        let thisMonth = attendanceHistory(month: AttendanceMonth.current())
+        let lastMonth = attendanceHistory(month: AttendanceMonth.shift(AttendanceMonth.current(), by: -1))
+        let days = thisMonth.days + lastMonth.days.map {
+            AttendanceDay(id: "p" + $0.id, date: $0.date, clockIn: $0.clockIn,
+                          clockOut: $0.clockOut ?? $0.clockIn, hours: $0.hours ?? 0)
+        }
+        return EmployeeRecords(
+            employee: RecordsEmployee(id: id, employeeCode: person?.employeeId ?? "E0000",
+                                      name: person?.name ?? "Employee", position: person?.position,
+                                      department: person?.department, employmentType: person?.employmentType),
+            attendance: RecordsAttendance(days: days, totalHours: thisMonth.totalHours + lastMonth.totalHours,
+                                          daysWorked: thisMonth.daysWorked + lastMonth.daysWorked),
+            leave: leave.requests)
+    }
+
     static func attendanceHistory(month: String) -> AttendanceHistory {
         let days = [
             AttendanceDay(id: "h0", date: "\(month)-17", clockIn: "\(month)-17T01:02:00Z", clockOut: nil, hours: nil),

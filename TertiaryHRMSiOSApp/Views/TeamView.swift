@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Team tab — the company directory.
+/// Team tab — the company directory. Approvers can tap a person for their
+/// clock-in, MC and leave history (`EmployeeRecordsView`).
 struct TeamView: View {
     @State private var state: LoadState<EmployeesResponse> = .idle
     @State private var query = ""
@@ -10,7 +11,15 @@ struct TeamView: View {
             AsyncContent(state: $state, load: load) { data in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        ForEach(filtered(data.employees)) { e in row(e, isAdmin: data.isAdmin) }
+                        ForEach(filtered(data.employees)) { e in
+                            // Approvers drill into a person's clock-in, MC and leave history.
+                            if data.isAdmin {
+                                NavigationLink { EmployeeRecordsView(employee: e) } label: { row(e, isAdmin: true) }
+                                    .buttonStyle(.plain)
+                            } else {
+                                row(e, isAdmin: false)
+                            }
+                        }
                         if filtered(data.employees).isEmpty {
                             EmptyHint(icon: "person.2", text: "No colleagues found.")
                         }
@@ -46,6 +55,9 @@ struct TeamView: View {
                     }
                 }
                 Spacer()
+                if isAdmin {
+                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(.white.opacity(0.4))
+                }
             }
         }
     }

@@ -63,6 +63,11 @@ actor HRMSAPI {
     }
     func attendance() async throws -> AttendanceResponse { isPreview ? PreviewData.attendance : try await get("api/mobile/attendance") }
 
+    /// One person's full clock-in/out, MC and leave history (approvers, or self).
+    func employeeRecords(id: String) async throws -> EmployeeRecords {
+        if isPreview { return PreviewData.employeeRecords(id: id) }
+        return try await get("api/mobile/employees/\(id)/records")
+    }
     /// One month of daily check-in/out history. Without `employeeId` the
     /// server returns the signed-in user's own; admins may pass anyone's.
     func attendanceHistory(month: String, employeeId: String? = nil) async throws -> AttendanceHistory {

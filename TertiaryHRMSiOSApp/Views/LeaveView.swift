@@ -36,7 +36,7 @@ struct LeaveView: View {
                         if data.requests.isEmpty {
                             EmptyHint(icon: "calendar", text: "No leave requests yet.")
                         } else {
-                            ForEach(data.requests) { r in requestRow(r) }
+                            ForEach(data.requests) { LeaveRequestRow(request: $0) }
                         }
                     }
                     .padding(20)
@@ -88,26 +88,6 @@ struct LeaveView: View {
             Text(label).font(.caption2).foregroundStyle(.white.opacity(0.55))
             Text(v.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", v) : String(format: "%.1f", v))
                 .font(.footnote.weight(.semibold)).foregroundStyle(.white)
-        }
-    }
-
-    private func requestRow(_ r: LeaveRequest) -> some View {
-        Card {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(r.leaveType).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                    Text("\(Fmt.date(r.startDate)) → \(Fmt.date(r.endDate))")
-                        .font(.caption).foregroundStyle(.white.opacity(0.7))
-                    if let reason = r.reason, !reason.isEmpty {
-                        Text(reason).font(.caption2).foregroundStyle(.white.opacity(0.55)).lineLimit(2)
-                    }
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 6) {
-                    StatusPill(status: r.status)
-                    Text(Fmt.days(r.days)).font(.caption2).foregroundStyle(.white.opacity(0.7))
-                }
-            }
         }
     }
 

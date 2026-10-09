@@ -307,6 +307,34 @@ struct AttendanceDay: Codable, Identifiable {
     let hours: Double?
 }
 
+// MARK: - One person's records (approvers, Team drill-down)  (/api/mobile/employees/{id}/records)
+struct EmployeeRecords: Codable {
+    let employee: RecordsEmployee
+    let attendance: RecordsAttendance
+    let leave: [LeaveRequest]
+
+    /// Medical leave (MC / sick leave) — shown apart from other leave.
+    var medical: [LeaveRequest] { leave.filter { Self.medicalCodes.contains($0.leaveCode.uppercased()) } }
+    var otherLeave: [LeaveRequest] { leave.filter { !Self.medicalCodes.contains($0.leaveCode.uppercased()) } }
+    static let medicalCodes: Set<String> = ["MC", "SL"]
+}
+
+struct RecordsEmployee: Codable {
+    let id: String
+    let employeeCode: String
+    let name: String
+    let position: String?
+    let department: String?
+    let employmentType: String?
+}
+
+/// Every punch on record, newest first, with all-time totals.
+struct RecordsAttendance: Codable {
+    let days: [AttendanceDay]
+    let totalHours: Double
+    let daysWorked: Int
+}
+
 // MARK: - Intern attendance summary (admin)  (/api/mobile/attendance/summary?month=YYYY-MM)
 struct AttendanceSummary: Codable {
     let month: String

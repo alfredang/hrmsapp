@@ -8,8 +8,8 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "1.8"
-    CURRENT_PROJECT_VERSION: "14"
+    MARKETING_VERSION: "1.9"
+    CURRENT_PROJECT_VERSION: "15"
     SWIFT_VERSION: "5.0"
     # Google Sign-In (native, ASWebAuthenticationSession + PKCE).
     # Paste the "iOS" OAuth client id from Google Cloud Console here; the URL scheme

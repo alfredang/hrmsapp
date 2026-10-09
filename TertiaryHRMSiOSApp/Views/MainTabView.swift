@@ -43,6 +43,7 @@ struct MainTabView: View {
                 case "approvals": ApprovalsView()
                 case "calendar": TeamCalendarView()
                 case "interns": InternAttendanceView()
+                case "records": EmployeeRecordsView(employee: PreviewData.employees.employees[0])
                 default: EmptyView()
                 }
             }

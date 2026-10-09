@@ -81,7 +81,9 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Approvals** (approvers only) — approve/reject pending **leave & expense** requests in-app
   (`GET /api/mobile/approvals`; actions `POST /api/leave|expenses/{id}/approve|reject`). Gated by
   `summary.isAdmin`; **enforced server-side** (403 for staff/interns), not just hidden in the UI.
-- **Team** — company directory (richer contact fields for supervisory roles).
+- **Team** — company directory (richer contact fields for supervisory roles). Approvers tap a
+  person for `EmployeeRecordsView` (`GET /api/mobile/employees/{id}/records`, approver-or-self):
+  clock-in history (→ full clock in/out list by month), MC history (codes MC/SL) and leave history.
 - **Payslips** — list of personal payslips with a native **PDFKit** viewer for the authenticated payslip PDF.
 - **Expenses** — personal expense claims with status and approved totals, plus **submit a claim
   with a receipt photo** (camera or library → `POST /api/mobile/claims` multipart → the server
