@@ -67,7 +67,7 @@ business rules locally; the server remains the single source of truth.
 | 🧾 **Payslips** | Personal payslips with a native **PDFKit** viewer for the authenticated PDF |
 | 💳 **Expenses** | Personal expense claims with status and approved totals, plus **submit a claim with a receipt photo** (camera or library) |
 | 📅 **Calendar** | A month grid of the **whole team's approved leave** — filter to *Only me*; tap a day for who's out. Colleagues' leave *type* stays private unless you're an approver |
-| ⏱️ **Timesheet** | One-tap **clock in / out** with a live elapsed timer and a monthly daily check-in/out history with total hours |
+| ⏱️ **Timesheet** | One-tap **clock in / out** with a live elapsed timer and a monthly daily check-in/out history with total hours — an open punch shows **hours so far** today, or **"No clock-out"** for an earlier day |
 | 👥 **Intern Attendance** (admin) | Each intern's days worked + total hours per month, drilling into their daily history |
 | 🔔 **Notifications** | In-app bell with unread badge — leave/OT approvals & rejections, marked read on tap |
 | 🙋 **Profile** | Your full employee record, with **self-service edit** and **change password** |

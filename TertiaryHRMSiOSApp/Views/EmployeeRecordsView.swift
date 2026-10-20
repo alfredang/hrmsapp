@@ -200,24 +200,38 @@ struct LeaveHistoryListView: View {
     }
 }
 
-/// One day's check-in / check-out line.
+/// One day's check-in / check-out line. A punch with no clock-out shows the
+/// hours so far when it's today, or "No clock-out" for an earlier day (the
+/// person forgot to clock out, so the hours can't be worked out).
 struct PunchLine: View {
     let day: AttendanceDay
+
+    private var open: Bool { day.clockIn != nil && day.clockOut == nil }
+    private var inProgress: Bool { open && day.date == AttendanceMonth.today() }
 
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 3) {
                 Text(AttendanceMonth.dayLabel(day.date))
                     .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                Text("In \(AttendanceMonth.time(day.clockIn))  ·  Out \(day.clockOut == nil ? (day.clockIn == nil ? "—" : "…") : AttendanceMonth.time(day.clockOut))")
+                Text("In \(AttendanceMonth.time(day.clockIn))  ·  Out \(day.clockOut != nil ? AttendanceMonth.time(day.clockOut) : (inProgress ? "…" : "—"))")
                     .font(.caption).foregroundStyle(.white.opacity(0.7))
             }
             Spacer()
             if let h = day.hours {
                 Text(String(format: "%.2f h", h))
                     .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(.mint)
-            } else if day.clockIn != nil {
-                StatusPill(status: "WORKING")
+            } else if inProgress, let start = Fmt.dateObj(day.clockIn) {
+                TimelineView(.periodic(from: .now, by: 60)) { ctx in
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text(String(format: "%.2f h", max(0, ctx.date.timeIntervalSince(start) / 3600)))
+                            .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(.yellow)
+                        Text("so far").font(.caption2).foregroundStyle(.white.opacity(0.7))
+                    }
+                }
+            } else if open {
+                Text("No clock-out")
+                    .font(.caption.weight(.semibold)).foregroundStyle(.yellow)
             }
         }
     }

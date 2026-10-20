@@ -32,6 +32,12 @@ enum AttendanceMonth {
         return f.string(from: d)
     }
 
+    /// Today's `yyyy-MM-dd` in Singapore time.
+    static func today() -> String {
+        let f = DateFormatter(); f.timeZone = sgt; f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: Date())
+    }
+
     /// Clock time in Singapore time, e.g. "9:21 AM".
     static func time(_ iso: String?) -> String {
         guard let d = Fmt.dateObj(iso) else { return "—" }
@@ -117,23 +123,7 @@ struct AttendanceHistorySection: View {
     }
 
     private func row(_ d: AttendanceDay) -> some View {
-        Card {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(AttendanceMonth.dayLabel(d.date))
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                    Text("In \(AttendanceMonth.time(d.clockIn))  ·  Out \(d.clockOut == nil ? (d.clockIn == nil ? "—" : "…") : AttendanceMonth.time(d.clockOut))")
-                        .font(.caption).foregroundStyle(.white.opacity(0.7))
-                }
-                Spacer()
-                if let h = d.hours {
-                    Text(String(format: "%.2f h", h))
-                        .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(.mint)
-                } else if d.clockIn != nil {
-                    StatusPill(status: "WORKING")
-                }
-            }
-        }
+        Card { PunchLine(day: d) }
     }
 
     private func load() async {
