@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.11] — build 17
+## [1.11] — submitted for App Review 2026-10-21 (build 17)
 - Admins: new Leave & MC Summary screen (More menu) shows every staff member's and intern's MC and leave for the month — approved vs pending days, intern time-off hours, and each person's AL / MC balances.
 - Includes the 1.10 change: clock-in history shows hours so far, or "No clock-out" for a missed clock-out.
 
