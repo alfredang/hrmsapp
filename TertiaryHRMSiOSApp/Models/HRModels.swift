@@ -479,3 +479,96 @@ struct TimesheetEntry: Codable {
     let date: String
     let hours: Double
 }
+
+// MARK: - Leave & MC summary (admin)  (/api/mobile/leave-summary?month=yyyy-MM)
+// Decoded defensively — optional fields default so one odd row can't fail the screen.
+struct LeaveSummary: Codable {
+    let month: String
+    let totals: LeaveSummaryTotals
+    let employees: [LeaveSummaryEmployee]
+}
+
+struct LeaveSummaryTotals: Codable {
+    let headcount: Headcount
+    let byLeaveType: [LeaveTypeTotal]
+    let mc: McTotal
+    let timeOff: HoursPair
+
+    struct Headcount: Codable { let staff: Int; let interns: Int; let total: Int }
+    struct McTotal: Codable { let approvedDays: Double; let pendingDays: Double; let employeesOnMc: Int }
+}
+
+struct LeaveTypeTotal: Codable, Identifiable {
+    let code: String
+    let name: String
+    let approvedDays: Double
+    let pendingDays: Double
+    let employeesOnLeave: Int
+    var id: String { code }
+}
+
+struct HoursPair: Codable { let approvedHours: Double; let pendingHours: Double }
+
+struct DaysPair: Codable { let approved: Double; let pending: Double }
+
+struct LeaveSummaryEmployee: Codable, Identifiable {
+    let employeeId: String
+    let name: String
+    /// STAFF | INTERN
+    let category: String
+    let position: String?
+    let department: String?
+    let mcDays: Double
+    /// Leave type code → days in the month.
+    let leaveTaken: [String: DaysPair]
+    let requests: [LeaveSummaryRequest]
+    let timeOff: LeaveSummaryTimeOff?
+    let balances: [LeaveSummaryBalance]
+    var id: String { employeeId }
+
+    var isIntern: Bool { category.uppercased() == "INTERN" }
+    func approved(_ code: String) -> Double { leaveTaken[code]?.approved ?? 0 }
+    /// Approved days of every type other than AL and MC.
+    var otherApproved: Double { leaveTaken.filter { $0.key != "AL" && $0.key != "MC" }.values.reduce(0) { $0 + $1.approved } }
+    var pendingDays: Double { leaveTaken.values.reduce(0) { $0 + $1.pending } }
+    func available(_ code: String) -> Double? { balances.first { $0.code == code }?.available }
+}
+
+struct LeaveSummaryRequest: Codable, Identifiable {
+    let leaveType: String
+    let leaveTypeName: String
+    let status: String
+    let startDate: String
+    let endDate: String
+    let totalDays: Double
+    let daysInMonth: Double
+    let halfDayPosition: String?
+    let hasDocument: Bool
+    var id: String { "\(leaveType)|\(startDate)|\(endDate)|\(status)" }
+}
+
+struct LeaveSummaryTimeOff: Codable {
+    let approvedHours: Double
+    let pendingHours: Double
+    let requests: [Entry]
+
+    struct Entry: Codable, Identifiable {
+        let date: String
+        let startTime: String
+        let endTime: String
+        let hours: Double
+        let reason: String
+        let status: String
+        var id: String { "\(date)|\(startTime)" }
+    }
+}
+
+struct LeaveSummaryBalance: Codable, Identifiable {
+    let code: String
+    let name: String
+    let entitlement: Double
+    let usedYtd: Double
+    let pending: Double
+    let available: Double
+    var id: String { code }
+}

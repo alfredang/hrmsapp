@@ -69,6 +69,7 @@ business rules locally; the server remains the single source of truth.
 | 📅 **Calendar** | A month grid of the **whole team's approved leave** — filter to *Only me*; tap a day for who's out. Colleagues' leave *type* stays private unless you're an approver |
 | ⏱️ **Timesheet** | One-tap **clock in / out** with a live elapsed timer and a monthly daily check-in/out history with total hours — an open punch shows **hours so far** today, or **"No clock-out"** for an earlier day |
 | 👥 **Intern Attendance** (admin) | Each intern's days worked + total hours per month, drilling into their daily history |
+| 🩺 **Leave & MC Summary** (admin) | Every staff member's and intern's MC and leave for the month (approved vs pending, intern time-off hours), drilling into each person's requests and AL / MC balances — `GET /api/mobile/leave-summary` |
 | 🔔 **Notifications** | In-app bell with unread badge — leave/OT approvals & rejections, marked read on tap |
 | 🙋 **Profile** | Your full employee record, with **self-service edit** and **change password** |
 

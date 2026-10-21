@@ -5,7 +5,7 @@ struct MoreView: View {
     @EnvironmentObject private var auth: AuthViewModel
     @State private var signingOut = false
 
-    /// Approver roles (mirrors the web's `hasAdminAccess`) see the intern attendance roll-up.
+    /// Approver roles (mirrors the web's `hasAdminAccess`) see the intern attendance and leave & MC roll-ups.
     private var isAdmin: Bool { ["ADMIN", "HR", "MANAGER"].contains(auth.user?.primaryRole.uppercased() ?? "") }
 
     var body: some View {
@@ -25,6 +25,8 @@ struct MoreView: View {
                             divider
                             if isAdmin {
                                 link("Intern Attendance", "person.badge.clock.fill", .teal) { InternAttendanceView() }
+                                divider
+                                link("Leave & MC Summary", "cross.case.fill", .pink) { LeaveSummaryView() }
                                 divider
                             }
                             link("Timesheet", "tablecells.badge.ellipsis", .mint) { WeeklyTimesheetView() }

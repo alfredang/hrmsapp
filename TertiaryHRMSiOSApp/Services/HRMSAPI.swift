@@ -88,6 +88,15 @@ actor HRMSAPI {
         return try await get(url: comps.url!)
     }
 
+    /// Admin roll-up: every active staff member's and intern's leave and MC for the month.
+    func leaveSummary(month: String) async throws -> LeaveSummary {
+        if isPreview { return PreviewData.leaveSummary(month: month) }
+        var comps = URLComponents(url: base.appendingPathComponent("api/mobile/leave-summary"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "month", value: month)]
+        return try await get(url: comps.url!)
+    }
+
     /// Weekly timesheet (existing /api/timesheet). `weekStart` is a Monday
     /// `yyyy-MM-dd`; nil returns the server's current week.
     func timesheet(weekStart: String? = nil) async throws -> TimesheetResponse {

@@ -267,6 +267,56 @@ enum PreviewData {
         ], totalHours: 100.68)
     }
 
+    // MARK: Leave & MC summary (admin)
+    static func leaveSummary(month: String) -> LeaveSummary {
+        let types = [
+            LeaveTypeTotal(code: "AL", name: "Annual Leave", approvedDays: 4, pendingDays: 2, employeesOnLeave: 2),
+            LeaveTypeTotal(code: "MC", name: "Medical Leave", approvedDays: 4, pendingDays: 0, employeesOnLeave: 3),
+            LeaveTypeTotal(code: "CL", name: "Compassionate Leave", approvedDays: 0, pendingDays: 0, employeesOnLeave: 0),
+        ]
+        func bal(_ al: Double, _ mc: Double) -> [LeaveSummaryBalance] {
+            [LeaveSummaryBalance(code: "AL", name: "Annual Leave", entitlement: 7, usedYtd: 7 - al, pending: 0, available: al),
+             LeaveSummaryBalance(code: "MC", name: "Medical Leave", entitlement: 14, usedYtd: 14 - mc, pending: 0, available: mc)]
+        }
+        func req(_ code: String, _ name: String, _ status: String, _ start: String, _ end: String, _ days: Double) -> LeaveSummaryRequest {
+            LeaveSummaryRequest(leaveType: code, leaveTypeName: name, status: status, startDate: "\(month)-\(start)",
+                                endDate: "\(month)-\(end)", totalDays: days, daysInMonth: days, halfDayPosition: nil,
+                                hasDocument: code == "MC")
+        }
+        let employees = [
+            LeaveSummaryEmployee(employeeId: "E0003", name: "Daniel Tan", category: "STAFF", position: "Trainer",
+                                 department: "Training", mcDays: 2,
+                                 leaveTaken: ["MC": DaysPair(approved: 2, pending: 0), "AL": DaysPair(approved: 3, pending: 0)],
+                                 requests: [req("MC", "Medical Leave", "APPROVED", "06", "07", 2),
+                                            req("AL", "Annual Leave", "APPROVED", "20", "22", 3)],
+                                 timeOff: nil, balances: bal(2, 10)),
+            LeaveSummaryEmployee(employeeId: "E0014", name: "Grace Lim", category: "STAFF", position: "Executive",
+                                 department: "Operations", mcDays: 0,
+                                 leaveTaken: ["AL": DaysPair(approved: 1, pending: 2)],
+                                 requests: [req("AL", "Annual Leave", "APPROVED", "09", "09", 1),
+                                            req("AL", "Annual Leave", "PENDING", "29", "30", 2)],
+                                 timeOff: nil, balances: bal(1, 14)),
+            LeaveSummaryEmployee(employeeId: "I0002", name: "Amanda Halim", category: "INTERN", position: "Intern (NYP)",
+                                 department: "Software Development", mcDays: 1,
+                                 leaveTaken: ["MC": DaysPair(approved: 1, pending: 0)],
+                                 requests: [req("MC", "Medical Leave", "APPROVED", "03", "03", 1)],
+                                 timeOff: LeaveSummaryTimeOff(approvedHours: 2.5, pendingHours: 0, requests: [
+                                    .init(date: "\(month)-14", startTime: "14:00", endTime: "16:30", hours: 2.5,
+                                          reason: "Exams", status: "APPROVED")]),
+                                 balances: bal(3, 13)),
+            LeaveSummaryEmployee(employeeId: "I0012", name: "Kenneth Wang", category: "INTERN", position: "Intern (SP)",
+                                 department: "Software Development", mcDays: 1,
+                                 leaveTaken: ["MC": DaysPair(approved: 1, pending: 0)],
+                                 requests: [req("MC", "Medical Leave", "APPROVED", "15", "15", 1)],
+                                 timeOff: nil, balances: bal(2, 13)),
+        ]
+        return LeaveSummary(month: month,
+                            totals: LeaveSummaryTotals(headcount: .init(staff: 2, interns: 2, total: 4), byLeaveType: types,
+                                                       mc: .init(approvedDays: 4, pendingDays: 0, employeesOnMc: 3),
+                                                       timeOff: HoursPair(approvedHours: 2.5, pendingHours: 0)),
+                            employees: employees)
+    }
+
     // MARK: Time off (hourly)
     static let timeOff: [TimeOffRequest] = [
         TimeOffRequest(id: "to1", date: "2026-07-30T00:00:00.000Z",
