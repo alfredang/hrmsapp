@@ -63,7 +63,7 @@ business rules locally; the server remains the single source of truth.
 | 🔐 **Login** | Premier-Blue email + password, email-OTP, and **Continue with Google**; session persists across launches |
 | 🏠 **Dashboard** | Annual / medical / OT leave balances, expenses YTD, and (for ADMIN/HR/MANAGER) the pending-approvals queue |
 | 🗓️ **Leave** | Balances, full request history, and **apply for leave** — with a **live working-days preview** (weekends & SG public holidays auto-excluded) and MC-photo attach for medical leave |
-| 👥 **Team** | Company directory (richer contact details for supervisory roles). Approvers tap a person for their **clock-in history** (every clock in/out, grouped by month), **MC history** and **leave history** |
+| 👥 **Team** | Company directory (richer contact details for supervisory roles). Approvers tap a person for their **clock-in history** (every clock in/out, grouped by month), **MC history** and **leave history** — tapping the Days clocked / MC days / Leave days tiles opens each full history |
 | 🧾 **Payslips** | Personal payslips with a native **PDFKit** viewer for the authenticated PDF |
 | 💳 **Expenses** | Personal expense claims with status and approved totals, plus **submit a claim with a receipt photo** (camera or library) |
 | 📅 **Calendar** | A month grid of the **whole team's approved leave** — filter to *Only me*; tap a day for who's out. Colleagues' leave *type* stays private unless you're an approver |
@@ -126,9 +126,9 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: v1.9 (build 15 — Team drill-down into a person's clock-in, MC and leave history) live in the
-Singapore App Store; v1.11 (build 17 — admin Leave & MC Summary, plus the 1.10 clock-in history fix; the pending
-1.10 submission was cancelled and the version renamed to 1.11) submitted and awaiting review:
+(ASC app `6759821144`). **Status: v1.11 (build 17 — admin Leave & MC Summary and the clock-in history fix) live in the
+Singapore App Store; v1.12 (build 18 — tappable Days clocked / MC / Leave tiles on a person's records)
+submitted 2026-11-02 and waiting for review:
 [apps.apple.com/sg/app/tertiary-hrms/id6759821144](https://apps.apple.com/sg/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 its bundled `asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for
 future builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
