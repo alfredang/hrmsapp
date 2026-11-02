@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.12] — build 18
+## [1.12] — submitted for App Review 2026-11-02 (build 18)
 - Admins: on a team member's records, tap the Days clocked, MC days or Leave days tile to open that person's full clock in/out, MC or leave history.
 
 ## [1.11] — submitted for App Review 2026-10-21 (build 17)
