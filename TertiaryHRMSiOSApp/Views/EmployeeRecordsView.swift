@@ -17,14 +17,30 @@ struct EmployeeRecordsView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         header(data.employee)
 
+                        // Each tile opens its full history.
                         HStack(spacing: 10) {
-                            StatTile(value: "\(data.attendance.daysWorked)", label: "Days clocked",
-                                     icon: "clock.fill", tint: .mint)
-                            StatTile(value: approvedDays(data.medical), label: "MC days",
-                                     icon: "cross.case.fill", tint: .pink)
-                            StatTile(value: approvedDays(data.otherLeave), label: "Leave days",
-                                     icon: "airplane", tint: Theme.sky)
+                            NavigationLink {
+                                ClockHistoryView(name: data.employee.name, attendance: data.attendance)
+                            } label: {
+                                StatTile(value: "\(data.attendance.daysWorked)", label: "Days clocked",
+                                         icon: "clock.fill", tint: .mint)
+                            }
+                            NavigationLink {
+                                LeaveHistoryListView(title: "MC history", name: data.employee.name,
+                                                     rows: data.medical, empty: "No medical leave on record.")
+                            } label: {
+                                StatTile(value: approvedDays(data.medical), label: "MC days",
+                                         icon: "cross.case.fill", tint: .pink)
+                            }
+                            NavigationLink {
+                                LeaveHistoryListView(title: "Leave history", name: data.employee.name,
+                                                     rows: data.otherLeave, empty: "No leave on record.")
+                            } label: {
+                                StatTile(value: approvedDays(data.otherLeave), label: "Leave days",
+                                         icon: "airplane", tint: Theme.sky)
+                            }
                         }
+                        .buttonStyle(.plain)
 
                         clockSection(data)
                         leaveSection(title: "MC history", icon: "cross.case",
@@ -95,7 +111,7 @@ struct EmployeeRecordsView: View {
                 Spacer()
                 if rows.count > previewCount {
                     NavigationLink {
-                        LeaveHistoryListView(title: title, name: name, rows: rows)
+                        LeaveHistoryListView(title: title, name: name, rows: rows, empty: empty)
                     } label: {
                         Text("See all \(rows.count)").font(.caption.weight(.semibold)).foregroundStyle(Theme.sky)
                     }
@@ -185,12 +201,16 @@ struct LeaveHistoryListView: View {
     let title: String
     let name: String
     let rows: [LeaveRequest]
+    var empty = "Nothing on record."
 
     var body: some View {
         GradientScreen {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
                     Text("\(name) · \(title)").font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                    if rows.isEmpty {
+                        EmptyHint(icon: "tray", text: empty)
+                    }
                     ForEach(rows) { LeaveRequestRow(request: $0) }
                 }
                 .padding(20)
