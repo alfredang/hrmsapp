@@ -15,11 +15,11 @@ enum WorkingDays {
     }
 
     /// Counts working days in `start...end` inclusive, excluding Sat/Sun and any
-    /// date whose `yyyy-MM-dd` key is in `holidayKeys`. Uses a UTC calendar so a
-    /// date never lands on the wrong day across time zones.
+    /// date whose `yyyy-MM-dd` key is in `holidayKeys`. Uses the device time zone,
+    /// the same one the date pickers and the submitted dates use, so an early-morning
+    /// date in Singapore doesn't count as the previous UTC day.
     static func compute(start: Date, end: Date, holidayKeys: Set<String>) -> Result {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC")!
+        let cal = Calendar(identifier: .gregorian)
 
         let s = cal.startOfDay(for: start)
         let e = cal.startOfDay(for: end)

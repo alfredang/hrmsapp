@@ -34,6 +34,12 @@ struct ApplyLeaveView: View {
         return t.code == "MC" || t.code == "SL" || t.name.localizedCaseInsensitiveContains("medical")
     }
 
+    /// The server only honours half days on single-day Annual Leave; anything else
+    /// is recorded as a full day, so don't offer it.
+    private var allowsHalfDay: Bool {
+        isSingleDay && types.first(where: { $0.id == typeId })?.code == "AL"
+    }
+
     /// Default the picker to Annual Leave so applying is one tap away.
     private func defaultType() {
         guard typeId.isEmpty else { return }
@@ -66,7 +72,7 @@ struct ApplyLeaveView: View {
                                 .labelsHidden().colorScheme(.dark)
                         }
 
-                        if isSingleDay {
+                        if allowsHalfDay {
                             field("Duration") {
                                 Picker("", selection: $dayType) {
                                     Text("Full day").tag("FULL_DAY")
@@ -219,7 +225,7 @@ struct ApplyLeaveView: View {
 
     /// Fetch the SG public-holiday keys for every year the range spans (once each).
     private func loadHolidays() {
-        var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "UTC")!
+        let cal = Calendar(identifier: .gregorian) // device time zone, same as the date pickers
         let years = Set([cal.component(.year, from: start), cal.component(.year, from: end)])
         let missing = years.subtracting(loadedYears)
         guard !missing.isEmpty else { return }
@@ -251,7 +257,7 @@ struct ApplyLeaveView: View {
         error = nil; submitting = true
         let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
         let s = df.string(from: start), e = df.string(from: end)
-        let dt = isSingleDay ? dayType : "FULL_DAY"
+        let dt = allowsHalfDay ? dayType : "FULL_DAY"
         let attachment = isMedical ? mcImage : nil
         Task {
             do {

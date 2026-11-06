@@ -119,7 +119,12 @@ actor HRMSAPI {
     /// Curated SG public holidays (public endpoint). `date` is plain `yyyy-MM-dd`.
     func publicHolidays(year: Int) async throws -> [PublicHoliday] {
         if isPreview { return PreviewData.holidays(year) }
-        let resp: PublicHolidaysResponse = try await get("api/public-holidays?year=\(year)")
+        // A query string passed to appendingPathComponent gets its "?" percent-encoded,
+        // which turns this into a 404, so build the query URL properly.
+        var comps = URLComponents(url: base.appendingPathComponent("api/public-holidays"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "year", value: String(year))]
+        let resp: PublicHolidaysResponse = try await get(url: comps.url!)
         return resp.holidays
     }
 
