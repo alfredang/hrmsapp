@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.13] (build 19)
+## [1.13] — submitted for App Review 2026-11-06 (build 19)
 - Apply for leave: the working-days count now skips Singapore public holidays.
 - Apply for leave: half-day options now show only for Annual Leave, because other leave types, including No Pay Leave, are recorded as full days.
 

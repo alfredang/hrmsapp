@@ -126,9 +126,9 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: v1.11 (build 17 — admin Leave & MC Summary and the clock-in history fix) live in the
-Singapore App Store; v1.12 (build 18 — tappable Days clocked / MC / Leave tiles on a person's records)
-submitted 2026-11-02 and waiting for review:
+(ASC app `6759821144`). **Status: v1.12 (build 18 — tappable Days clocked / MC / Leave tiles on a person's records) live in the
+Singapore App Store; v1.13 (build 19 — apply-for-leave public-holiday count and Annual-Leave-only half days)
+submitted 2026-11-06 and waiting for review:
 [apps.apple.com/sg/app/tertiary-hrms/id6759821144](https://apps.apple.com/sg/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 its bundled `asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for
 future builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
