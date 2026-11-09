@@ -13,7 +13,9 @@ struct Card<Content: View>: View {
     var padding: CGFloat = 16
     @ViewBuilder var content: Content
     var body: some View {
-        content
+        // Wrap in a stack: a multi-view builder would otherwise get each modifier
+        // applied per child and render as several separate cards.
+        VStack(alignment: .leading, spacing: 0) { content }
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.white.opacity(0.07))

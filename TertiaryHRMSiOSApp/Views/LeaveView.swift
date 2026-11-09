@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Leave tab — balances, request history, and apply-for-leave.
 struct LeaveView: View {
+    @EnvironmentObject private var auth: AuthViewModel
     @State private var state: LoadState<LeaveResponse> = .idle
     @State private var applySheet: ApplySheet?
 
@@ -11,10 +12,11 @@ struct LeaveView: View {
     private struct ApplySheet: Identifiable {
         let id = UUID()
         let types: [LeaveType]
+        let balances: [LeaveBalance]
     }
 
-    private var loadedTypes: [LeaveType]? {
-        if case .loaded(let data) = state { return data.types }
+    private var loaded: LeaveResponse? {
+        if case .loaded(let data) = state { return data }
         return nil
     }
 
@@ -24,12 +26,14 @@ struct LeaveView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         PremierButton(title: "Apply for Leave", systemImage: "plus.circle.fill") {
-                            applySheet = ApplySheet(types: data.types)
+                            applySheet = ApplySheet(types: data.types, balances: data.balances)
                         }
 
                         if !data.balances.isEmpty {
                             Text("Balances").font(.headline).foregroundStyle(.white.opacity(0.9))
-                            ForEach(data.balances) { b in balanceCard(b) }
+                            ForEach(data.balances) { b in
+                                if b.isNoPayLeave { nplCard(b) } else { balanceCard(b) }
+                            }
                         }
 
                         Text("My requests").font(.headline).foregroundStyle(.white.opacity(0.9))
@@ -48,14 +52,14 @@ struct LeaveView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    if let types = loadedTypes { applySheet = ApplySheet(types: types) }
+                    if let data = loaded { applySheet = ApplySheet(types: data.types, balances: data.balances) }
                 } label: { Image(systemName: "plus.circle.fill") }
                     .tint(Theme.sky)
-                    .disabled(loadedTypes == nil)
+                    .disabled(loaded == nil)
             }
         }
         .sheet(item: $applySheet, onDismiss: { Task { await load() } }) { sheet in
-            ApplyLeaveView(types: sheet.types)
+            ApplyLeaveView(types: sheet.types, balances: sheet.balances, isIntern: auth.isIntern)
                 .preferredColorScheme(.dark)
         }
     }
@@ -80,6 +84,42 @@ struct LeaveView: View {
                 if b.carriedOver > 0 { miniStat("Carried", b.carriedOver) }
             }
             .padding(.top, 8)
+        }
+    }
+
+    /// No Pay Leave: the server sends the prorated cap as `proRated` and what is left
+    /// of it as `available` (21 days a year, prorated by months served).
+    private func nplCard(_ b: LeaveBalance) -> some View {
+        let cap = b.proRated ?? b.entitlement
+        return Card {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(b.name).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    Text("Unpaid · capped").font(.caption2).foregroundStyle(.white.opacity(0.6))
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(Fmt.days(b.available)).font(.title3.weight(.bold))
+                        .foregroundStyle(b.available <= 0 ? .red : Theme.sky)
+                    Text("remaining of \(Fmt.num(cap))").font(.caption2).foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            if cap > 0 {
+                ProgressView(value: min(max(cap - b.available, 0), cap), total: cap)
+                    .tint(Theme.sky)
+                    .padding(.top, 6)
+            }
+            HStack(spacing: 16) {
+                // The balance row's used/pending can be stale; the server derives
+                // `available` from the requests themselves, so booked = cap − remaining.
+                miniStat("Cap to date", cap)
+                miniStat("Booked", max(0, cap - b.available))
+                miniStat("Remaining", b.available)
+            }
+            .padding(.top, 8)
+            Text("No Pay Leave is capped at 21 days a year, prorated by the full months you have served.")
+                .font(.caption2).foregroundStyle(.white.opacity(0.55))
+                .padding(.top, 4)
         }
     }
 

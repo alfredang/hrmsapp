@@ -77,7 +77,7 @@ struct LeaveSummaryView: View {
                         if e.otherApproved > 0 { metric("Other", e.otherApproved, Theme.sky) }
                         if e.isIntern, let t = e.timeOff, t.approvedHours + t.pendingHours > 0 {
                             Text("\(Self.num(t.approvedHours)) h off")
-                                .font(.caption2.weight(.semibold)).foregroundStyle(.purple)
+                                .font(.caption2.weight(.semibold)).foregroundStyle(Theme.mist)
                         }
                     }
                 }

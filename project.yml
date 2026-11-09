@@ -8,8 +8,8 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "1.13"
-    CURRENT_PROJECT_VERSION: "19"
+    MARKETING_VERSION: "1.14"
+    CURRENT_PROJECT_VERSION: "20"
     SWIFT_VERSION: "5.0"
     # Google Sign-In (native, ASWebAuthenticationSession + PKCE).
     # Paste the "iOS" OAuth client id from Google Cloud Console here; the URL scheme
@@ -37,3 +37,23 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1"   # iPhone only
         SUPPORTS_MACCATALYST: NO
+    scheme:
+      testTargets:
+        - TertiaryHRMSiOSAppTests
+
+  # Unit tests: API decoding + leave-rule error handling (no network).
+  TertiaryHRMSiOSAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: TertiaryHRMSiOSAppTests
+    dependencies:
+      - target: TertiaryHRMSiOSApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tertiaryinfotech.hrportal.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/TertiaryHRMSiOSApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TertiaryHRMSiOSApp"
+        BUNDLE_LOADER: "$(TEST_HOST)"

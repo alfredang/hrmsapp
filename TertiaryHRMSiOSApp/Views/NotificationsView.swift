@@ -135,9 +135,9 @@ struct NotificationBell: View {
                 if let badge = store.badge {
                     Text(badge)
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.navy950)
                         .padding(.horizontal, 4).padding(.vertical, 1)
-                        .background(Color.red)
+                        .background(Theme.gold)
                         .clipShape(Capsule())
                         .offset(x: 8, y: -8)
                 }

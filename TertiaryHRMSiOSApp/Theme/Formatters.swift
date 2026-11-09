@@ -40,6 +40,11 @@ enum Fmt {
         return f.string(from: NSNumber(value: v)) ?? String(format: "%.2f", v)
     }
 
+    /// 12 → "12", 12.5 → "12.5".
+    static func num(_ v: Double) -> String {
+        v.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", v) : String(format: "%.1f", v)
+    }
+
     static func days(_ v: Double) -> String {
         let s = v.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", v) : String(format: "%.1f", v)
         return "\(s) day\(v == 1 ? "" : "s")"

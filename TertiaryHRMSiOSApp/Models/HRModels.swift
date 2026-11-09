@@ -11,6 +11,11 @@ struct DashboardSummary: Codable {
     let expenseYtd: Double
     let pendingLeaves: Int
     let pendingClaims: Int
+    /// Holds TRAINER_ADMIN → show the Trainers directory. Optional so an older
+    /// server (without the field) still decodes; treated as false.
+    var canManageTrainers: Bool? = nil
+
+    var showsTrainers: Bool { canManageTrainers ?? false }
 }
 
 // MARK: - Leave  (/api/mobile/leave)
@@ -33,6 +38,9 @@ struct LeaveBalance: Codable, Identifiable {
     let autoDeducted: Double
     let proRated: Double?
     let available: Double
+
+    /// No Pay Leave: `proRated` is the prorated cap to date and `available` the days left.
+    var isNoPayLeave: Bool { code.uppercased() == LeaveRules.nplCode }
 }
 
 struct LeaveType: Codable, Identifiable {

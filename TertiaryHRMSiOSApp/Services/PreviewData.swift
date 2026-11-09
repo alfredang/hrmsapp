@@ -11,7 +11,8 @@ enum PreviewData {
     static let summary = DashboardSummary(
         name: "Alfred Ang", role: "Administrator", isAdmin: true,
         alAvailable: 12.5, mcAvailable: 14, otRemaining: 8,
-        expenseYtd: 1860.50, pendingLeaves: 3, pendingClaims: 2)
+        expenseYtd: 1860.50, pendingLeaves: 3, pendingClaims: 2,
+        canManageTrainers: true)
 
     // MARK: Approvals
     static let approvals = ApprovalsResponse(
@@ -47,12 +48,15 @@ enum PreviewData {
             LeaveBalance(code: "OT", name: "Off-in-lieu (OT)", paid: true,
                          entitlement: 12, carriedOver: 0, used: 4, pending: 0,
                          earned: 12, autoDeducted: 0, proRated: nil, available: 8),
+            LeaveBalance(code: "NPL", name: "No Pay Leave", paid: false,
+                         entitlement: 0, carriedOver: 0, used: 2, pending: 1,
+                         earned: 0, autoDeducted: 0, proRated: 17.5, available: 14.5),
         ],
         types: [
             LeaveType(id: "lt-al", code: "AL", name: "Annual Leave", paid: true, defaultDays: 16),
             LeaveType(id: "lt-mc", code: "MC", name: "Medical Leave", paid: true, defaultDays: 14),
             LeaveType(id: "lt-cl", code: "CL", name: "Childcare Leave", paid: true, defaultDays: 6),
-            LeaveType(id: "lt-ul", code: "UL", name: "Unpaid Leave", paid: false, defaultDays: 0),
+            LeaveType(id: "lt-npl", code: "NPL", name: "No Pay Leave", paid: false, defaultDays: 21),
         ],
         requests: [
             LeaveRequest(id: "lr-1", leaveType: "Annual Leave", leaveCode: "AL",
@@ -364,4 +368,74 @@ enum PreviewData {
         ]
         return TimesheetResponse(weekStart: "2026-06-15T09:00:00Z", isLocked: false, days: days)
     }()
+
+    // MARK: Leave rules (preview: `-uiPreviewLeave al-excess` triggers the AL→NPL suggestion)
+    static func applyLeaveError(leaveTypeId: String) -> LeaveSubmitError? {
+        guard ProcessInfo.processInfo.arguments.contains("al-excess"), leaveTypeId == "lt-al" else { return nil }
+        let body = #"{"error":"This request is 15 day(s) but you only have 12.5 day(s) of annual leave available. Leave beyond your entitlement must be taken as No Pay Leave: shorten this request to 12.5 day(s) and apply for the remaining 2.5 day(s) as No Pay Leave (you have 14.5 No Pay Leave day(s) left this year).","code":"AL_EXCEEDS_BALANCE","alAvailable":12.5,"excessDays":2.5,"npl":{"cap":17.5,"used":2,"pending":1,"remaining":14.5},"suggestedLeaveTypeCode":"NPL"}"#
+        return LeaveSubmitError.parse(status: 400, data: Data(body.utf8))
+    }
+
+    // MARK: Trainers (Trainer Admin directory)
+    static let trainerList: [TrainerListItem] = [
+        TrainerListItem(id: "tr-1", name: "ALFRED ANG CHEW HOE (DR)", nickname: "Alfred", phone: "+65 9123 4567",
+                        email: "alfred.ang@example.com", trainerType: "ACLP", inTms: true,
+                        trainingCerts: ["ACLP", "ACTA", "DACE"], certifications: ["PMP", "AWS Solutions Architect"],
+                        skills: ["Python", "Generative AI", "Power BI"], education: "PhD, National University of Singapore",
+                        financeBackground: true, ibfFitDeclaration: true, classesCount: 214, lastClassDate: "2026-11-04",
+                        courseTitles: ["Generative AI for Business", "Python for Data Analytics"]),
+        TrainerListItem(id: "tr-2", name: "TAN MEI LING", phone: "+65 9234 5678", email: "meiling.tan@example.com",
+                        trainerType: "ACLP", inTms: true, trainingCerts: ["ACLP"],
+                        certifications: ["CFA Level II", "CCAR-F"], skills: ["Financial Modelling", "Excel"],
+                        financeBackground: true, ibfFitDeclaration: true, classesCount: 58, lastClassDate: "2026-10-28",
+                        courseTitles: ["Financial Modelling with Excel"]),
+        TrainerListItem(id: "tr-3", name: "RAJESH KUMAR S/O MURUGAN", phone: "+65 9345 6789",
+                        email: "rajesh.k@example.com", trainerType: "non-ACLP", inTms: true, trainingCerts: ["ACTA"],
+                        certifications: ["CISSP", "CEH"], skills: ["Cybersecurity", "Linux"], classesCount: 31,
+                        lastClassDate: "2026-09-19", courseTitles: ["Cybersecurity Essentials"]),
+        TrainerListItem(id: "tr-4", name: "NURUL HUDA BINTE ISMAIL", phone: "+65 9456 7890",
+                        email: "nurul.huda@example.com", trainerType: "ACLP", inTms: true, trainingCerts: ["ACLP", "DDDLP"],
+                        certifications: [], skills: ["Articulate Storyline", "Instructional Design"], classesCount: 77,
+                        lastClassDate: "2026-11-01", courseTitles: ["E-Learning Design with Storyline"]),
+        TrainerListItem(id: "tr-5", name: "LIM WEI JIE", email: "weijie.lim@example.com", trainerType: "Applicant",
+                        status: "Applicant", inTms: false, trainingCerts: [], certifications: ["Google Data Analytics"],
+                        skills: ["SQL", "Tableau"]),
+    ]
+
+    static func trainers(_ f: TrainerFilter) -> TrainersResponse {
+        let q = f.query.lowercased()
+        let list = trainerList.filter { t in
+            (q.isEmpty || ([t.name, t.email ?? ""] + t.certifications + t.skills).joined(separator: " ").lowercased().contains(q))
+            && f.certs.allSatisfy { t.trainingCerts.contains($0.rawValue) }
+            && (!f.finance || t.financeBackground) && (!f.ibfFit || t.ibfFitDeclaration)
+            && (f.status == .all || (f.status == .applicants) == (t.status == "Applicant"))
+        }
+        return TrainersResponse(count: list.count, trainers: list)
+    }
+
+    static func trainerDetail(id: String) -> TrainerDetail {
+        let json = #"""
+        {"trainer":{"id":"tr-1","name":"ALFRED ANG CHEW HOE (DR)","nickname":"Alfred","nric":"S1234567D",
+        "phone":"+65 9123 4567","email":"alfred.ang@example.com","secondaryEmail":"alfred@example.org",
+        "nationality":"Singaporean","linkedinUrl":"https://www.linkedin.com/in/example","trainerType":"ACLP",
+        "status":"Active","inTms":true,"trainingCerts":["ACLP","ACTA","DACE"],
+        "certifications":["PMP","AWS Solutions Architect","Google Cloud Digital Leader"],
+        "skills":["Python","Generative AI","Power BI","Machine Learning","Data Analytics"],
+        "education":"PhD (Electrical Engineering), National University of Singapore",
+        "experience":["Founder & Principal Trainer, Tertiary Infotech Academy (2012 – present)","Senior Research Scientist, A*STAR (2005 – 2012)"],
+        "summary":"Technologist and adult educator with 20+ years in AI, data and cloud. Leads the AI and analytics curriculum.",
+        "financeBackground":true,"financeEvidence":["CFA Institute investment foundations"],"ibfFitDeclaration":true,
+        "ibfFitFiles":["IBF Fit and Proper - Alfred Ang.pdf"],"actaFolder":"ALFRED ANG","evidenceFiles":["ACLP cert.pdf"],
+        "courses":[{"title":"Generative AI for Business","code":"TGS-2023012345","classes":48,"first":"2023-03-02","last":"2026-11-04"},
+                   {"title":"Python for Data Analytics","code":"TGS-2021008765","classes":36,"first":"2021-06-14","last":"2026-10-21"},
+                   {"title":"Power BI Dashboards","code":"C0412","classes":12,"first":"2024-01-08","last":"2026-08-30"}],
+        "recentClasses":[{"start":"2026-11-04","title":"Generative AI for Business","run":"RUN-48","status":"Completed"},
+                         {"start":"2026-10-21","title":"Python for Data Analytics","run":36,"status":"Completed"},
+                         {"start":"2026-11-18","title":"Generative AI for Business","run":"RUN-49","status":"Confirmed"}],
+        "calendarClasses":[{"date":"2026-11-18","title":"Generative AI for Business","calendar":"Trainer schedule"}],
+        "classesCount":214,"lastClassDate":"2026-11-04","adminNotes":"Preferred for AI and analytics runs."}}
+        """#
+        // swiftlint:disable:next force_try
+        return try! JSONDecoder().decode(TrainerDetailResponse.self, from: Data(json.utf8)).trainer
+    }
 }

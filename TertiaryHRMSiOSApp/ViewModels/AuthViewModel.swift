@@ -25,6 +25,19 @@ final class AuthViewModel: ObservableObject {
 
     @Published private(set) var user: SessionUser?
 
+    /// From `/api/mobile/summary.canManageTrainers` (TRAINER_ADMIN) — shows the Trainers entry.
+    /// UI gate only; the trainer endpoints enforce it server-side (403).
+    @Published var canManageTrainers = false
+
+    /// Interns (roles exactly ["INTERN"]) have no paid MC — sick leave goes in as No Pay Leave.
+    var isIntern: Bool { LeaveRules.isIntern(roles: user?.roles) }
+
+    /// Refresh the summary-driven capabilities (cheap; called when the More menu appears).
+    func refreshCapabilities() async {
+        guard phase == .signedIn, let s = try? await HRMSAPI.shared.summary() else { return }
+        canManageTrainers = s.showsTrainers
+    }
+
     @Published var rememberEmail: Bool = UserDefaults.standard.bool(forKey: Keys.rememberFlag) {
         didSet { UserDefaults.standard.set(rememberEmail, forKey: Keys.rememberFlag) }
     }
@@ -48,9 +61,16 @@ final class AuthViewModel: ObservableObject {
         // UI checks). Never triggered in a normal install — no fake data ships to users.
         let args = ProcessInfo.processInfo.arguments
         if args.contains("-uiPreview") {
-            user = SessionUser(id: "preview", email: "alfred.ang@tertiaryinfotech.com",
-                               name: "Alfred Ang", role: "ADMIN",
-                               roles: ["ADMIN", "HR"], employeeId: "E0001")
+            if args.contains("-uiPreviewIntern") {
+                user = SessionUser(id: "preview-intern", email: "intern@tertiaryinfotech.com",
+                                   name: "Jamie Koh", role: "INTERN",
+                                   roles: ["INTERN"], employeeId: "I0007")
+            } else {
+                user = SessionUser(id: "preview", email: "alfred.ang@tertiaryinfotech.com",
+                                   name: "Alfred Ang", role: "ADMIN",
+                                   roles: ["ADMIN", "HR", "TRAINER_ADMIN"], employeeId: "E0001")
+            }
+            canManageTrainers = !args.contains("-uiPreviewIntern")
             phase = .signedIn
             return
         }
@@ -165,6 +185,7 @@ final class AuthViewModel: ObservableObject {
     func signOut() async {
         await AuthService.shared.signOut()
         user = nil
+        canManageTrainers = false
         password = ""; otp = ""
         step = .email
         phase = .signedOut

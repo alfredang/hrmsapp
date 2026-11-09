@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14] — 2026-11-09 (build 20)
+- The app is now called TIA HRMS, with a new premium-blue look.
+- Apply for leave: when annual leave would exceed your balance, the app explains why and offers "Apply as No Pay Leave instead" for the same dates.
+- Interns: picking medical leave switches the form to No Pay Leave, with the reason "Sick leave (MC)" and your medical certificate still attached.
+- Leave balances show your No Pay Leave cap and the days you have left; No Pay Leave cap errors are explained.
+- Trainer Admins: new Trainers directory (More menu) to search trainers by name, accreditation (ACLP, ACTA, DACE, DDDLP), finance background and IBF Fit declaration, and open each trainer's full profile.
+- Fixed leave balance cards splitting into two boxes.
+
 ## [1.13] — submitted for App Review 2026-11-06 (build 19)
 - Apply for leave: the working-days count now skips Singapore public holidays.
 - Apply for leave: half-day options now show only for Annual Leave, because other leave types, including No Pay Leave, are recorded as full days.

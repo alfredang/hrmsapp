@@ -86,7 +86,11 @@ struct DashboardView: View {
 
     private func load() async {
         state = .loading
-        do { state = .loaded(try await HRMSAPI.shared.summary()) }
+        do {
+            let s = try await HRMSAPI.shared.summary()
+            auth.canManageTrainers = s.showsTrainers
+            state = .loaded(s)
+        }
         catch { state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load.") }
     }
 }

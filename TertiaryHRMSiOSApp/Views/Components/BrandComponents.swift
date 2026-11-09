@@ -21,7 +21,7 @@ struct BrandHeader: View {
             .shadow(color: .black.opacity(0.25), radius: 18, y: 10)
 
             VStack(spacing: 4) {
-                Text("Tertiary HRMS")
+                Text("TIA HRMS")
                     .font(.system(size: compact ? 24 : 30, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                 Text("Human Resource Management")
@@ -165,7 +165,7 @@ extension View {
 
 /// Inline status banner (error / info / success) on the dark surface.
 struct StatusBanner: View {
-    enum Kind { case error, info, success }
+    enum Kind { case error, info, notice, success }
     let kind: Kind
     let text: String
 
@@ -173,20 +173,21 @@ struct StatusBanner: View {
         switch kind {
         case .error: return "exclamationmark.triangle.fill"
         case .info: return "envelope.badge.fill"
+        case .notice: return "info.circle.fill"
         case .success: return "checkmark.circle.fill"
         }
     }
     private var fill: Color {
         switch kind {
         case .error: return .red
-        case .info: return Theme.premier
+        case .info, .notice: return Theme.premier
         case .success: return .green
         }
     }
     private var stroke: Color {
         switch kind {
         case .error: return .red
-        case .info: return Theme.sky
+        case .info, .notice: return Theme.sky
         case .success: return .green
         }
     }

@@ -25,10 +25,14 @@ actor HRMSAPI {
         case http(Int)
         case network
         case decoding
+        case forbidden(String)
+        case notFound
 
         var errorDescription: String? {
             switch self {
             case .unauthorized: return "Your session expired. Please sign in again."
+            case .forbidden(let m): return m
+            case .notFound: return "Not found. It may have been removed."
             case .http(let c): return "Request failed (\(c))."
             case .network: return "Network error. Check your connection."
             case .decoding: return "Unexpected response from the server."
@@ -176,9 +180,15 @@ actor HRMSAPI {
 
     // MARK: - Apply for leave (POST /api/leave)
 
+    /// Throws `LeaveSubmitError` on a rejected request — the server's leave-rule codes
+    /// (`AL_EXCEEDS_BALANCE`, `INTERN_MC_NOT_PAID`, `NPL_CAP_EXCEEDED`) arrive typed.
     func applyLeave(leaveTypeId: String, startDate: String, endDate: String,
                     dayType: String, reason: String,
                     documentUrl: String? = nil, documentFileName: String? = nil) async throws {
+        if isPreview {
+            if let err = PreviewData.applyLeaveError(leaveTypeId: leaveTypeId) { throw err }
+            return
+        }
         var req = URLRequest(url: base.appendingPathComponent("api/leave"))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -192,10 +202,27 @@ actor HRMSAPI {
         let (data, resp) = try await safe(req)
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
-            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
-            throw NSError(domain: "HRMS", code: code,
-                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not submit your leave request."])
+            throw LeaveSubmitError.parse(status: code, data: data)
         }
+    }
+
+    // MARK: - Trainer directory (Trainer Admins; 403 for everyone else)
+
+    func trainers(_ filter: TrainerFilter) async throws -> TrainersResponse {
+        if isPreview { return PreviewData.trainers(filter) }
+        var comps = URLComponents(url: base.appendingPathComponent("api/mobile/trainers"),
+                                  resolvingAgainstBaseURL: false)!
+        let items = filter.queryItems
+        comps.queryItems = items.isEmpty ? nil : items
+        return try await get(url: comps.url!, forbidden: .forbidden("Only Trainer Admins can open the Trainer directory."))
+    }
+
+    func trainer(id: String) async throws -> TrainerDetail {
+        if isPreview { return PreviewData.trainerDetail(id: id) }
+        let resp: TrainerDetailResponse = try await get(
+            url: base.appendingPathComponent("api/mobile/trainers/\(id)"),
+            forbidden: .forbidden("Only Trainer Admins can view trainer profiles."))
+        return resp.trainer
     }
 
     // MARK: - Time off (hourly): request + cancel (existing /api/time-off routes)
@@ -404,11 +431,15 @@ actor HRMSAPI {
         try await get(url: base.appendingPathComponent(path))
     }
 
-    private func get<T: Decodable>(url: URL) async throws -> T {
+    /// `forbidden`: when given, a 403 means "signed in but not allowed" (e.g. not a
+    /// Trainer Admin) rather than an expired session.
+    private func get<T: Decodable>(url: URL, forbidden: APIError? = nil) async throws -> T {
         var req = URLRequest(url: url)
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, resp) = try await safe(req)
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 403, let forbidden { throw forbidden }
+        if code == 404, forbidden != nil { throw APIError.notFound }
         if code == 401 || code == 403 { throw APIError.unauthorized }
         guard (200..<300).contains(code) else { throw APIError.http(code) }
         do {

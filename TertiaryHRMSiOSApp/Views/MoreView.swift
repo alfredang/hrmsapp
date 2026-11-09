@@ -29,15 +29,19 @@ struct MoreView: View {
                                 link("Leave & MC Summary", "cross.case.fill", .pink) { LeaveSummaryView() }
                                 divider
                             }
+                            if auth.canManageTrainers {
+                                link("Trainers", "person.text.rectangle.fill", Theme.gold) { TrainersView() }
+                                divider
+                            }
                             link("Timesheet", "tablecells.badge.ellipsis", .mint) { WeeklyTimesheetView() }
                             divider
-                            link("Time Off", "hourglass", .purple) { TimeOffView() }
+                            link("Time Off", "hourglass", .cyan) { TimeOffView() }
                             divider
                             link("My profile", "person.crop.circle.fill", Theme.azure) { ProfileView() }
                         }
                     }
                     signOut
-                    Text("Tertiary HRMS · v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1")")
+                    Text("TIA HRMS · v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1")")
                         .font(.caption2).foregroundStyle(.white.opacity(0.5))
                         .padding(.top, 6)
                 }
@@ -45,6 +49,7 @@ struct MoreView: View {
             }
         }
         .brandBar()
+        .task { await auth.refreshCapabilities() }
     }
 
     private var header: some View {

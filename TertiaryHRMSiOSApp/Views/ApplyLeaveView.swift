@@ -5,8 +5,17 @@ import PhotosUI
 /// computes working days, proration, and balance deductions. For medical leave
 /// the MC photo is uploaded first (/api/upload) and attached to the request,
 /// which files it in the employee's "Medical Certificates" Drive folder.
+///
+/// Leave rules (enforced server-side, mirrored here so the form guides the user):
+/// - AL beyond the balance is rejected with `AL_EXCEEDS_BALANCE` → offer "Apply as No Pay
+///   Leave instead", resubmitting the same dates with the NPL type.
+/// - Interns have no paid MC: picking MC switches the form to No Pay Leave up front, reason
+///   prefilled "Sick leave (MC)", certificate kept (mirrors the web form's `internSick`).
+/// - No Pay Leave is capped (prorated 21 days/yr): the cap and remaining days are shown.
 struct ApplyLeaveView: View {
     let types: [LeaveType]
+    var balances: [LeaveBalance] = []
+    var isIntern = false
     @Environment(\.dismiss) private var dismiss
 
     @State private var typeId = ""
@@ -18,8 +27,13 @@ struct ApplyLeaveView: View {
     @State private var showCamera = false
     @State private var photoItem: PhotosPickerItem?
     @State private var submitting = false
-    @State private var error: String?
+    @State private var submitError: LeaveSubmitError?
     @State private var done = false
+    @State private var submittedAsNoPay = false
+    /// Intern picked MC → the request goes in as No Pay Leave with the MC attached.
+    @State private var internSick = false
+    /// The uploaded MC, reused if the request is resubmitted (no double upload).
+    @State private var uploadedDoc: (url: String, name: String)?
     @State private var holidayKeys: Set<String> = []
     @State private var loadedYears: Set<Int> = []
     @FocusState private var reasonFocused: Bool
@@ -29,9 +43,32 @@ struct ApplyLeaveView: View {
     }
 
     private var isSingleDay: Bool { Calendar.current.isDate(start, inSameDayAs: end) }
-    private var isMedical: Bool {
-        guard let t = types.first(where: { $0.id == typeId }) else { return false }
-        return t.code == "MC" || t.code == "SL" || t.name.localizedCaseInsensitiveContains("medical")
+    private var selectedType: LeaveType? { types.first(where: { $0.id == typeId }) }
+    private var nplType: LeaveType? { LeaveRules.noPayLeaveType(in: types) }
+    private var nplBalance: LeaveBalance? { balances.first(where: \.isNoPayLeave) }
+    private var isNoPay: Bool { selectedType?.code.uppercased() == LeaveRules.nplCode }
+    /// Show the MC photo: medical leave, or an intern's sick leave going in as NPL.
+    private var isMedical: Bool { LeaveRules.isMedical(selectedType) || internSick }
+
+    /// Interns picking MC/SL are switched to No Pay Leave (they have no paid MC).
+    private func applyInternSickRule() {
+        guard isIntern else { return }
+        if LeaveRules.isMedical(selectedType), let npl = nplType {
+            internSick = true
+            typeId = npl.id
+            if reason.trimmingCharacters(in: .whitespaces).isEmpty { reason = LeaveRules.internSickReason }
+        } else if typeId != nplType?.id, internSick {
+            internSick = false
+            if reason == LeaveRules.internSickReason { reason = "" }
+        }
+    }
+
+    private func typeLabel(_ t: LeaveType) -> String {
+        if isIntern && LeaveRules.isMedical(t) { return "\(t.name) (as No Pay Leave)" }
+        if t.code.uppercased() == LeaveRules.nplCode, let b = nplBalance {
+            return "\(t.name) (\(Fmt.num(b.available)) of \(Fmt.num(b.proRated ?? b.entitlement)) left)"
+        }
+        return t.name
     }
 
     /// The server only honours half days on single-day Annual Leave; anything else
@@ -51,14 +88,18 @@ struct ApplyLeaveView: View {
             GradientScreen {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        if let error { StatusBanner(kind: .error, text: error) }
+                        if let submitError { errorSection(submitError) }
 
                         field("Leave type") {
                             Picker("", selection: $typeId) {
                                 Text("Select…").tag("")
-                                ForEach(types) { t in Text(t.name).tag(t.id) }
+                                ForEach(types) { t in Text(typeLabel(t)).tag(t.id) }
                             }
                             .pickerStyle(.menu).tint(.white)
+                        }
+
+                        if internSick {
+                            StatusBanner(kind: .notice, text: "Interns do not have paid medical leave. This sick leave will be submitted as No Pay Leave with your medical certificate attached.")
                         }
 
                         if isMedical { mcPhotoSection }
@@ -84,6 +125,8 @@ struct ApplyLeaveView: View {
 
                         workingDaysPreview
 
+                        if isNoPay { nplPanel }
+
                         field("Reason (optional)") {
                             TextField("", text: $reason, prompt: Text("e.g. Family matters").foregroundColor(.white.opacity(0.5)), axis: .vertical)
                                 .lineLimit(2...4).foregroundStyle(.white)
@@ -91,9 +134,10 @@ struct ApplyLeaveView: View {
                                 .tint(Theme.sky)
                         }
 
-                        PremierButton(title: "Submit request", systemImage: "paperplane.fill",
+                        PremierButton(title: internSick ? "Submit as No Pay Leave" : "Submit request",
+                                      systemImage: "paperplane.fill",
                                       loading: submitting, enabled: !typeId.isEmpty,
-                                      action: submit)
+                                      action: { submit() })
                     }
                     .padding(20)
                 }
@@ -110,8 +154,15 @@ struct ApplyLeaveView: View {
             }
             .alert("Request submitted", isPresented: $done) {
                 Button("Done") { dismiss() }
-            } message: { Text("Your leave request was submitted for approval.") }
-            .onAppear { defaultType(); loadHolidays() }
+            } message: {
+                Text(submittedAsNoPay ? "Your No Pay Leave request was submitted for approval."
+                                      : "Your leave request was submitted for approval.")
+            }
+            .onAppear { defaultType(); loadHolidays(); applyPreviewSeed() }
+            .onChange(of: typeId) { _ in
+                applyInternSickRule()
+                submitError = nil
+            }
             .onChange(of: start) { _ in
                 if end < start { end = start }
                 loadHolidays()
@@ -252,28 +303,137 @@ struct ApplyLeaveView: View {
         }
     }
 
-    private func submit() {
+    /// Submit the form. `asNoPay` resubmits the same dates / day type as No Pay Leave
+    /// (the server's suggestion after `AL_EXCEEDS_BALANCE` / `INTERN_MC_NOT_PAID`).
+    private func submit(asNoPay: Bool = false) {
         reasonFocused = false
-        error = nil; submitting = true
+        let previous = submitError
+        submitError = nil; submitting = true
         let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
         let s = df.string(from: start), e = df.string(from: end)
         let dt = allowsHalfDay ? dayType : "FULL_DAY"
-        let attachment = isMedical ? mcImage : nil
+        let sendTypeId = asNoPay ? (nplType?.id ?? typeId) : typeId
+        var wasInternMc = false
+        if case .internMcNotPaid? = previous { wasInternMc = true }
+        let sickAsNoPay = internSick || (asNoPay && wasInternMc)
+        let sendReason = sickAsNoPay ? LeaveRules.internSickReason(reason) : reason
+        // Keep the certificate for medical / intern sick leave; an AL→NPL retry has none.
+        let attachment = (isMedical || sickAsNoPay) ? mcImage : nil
         Task {
             do {
                 var docUrl: String?, docName: String?
-                if let attachment, let data = attachment.receiptJPEGData() {
-                    let uploaded = try await HRMSAPI.shared.uploadDocument(imageData: data, fileName: "medical-certificate.jpg")
-                    docUrl = uploaded.url; docName = uploaded.fileName
+                if let attachment {
+                    if let cached = uploadedDoc {
+                        docUrl = cached.url; docName = cached.name
+                    } else if let data = attachment.receiptJPEGData() {
+                        let uploaded = try await HRMSAPI.shared.uploadDocument(imageData: data, fileName: "medical-certificate.jpg")
+                        uploadedDoc = (uploaded.url, uploaded.fileName)
+                        docUrl = uploaded.url; docName = uploaded.fileName
+                    }
                 }
-                try await HRMSAPI.shared.applyLeave(leaveTypeId: typeId, startDate: s, endDate: e,
-                                                    dayType: dt, reason: reason,
+                try await HRMSAPI.shared.applyLeave(leaveTypeId: sendTypeId, startDate: s, endDate: e,
+                                                    dayType: dt, reason: sendReason,
                                                     documentUrl: docUrl, documentFileName: docName)
+                submittedAsNoPay = asNoPay || internSick || isNoPay
                 submitting = false; done = true
+            } catch let err as LeaveSubmitError {
+                submitting = false
+                submitError = err
             } catch {
                 submitting = false
-                self.error = (error as NSError).localizedDescription
+                submitError = .other(message: (error as NSError).localizedDescription, status: 0)
             }
+        }
+    }
+
+    // MARK: Leave-rule feedback
+
+    /// The server's message, plus "Apply as No Pay Leave instead" when it suggests NPL.
+    private func errorSection(_ err: LeaveSubmitError) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            StatusBanner(kind: .error, text: err.errorDescription ?? LeaveSubmitError.fallbackMessage)
+            if let npl = err.npl {
+                Text("Your No Pay Leave this year").font(.caption.weight(.semibold)).foregroundStyle(Theme.mist)
+                nplFigures(npl)
+            }
+            if err.suggestsNoPayLeave, nplType != nil {
+                Button { submit(asNoPay: true) } label: {
+                    Label("Apply as No Pay Leave instead", systemImage: "arrow.uturn.right.circle.fill")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity).frame(height: Theme.controlHeight)
+                        .foregroundStyle(Theme.navy950)
+                        .background(Theme.gold)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+                }
+                .disabled(submitting)
+                .accessibilityHint("Resubmits the same dates as No Pay Leave")
+            }
+        }
+    }
+
+    /// The No Pay Leave cap panel shown while NPL is selected.
+    private var nplPanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("No Pay Leave").font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.85))
+            VStack(alignment: .leading, spacing: 8) {
+                if let b = nplBalance {
+                    let cap = b.proRated ?? b.entitlement
+                    nplFigures(NplStatus(cap: cap, used: max(0, cap - b.available), pending: 0, remaining: b.available),
+                               bookedLabel: "Booked")
+                    if Double(workingDays.workingDays) > b.available {
+                        Text("This request (\(workingDays.workingDays) day\(workingDays.workingDays == 1 ? "" : "s")) is more than your remaining No Pay Leave (\(Fmt.num(b.available))). Please shorten it or speak to HR.")
+                            .font(.caption).foregroundStyle(.yellow)
+                    }
+                }
+                Text("No Pay Leave is capped at 21 days a year, prorated by the full months you have served.")
+                    .font(.caption2).foregroundStyle(.white.opacity(0.55))
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+
+    private func nplFigures(_ npl: NplStatus, bookedLabel: String? = nil) -> some View {
+        HStack(spacing: 0) {
+            figure("Cap to date", npl.cap, .white)
+            if let bookedLabel {
+                figure(bookedLabel, npl.used, Theme.mist)
+            } else {
+                figure("Taken", npl.used, Theme.mist)
+                figure("Pending", npl.pending, Theme.mist)
+            }
+            figure("Remaining", npl.remaining, npl.remaining > 0 ? .green : .red)
+        }
+    }
+
+    private func figure(_ label: String, _ v: Double, _ tint: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(Fmt.num(v)).font(.headline.weight(.bold)).foregroundStyle(tint).monospacedDigit()
+            Text(label).font(.caption2).foregroundStyle(.white.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Screenshot/preview capture only (`-uiPreview` + `-uiPreviewLeave <case>`): seed the form.
+    private func applyPreviewSeed() {
+        let a = ProcessInfo.processInfo.arguments
+        guard a.contains("-uiPreview"), let i = a.firstIndex(of: "-uiPreviewLeave"), i + 1 < a.count else { return }
+        let cal = Calendar.current
+        switch a[i + 1] {
+        case "al-excess":
+            typeId = types.first(where: { $0.code == "AL" })?.id ?? typeId
+            start = cal.date(byAdding: .day, value: 14, to: Date()) ?? Date()
+            end = cal.date(byAdding: .day, value: 35, to: Date()) ?? Date()
+            reason = "Family trip overseas"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { submit() }
+        case "intern-mc":
+            typeId = types.first(where: { $0.code == "MC" })?.id ?? typeId
+            mcImage = UIImage(systemName: "doc.text.image")?.withTintColor(.white, renderingMode: .alwaysOriginal)
+        case "npl":
+            typeId = nplType?.id ?? typeId
+        default: break
         }
     }
 }

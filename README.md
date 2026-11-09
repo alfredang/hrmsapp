@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="TertiaryHRMSiOSApp/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" width="120" alt="Tertiary HRMS icon" />
+<img src="TertiaryHRMSiOSApp/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" width="120" alt="TIA HRMS icon" />
 
-# Tertiary HRMS — iOS
+# TIA HRMS — iOS
 
 **Native SwiftUI client for the Tertiary Infotech Academy HR Management System.**
 
@@ -24,15 +24,15 @@ data live from the company's HRMS backend on Coolify.
 
 ## Screenshots
 
-![Tertiary HRMS — dashboard](screenshot.png)
+![TIA HRMS — dashboard](screenshot.png)
 
-| Dashboard | Leave | Team | Payslips |
+| Dashboard | Leave balances (No Pay Leave) | Apply as No Pay Leave | Team |
 |---|---|---|---|
-| ![](screenshots/01-dashboard.png) | ![](screenshots/02-leave.png) | ![](screenshots/03-team.png) | ![](screenshots/04-payslips.png) |
+| ![](screenshots/01-dashboard.png) | ![](screenshots/02-leave.png) | ![](screenshots/03-apply-npl.png) | ![](screenshots/04-team.png) |
 
-| Calendar | Profile | Expenses | Timesheet |
+| Trainers (Trainer Admin) | Trainer profile | Payslips | More |
 |---|---|---|---|
-| ![](screenshots/05-calendar.png) | ![](screenshots/06-profile.png) | ![](screenshots/07-expenses.png) | ![](screenshots/08-timesheet.png) |
+| ![](screenshots/05-trainers.png) | ![](screenshots/06-trainer-profile.png) | ![](screenshots/07-payslips.png) | ![](screenshots/08-more.png) |
 
 ## What it is
 
@@ -62,13 +62,14 @@ business rules locally; the server remains the single source of truth.
 |---|---|
 | 🔐 **Login** | Premier-Blue email + password, email-OTP, and **Continue with Google**; session persists across launches |
 | 🏠 **Dashboard** | Annual / medical / OT leave balances, expenses YTD, and (for ADMIN/HR/MANAGER) the pending-approvals queue |
-| 🗓️ **Leave** | Balances, full request history, and **apply for leave** — with a **live working-days preview** (weekends & SG public holidays auto-excluded) and MC-photo attach for medical leave |
+| 🗓️ **Leave** | Balances (including the **No Pay Leave** cap and days left), full request history, and **apply for leave** — with a **live working-days preview** (weekends & SG public holidays auto-excluded) and MC-photo attach for medical leave. Annual leave beyond the balance offers **Apply as No Pay Leave instead**; interns' MC goes in as No Pay Leave with the certificate attached |
 | 👥 **Team** | Company directory (richer contact details for supervisory roles). Approvers tap a person for their **clock-in history** (every clock in/out, grouped by month), **MC history** and **leave history** — tapping the Days clocked / MC days / Leave days tiles opens each full history |
 | 🧾 **Payslips** | Personal payslips with a native **PDFKit** viewer for the authenticated PDF |
 | 💳 **Expenses** | Personal expense claims with status and approved totals, plus **submit a claim with a receipt photo** (camera or library) |
 | 📅 **Calendar** | A month grid of the **whole team's approved leave** — filter to *Only me*; tap a day for who's out. Colleagues' leave *type* stays private unless you're an approver |
 | ⏱️ **Timesheet** | One-tap **clock in / out** with a live elapsed timer and a monthly daily check-in/out history with total hours — an open punch shows **hours so far** today, or **"No clock-out"** for an earlier day |
 | 👥 **Intern Attendance** (admin) | Each intern's days worked + total hours per month, drilling into their daily history |
+| 🎓 **Trainers** (Trainer Admin) | Read-only trainer directory — search, ACLP / ACTA / DACE / DDDLP, Finance and IBF Fit filters; profiles with masked NRIC, tap-to-call/mail, accreditation, certifications, skills, experience, courses taught and recent classes — `GET /api/mobile/trainers` |
 | 🩺 **Leave & MC Summary** (admin) | Every staff member's and intern's MC and leave for the month (approved vs pending, intern time-off hours), drilling into each person's requests and AL / MC balances — `GET /api/mobile/leave-summary` |
 | 🔔 **Notifications** | In-app bell with unread badge — leave/OT approvals & rejections, marked read on tap |
 | 🙋 **Profile** | Your full employee record, with **self-service edit** and **change password** |
@@ -87,7 +88,7 @@ business rules locally; the server remains the single source of truth.
   writes — apply-leave, claims, clock, approvals, profile — plus PDF download) over a shared cookie store.
 - **System frameworks only** — SwiftUI, Foundation/URLSession, PDFKit. No third-party dependencies.
 - **XcodeGen** project generation (`project.yml`); the `.xcodeproj` is gitignored.
-- iOS 16+, iPhone, portrait. Theme: **Premier Blue** (navy → premier-blue → azure).
+- iOS 16+, iPhone, portrait. Theme: **TIA premium blue** (navy #0D1638 → #1A2F86 → royal #2F5BE6, gold #F5B83D accent).
 
 ## Build
 
@@ -99,6 +100,10 @@ xcodegen generate
 xcodebuild build -project TertiaryHRMSiOSApp.xcodeproj -scheme TertiaryHRMSiOSApp \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   -derivedDataPath /tmp/hrms_dd CODE_SIGNING_ALLOWED=NO
+
+# Unit tests (leave-rule errors + trainer decoding)
+xcodebuild test -project TertiaryHRMSiOSApp.xcodeproj -scheme TertiaryHRMSiOSApp \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
 
 # Run on a connected iPhone
 xcodebuild build -project TertiaryHRMSiOSApp.xcodeproj -scheme TertiaryHRMSiOSApp \
@@ -112,7 +117,7 @@ TertiaryHRMSiOSApp/
 ├─ project.yml                 # XcodeGen config (bundle com.tertiaryinfotech.hrportal)
 ├─ TertiaryHRMSiOSApp/
 │  ├─ App/                     # @main entry
-│  ├─ Theme/                   # Premier Blue palette + formatters
+│  ├─ Theme/                   # TIA premium-blue palette + formatters
 │  ├─ Models/                  # Codable models for the mobile API
 │  ├─ Resources/               # Asset catalog (app icon, colours)
 │  ├─ Services/                # AuthService (NextAuth), GoogleSignInService (OAuth+PKCE), HRMSAPI
@@ -126,9 +131,8 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: v1.12 (build 18 — tappable Days clocked / MC / Leave tiles on a person's records) live in the
-Singapore App Store; v1.13 (build 19 — apply-for-leave public-holiday count and Annual-Leave-only half days)
-submitted 2026-11-06 and waiting for review:
+(ASC app `6759821144`). **Status: v1.13 (build 19) live in the Singapore App Store; v1.14 (build 20 —
+rename to TIA HRMS, premium-blue look, No Pay Leave rules, Trainer directory) submitted 2026-11-09:
 [apps.apple.com/sg/app/tertiary-hrms/id6759821144](https://apps.apple.com/sg/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 its bundled `asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for
 future builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.

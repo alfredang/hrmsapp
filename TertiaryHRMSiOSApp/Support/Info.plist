@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Tertiary HRMS</string>
+	<string>TIA HRMS</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -39,7 +39,7 @@
 
 	<!-- Camera: receipt photos for expense / medical claims and MC photos for medical leave. -->
 	<key>NSCameraUsageDescription</key>
-	<string>Tertiary HRMS uses the camera to photograph receipts for expense and medical claims, and medical certificates for medical leave.</string>
+	<string>TIA HRMS uses the camera to photograph receipts for expense and medical claims, and medical certificates for medical leave.</string>
 
 	<!-- ===== Google Sign-In ===== -->
 	<!-- The iOS OAuth client id, supplied by the GOOGLE_IOS_CLIENT_ID build setting
