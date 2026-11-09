@@ -131,8 +131,10 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: v1.13 (build 19) live in the Singapore App Store; v1.14 (build 20 —
-rename to TIA HRMS, premium-blue look, No Pay Leave rules, Trainer directory) submitted 2026-11-09:
+(ASC app `6759821144`). **Status: v1.13 (build 19) live in the Singapore App Store; v1.14 (build 21 —
+rename to TIA HRMS, one light premium-blue theme, one-line approvals with reason sheet, time-off approvals,
+interns-only Timesheet, Trainer search with call/WhatsApp/email, No Pay Leave rules) resubmitted 2026-11-10,
+waiting for review:
 [apps.apple.com/sg/app/tertiary-hrms/id6759821144](https://apps.apple.com/sg/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 its bundled `asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for
 future builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
