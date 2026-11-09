@@ -7,6 +7,10 @@ struct LeaveSummaryView: View {
     @State private var month = AttendanceMonth.current()
     @State private var state: LoadState<LeaveSummary> = .idle
     @State private var interns = false
+    /// People (per-person totals) or Requests (every request as a one-line row).
+    @State private var showRequests = PreviewData.flag("requests")
+    @State private var typeFilter = "ALL"
+    @State private var openRequest: LeaveRow?
 
     var body: some View {
         GradientScreen {
@@ -14,7 +18,7 @@ struct LeaveSummaryView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("Leave & MC").font(.headline).foregroundStyle(.white.opacity(0.9))
+                            Text("Leave & MC").font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                             Spacer()
                             MonthSwitcher(month: $month)
                         }
@@ -25,14 +29,35 @@ struct LeaveSummaryView: View {
                         }
                         .pickerStyle(.segmented)
                         let rows = data.employees.filter { $0.isIntern == interns }
-                        if rows.isEmpty {
-                            EmptyHint(icon: "person.crop.circle.badge.questionmark",
-                                      text: "No \(interns ? "interns" : "staff") for \(AttendanceMonth.label(month)).")
+                        HStack {
+                            Picker("View", selection: $showRequests) {
+                                Text("People").tag(false)
+                                Text("Requests").tag(true)
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(maxWidth: 220)
+                            Spacer()
+                            if showRequests { typeMenu(data) }
                         }
-                        ForEach(rows) { e in
-                            NavigationLink {
-                                LeaveSummaryDetailView(employee: e, month: month)
-                            } label: { row(e) }
+                        if showRequests {
+                            let reqs = requestRows(rows)
+                            if reqs.isEmpty {
+                                EmptyHint(icon: "calendar.badge.checkmark",
+                                          text: "No \(typeFilter == "ALL" ? "" : typeFilter + " ")requests in \(AttendanceMonth.label(month)).")
+                            } else {
+                                LeaveRequestTable(rows: reqs, showApplied: false) { openRequest = $0 }
+                                Text("Tap a request for the details.").font(.caption).foregroundStyle(Theme.mist)
+                            }
+                        } else {
+                            if rows.isEmpty {
+                                EmptyHint(icon: "person.crop.circle.badge.questionmark",
+                                          text: "No \(interns ? "interns" : "staff") for \(AttendanceMonth.label(month)).")
+                            }
+                            ForEach(rows) { e in
+                                NavigationLink {
+                                    LeaveSummaryDetailView(employee: e, month: month)
+                                } label: { row(e) }
+                            }
                         }
                     }
                     .padding(20)
@@ -42,6 +67,38 @@ struct LeaveSummaryView: View {
         }
         .brandBar()
         .onChange(of: month) { _ in Task { await load() } }
+        .sheet(item: $openRequest) { r in
+            RecordSheet(title: r.name, status: r.status, fields: r.fields)
+        }
+    }
+
+    /// Leave-type filter for the Requests view (codes present this month).
+    private func typeMenu(_ data: LeaveSummary) -> some View {
+        Menu {
+            Picker("Type", selection: $typeFilter) {
+                Text("All types").tag("ALL")
+                ForEach(data.totals.byLeaveType) { t in Text(t.name).tag(t.code) }
+            }
+        } label: {
+            Label(typeFilter == "ALL" ? "All types" : typeFilter, systemImage: "line.3.horizontal.decrease.circle")
+                .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.sky)
+        }
+    }
+
+    /// Every request of the group this month, newest first, as one-line rows.
+    private func requestRows(_ people: [LeaveSummaryEmployee]) -> [LeaveRow] {
+        people.flatMap { e in
+            e.requests
+                .filter { typeFilter == "ALL" || $0.leaveType == typeFilter }
+                .map { r in
+                    LeaveRow(id: "\(e.employeeId)|\(r.id)", name: e.name, status: r.status, type: r.leaveTypeName,
+                             start: r.startDate, end: r.endDate, days: r.daysInMonth,
+                             extra: [RecordField(label: "Employee ID", value: e.employeeId)]
+                                + (r.daysInMonth != r.totalDays ? [RecordField(label: "Whole request", value: Fmt.days(r.totalDays))] : [])
+                                + (r.hasDocument ? [RecordField(label: "Certificate", value: "Attached")] : []))
+                }
+        }
+        .sorted { ($0.start ?? "") > ($1.start ?? "") }
     }
 
     private func totals(_ data: LeaveSummary) -> some View {
@@ -59,7 +116,7 @@ struct LeaveSummaryView: View {
                 StatTile(value: Self.num(al?.approvedDays ?? 0), label: "AL days",
                          icon: "sun.max.fill", tint: .orange)
                 StatTile(value: Self.num(pending), label: "Pending days",
-                         icon: "hourglass", tint: .yellow)
+                         icon: "hourglass", tint: Theme.gold600)
             }
         }
     }
@@ -68,9 +125,9 @@ struct LeaveSummaryView: View {
         Card {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(e.name).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    Text(e.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                     Text([e.employeeId, e.position].compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption).foregroundStyle(.white.opacity(0.7))
+                        .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                     HStack(spacing: 10) {
                         metric("MC", e.approved("MC"), .pink)
                         metric("AL", e.approved("AL"), .orange)
@@ -83,7 +140,7 @@ struct LeaveSummaryView: View {
                 }
                 Spacer()
                 if e.pendingDays > 0 { StatusPill(status: "PENDING") }
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.white.opacity(0.4))
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.ink.opacity(0.4))
             }
         }
     }
@@ -91,7 +148,7 @@ struct LeaveSummaryView: View {
     private func metric(_ label: String, _ v: Double, _ tint: Color) -> some View {
         Text("\(label) \(v == 0 ? "–" : Self.num(v))")
             .font(.caption2.weight(.semibold)).monospacedDigit()
-            .foregroundStyle(v == 0 ? .white.opacity(0.45) : tint)
+            .foregroundStyle(v == 0 ? Theme.ink.opacity(0.45) : tint)
     }
 
     /// "2" / "1.5"
@@ -116,14 +173,14 @@ struct LeaveSummaryDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     Text([employee.name, employee.employeeId, employee.department].compactMap { $0 }.joined(separator: " · "))
-                        .font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                        .font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
 
                     HStack(spacing: 12) {
                         StatTile(value: balance("AL"), label: "AL available", icon: "sun.max.fill", tint: .orange)
                         StatTile(value: balance("MC"), label: "MC available", icon: "cross.case.fill", tint: .pink)
                     }
 
-                    Text(AttendanceMonth.label(month)).font(.headline).foregroundStyle(.white.opacity(0.9))
+                    Text(AttendanceMonth.label(month)).font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                         .padding(.top, 4)
                     if employee.requests.isEmpty {
                         EmptyHint(icon: "calendar.badge.checkmark", text: "No leave in \(AttendanceMonth.label(month)).")
@@ -132,11 +189,11 @@ struct LeaveSummaryDetailView: View {
                         Card {
                             HStack(alignment: .top, spacing: 12) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(r.leaveTypeName).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                                    Text(dates(r)).font(.caption).foregroundStyle(.white.opacity(0.7))
+                                    Text(r.leaveTypeName).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                                    Text(dates(r)).font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                                     if r.daysInMonth != r.totalDays {
                                         Text("\(Fmt.days(r.daysInMonth)) this month of \(Fmt.days(r.totalDays))")
-                                            .font(.caption2).foregroundStyle(.white.opacity(0.55))
+                                            .font(.caption2).foregroundStyle(Theme.ink.opacity(0.55))
                                     }
                                     if r.hasDocument {
                                         Label("Certificate attached", systemImage: "paperclip")
@@ -146,7 +203,7 @@ struct LeaveSummaryDetailView: View {
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 6) {
                                     Text(Fmt.days(r.daysInMonth)).font(.subheadline.weight(.bold))
-                                        .monospacedDigit().foregroundStyle(.white)
+                                        .monospacedDigit().foregroundStyle(Theme.ink)
                                     StatusPill(status: r.status)
                                 }
                             }
@@ -154,21 +211,21 @@ struct LeaveSummaryDetailView: View {
                     }
 
                     if let t = employee.timeOff, !t.requests.isEmpty {
-                        Text("Time off (hourly)").font(.headline).foregroundStyle(.white.opacity(0.9))
+                        Text("Time off (hourly)").font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                             .padding(.top, 4)
                         ForEach(t.requests) { x in
                             Card {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(AttendanceMonth.dayLabel(x.date)).font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.white)
+                                            .foregroundStyle(Theme.ink)
                                         Text("\(x.startTime)–\(x.endTime) · \(x.reason)")
-                                            .font(.caption).foregroundStyle(.white.opacity(0.7))
+                                            .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                                     }
                                     Spacer()
                                     VStack(alignment: .trailing, spacing: 6) {
                                         Text("\(LeaveSummaryView.num(x.hours)) h").font(.subheadline.weight(.bold))
-                                            .monospacedDigit().foregroundStyle(.white)
+                                            .monospacedDigit().foregroundStyle(Theme.ink)
                                         StatusPill(status: x.status)
                                     }
                                 }
@@ -177,16 +234,16 @@ struct LeaveSummaryDetailView: View {
                     }
 
                     if !employee.balances.isEmpty {
-                        Text("Year balances").font(.headline).foregroundStyle(.white.opacity(0.9))
+                        Text("Year balances").font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                             .padding(.top, 4)
                         Card {
                             VStack(spacing: 10) {
                                 ForEach(employee.balances) { b in
                                     HStack {
-                                        Text(b.name).font(.subheadline).foregroundStyle(.white)
+                                        Text(b.name).font(.subheadline).foregroundStyle(Theme.ink)
                                         Spacer()
                                         Text("\(LeaveSummaryView.num(b.usedYtd)) used · \(LeaveSummaryView.num(b.available)) left")
-                                            .font(.caption).monospacedDigit().foregroundStyle(.white.opacity(0.75))
+                                            .font(.caption).monospacedDigit().foregroundStyle(Theme.ink.opacity(0.75))
                                     }
                                 }
                             }

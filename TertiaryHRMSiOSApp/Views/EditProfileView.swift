@@ -86,15 +86,15 @@ struct EditProfileView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     private var dobField: some View {
         HStack {
-            Label("Date of birth", systemImage: "calendar").foregroundStyle(.white.opacity(0.85))
+            Label("Date of birth", systemImage: "calendar").foregroundStyle(Theme.ink.opacity(0.85))
             Spacer()
             DatePicker("", selection: $dob, in: ...Date(), displayedComponents: .date)
-                .labelsHidden().colorScheme(.dark).tint(Theme.sky)
+                .labelsHidden().tint(Theme.sky)
                 .onChange(of: dob) { _ in hasDOB = true }
         }
         .padding(.horizontal, 16).frame(height: Theme.controlHeight)
@@ -109,11 +109,11 @@ struct EditProfileView: View {
             ForEach(options, id: \.0) { opt in Button(opt.1) { onPick(opt.0) } }
         } label: {
             HStack {
-                Image(systemName: systemImage).foregroundStyle(.white.opacity(0.7)).frame(width: 22)
-                Text(label).foregroundStyle(.white.opacity(0.85))
+                Image(systemName: systemImage).foregroundStyle(Theme.ink.opacity(0.7)).frame(width: 22)
+                Text(label).foregroundStyle(Theme.ink.opacity(0.85))
                 Spacer()
-                Text(value).foregroundStyle(.white)
-                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(.white.opacity(0.5))
+                Text(value).foregroundStyle(Theme.ink)
+                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(Theme.ink.opacity(0.5))
             }
             .padding(.horizontal, 16).frame(height: Theme.controlHeight)
             .background(Theme.field)
@@ -205,7 +205,7 @@ struct ChangePasswordView: View {
                 Button("Done") { dismiss() }
             } message: { Text("Your password has been changed.") }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     private func save() {

@@ -7,12 +7,25 @@ import Foundation
 /// Dates are anchored around mid-2026 so the modules look freshly in use.
 enum PreviewData {
 
+    /// Screenshot capture only: `-uiPreview -uiPreviewFlag <name>` (e.g. `team`, `requests`)
+    /// or `-uiPreviewQuery <text>` to pre-set a screen's state. Inert without `-uiPreview`.
+    static func flag(_ name: String) -> Bool {
+        let a = ProcessInfo.processInfo.arguments
+        guard a.contains("-uiPreview") else { return false }
+        return a.indices.contains { a[$0] == "-uiPreviewFlag" && $0 + 1 < a.count && a[$0 + 1].split(separator: ",").contains(Substring(name)) }
+    }
+    static var query: String? {
+        let a = ProcessInfo.processInfo.arguments
+        guard a.contains("-uiPreview"), let i = a.firstIndex(of: "-uiPreviewQuery"), i + 1 < a.count else { return nil }
+        return a[i + 1]
+    }
+
     // MARK: Dashboard
-    static let summary = DashboardSummary(
+    static var summary: DashboardSummary { DashboardSummary(
         name: "Alfred Ang", role: "Administrator", isAdmin: true,
         alAvailable: 12.5, mcAvailable: 14, otRemaining: 8,
         expenseYtd: 1860.50, pendingLeaves: 3, pendingClaims: 2,
-        canManageTrainers: true)
+        canManageTrainers: !ProcessInfo.processInfo.arguments.contains("-uiPreviewIntern")) }
 
     // MARK: Approvals
     static let approvals = ApprovalsResponse(
@@ -339,6 +352,38 @@ enum PreviewData {
                        status: "REJECTED", approvalComment: nil,
                        rejectionReason: "Please reschedule — project deadline that day.",
                        createdAt: "2026-06-15T06:40:00.000Z"),
+    ]
+
+    /// Approver view of everyone's time off (`-uiPreview` only).
+    static let teamTimeOff: [TimeOffRequest] = [
+        TimeOffRequest(id: "tt1", date: "2026-11-12T00:00:00.000Z", startTime: "14:00", endTime: "16:30", hours: 2.5,
+                       reason: "EXAMS", reasonDetail: "Final-year project presentation at NYP, School of Information Technology",
+                       status: "PENDING", approvalComment: nil, rejectionReason: nil,
+                       createdAt: "2026-11-05T02:00:00.000Z", employeeName: "Amanda Halim"),
+        TimeOffRequest(id: "tt2", date: "2026-11-11T00:00:00.000Z", startTime: "09:00", endTime: "11:00", hours: 2,
+                       reason: "EMERGENCY", reasonDetail: "Family emergency — accompanying a parent to the polyclinic",
+                       status: "PENDING", approvalComment: nil, rejectionReason: nil,
+                       createdAt: "2026-11-09T23:40:00.000Z", employeeName: "Kenneth Wang"),
+        TimeOffRequest(id: "tt3", date: "2026-11-03T00:00:00.000Z", startTime: "15:00", endTime: "18:00", hours: 3,
+                       reason: "OTHERS", reasonDetail: "School enrolment appointment", status: "APPROVED",
+                       approvalComment: nil, rejectionReason: nil, createdAt: "2026-10-30T06:40:00.000Z",
+                       employeeName: "Rachel Chua"),
+    ]
+
+    // MARK: Timesheet admin (approvers)
+    static let corrections: [AttendanceCorrection] = [
+        AttendanceCorrection(id: "c1", employeeId: "e1", employeeName: "Amanda Halim", employeeCode: "I0002",
+                             date: "2026-11-06", kind: "CLOCK_OUT", requestedClockIn: nil,
+                             requestedClockOut: "2026-11-06T10:00:00.000Z", currentClockIn: "2026-11-06T01:02:00.000Z",
+                             currentClockOut: nil, reason: "Forgot to clock out after the client workshop ran late.",
+                             status: "PENDING", rejectionReason: nil, createdAt: "2026-11-07T01:00:00.000Z"),
+    ]
+
+    static let offInLieu: [OffInLieuEntry] = [
+        OffInLieuEntry(id: "o1", employeeId: "e9", employeeCode: "E0003", employeeName: "Daniel Tan", date: "2026-11-08",
+                       dayName: "Sat", isPublicHoliday: false, hours: 8, otCredited: 0, status: "PENDING", adminComment: nil),
+        OffInLieuEntry(id: "o2", employeeId: "e10", employeeCode: "E0014", employeeName: "Grace Lim", date: "2026-11-01",
+                       dayName: "Sat", isPublicHoliday: false, hours: 4, otCredited: 0.5, status: "APPROVED", adminComment: nil),
     ]
 
     // MARK: Timesheet

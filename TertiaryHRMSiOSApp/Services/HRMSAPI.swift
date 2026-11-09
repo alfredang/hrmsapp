@@ -113,9 +113,64 @@ actor HRMSAPI {
         return try await get(url: comps.url!)
     }
 
-    /// The employee's hourly time-off requests (raw array, newest first).
+    /// The signed-in employee's OWN hourly time-off requests, newest first.
+    /// (`/api/time-off` returns everyone's for approvers, so "mine" uses the mobile route.)
     func timeOff() async throws -> [TimeOffRequest] {
-        isPreview ? PreviewData.timeOff : try await get("api/time-off")
+        if isPreview { return PreviewData.timeOff }
+        let env: TimeOffEnvelope = try await get("api/mobile/time-off")
+        return env.requests
+    }
+
+    /// Approvers: everyone's time-off requests with the requester's name (raw `/api/time-off`).
+    func allTimeOff() async throws -> [TimeOffRequest] {
+        isPreview ? PreviewData.teamTimeOff : try await get("api/time-off")
+    }
+
+    // MARK: - Timesheet admin (approvers): missing punches + Off In Lieu
+
+    /// Pending missing-punch corrections across the company.
+    func pendingCorrections() async throws -> [AttendanceCorrection] {
+        if isPreview { return PreviewData.corrections }
+        var comps = URLComponents(url: base.appendingPathComponent("api/attendance/corrections"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "scope", value: "all"), URLQueryItem(name: "status", value: "PENDING")]
+        return try await get(url: comps.url!)
+    }
+
+    /// POST /api/attendance/corrections/{id} {action: approve|reject, comment?}.
+    func decideCorrection(id: String, approve: Bool, comment: String?) async throws {
+        var body: [String: Any] = ["action": approve ? "approve" : "reject"]
+        if let comment, !comment.isEmpty { body["comment"] = comment }
+        try await post("api/attendance/corrections/\(id)", body: body,
+                       failure: "Could not \(approve ? "approve" : "reject") the missing punch.")
+    }
+
+    /// Weekend / public-holiday hours logged in the last 30 days (all statuses).
+    func offInLieuEntries() async throws -> [OffInLieuEntry] {
+        isPreview ? PreviewData.offInLieu : try await get("api/timesheet/admin")
+    }
+
+    /// POST /api/timesheet/admin {entryId, action: APPROVE|REJECT, comment?}.
+    func decideOffInLieu(entryId: String, approve: Bool, comment: String?) async throws {
+        var body: [String: Any] = ["entryId": entryId, "action": approve ? "APPROVE" : "REJECT"]
+        if let comment, !comment.isEmpty { body["comment"] = comment }
+        try await post("api/timesheet/admin", body: body,
+                       failure: "Could not \(approve ? "approve" : "reject") the Off In Lieu entry.")
+    }
+
+    private func post(_ path: String, body: [String: Any], failure: String) async throws {
+        if isPreview { return }
+        var req = URLRequest(url: base.appendingPathComponent(path))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw NSError(domain: "HRMS", code: code, userInfo: [NSLocalizedDescriptionKey: msg ?? failure])
+        }
     }
 
     func approvals() async throws -> ApprovalsResponse { isPreview ? PreviewData.approvals : try await get("api/mobile/approvals") }
@@ -156,6 +211,7 @@ actor HRMSAPI {
     enum ApprovalKind: String {
         case leave = "api/leave"
         case claim = "api/expenses"
+        case timeOff = "api/time-off"
     }
 
     /// POST /api/{leave|expenses}/{id}/{approve|reject} — MANAGER/HR/ADMIN only.
@@ -167,6 +223,7 @@ actor HRMSAPI {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         var body: [String: Any] = [:]
         if !approve, let reason, !reason.isEmpty { body["reason"] = reason }
+        if approve, kind == .timeOff, let reason, !reason.isEmpty { body["approvalComment"] = reason }
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, resp) = try await safe(req)
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0

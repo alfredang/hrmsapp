@@ -59,7 +59,7 @@ struct LaunchView: View {
     var body: some View {
         VStack(spacing: 22) {
             BrandHeader()
-            ProgressView().tint(.white)
+            ProgressView().tint(Theme.premier)
         }
     }
 }

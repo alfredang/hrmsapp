@@ -49,7 +49,7 @@ struct ClockView: View {
             VStack(spacing: 18) {
                 switch phase(data) {
                 case .notClockedIn:
-                    statusHeader(icon: "sunrise.fill", tint: .yellow,
+                    statusHeader(icon: "sunrise.fill", tint: Theme.gold600,
                                  title: "Not clocked in yet",
                                  subtitle: "Tap below when you start work — your time is logged to HR automatically.")
                     punchButton("Clock in", icon: "arrow.right.circle.fill", tint: Theme.accent) {
@@ -59,11 +59,11 @@ struct ClockView: View {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
                         VStack(spacing: 6) {
                             Text("Working — clocked in at \(timeString(since))")
-                                .font(.subheadline).foregroundStyle(.white.opacity(0.8))
+                                .font(.subheadline).foregroundStyle(Theme.ink.opacity(0.8))
                             Text(elapsedString(since: since, now: context.date))
                                 .font(.system(size: 44, weight: .bold, design: .rounded))
                                 .monospacedDigit()
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Theme.ink)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -76,7 +76,7 @@ struct ClockView: View {
                     statusHeader(icon: "checkmark.seal.fill", tint: .green,
                                  title: "Done for today",
                                  subtitle: "\(timeString(inAt)) – \(timeString(outAt))\(hours.map { String(format: " · %.1f h logged", $0) } ?? "")")
-                    Text("See you tomorrow 👋").font(.subheadline).foregroundStyle(.white.opacity(0.6))
+                    Text("See you tomorrow 👋").font(.subheadline).foregroundStyle(Theme.ink.opacity(0.6))
                 }
             }
             .frame(maxWidth: .infinity)
@@ -86,8 +86,8 @@ struct ClockView: View {
     private func statusHeader(icon: String, tint: Color, title: String, subtitle: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon).font(.system(size: 42)).foregroundStyle(tint)
-            Text(title).font(.title3.weight(.bold)).foregroundStyle(.white)
-            Text(subtitle).font(.footnote).foregroundStyle(.white.opacity(0.7))
+            Text(title).font(.title3.weight(.bold)).foregroundStyle(Theme.ink)
+            Text(subtitle).font(.footnote).foregroundStyle(Theme.ink.opacity(0.7))
                 .multilineTextAlignment(.center)
         }
     }
@@ -98,13 +98,13 @@ struct ClockView: View {
             Task { await action() }
         } label: {
             HStack(spacing: 10) {
-                if punching { ProgressView().tint(.white) }
+                if punching { ProgressView().tint(Theme.premier) }
                 else { Image(systemName: icon).font(.title3) }
                 Text(title).font(.headline)
             }
             .frame(maxWidth: .infinity).frame(height: 64)
             .background(tint)
-            .foregroundStyle(.white)
+            .foregroundStyle(Theme.ink)
             .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
         }

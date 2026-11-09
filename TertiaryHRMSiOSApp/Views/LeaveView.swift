@@ -30,13 +30,13 @@ struct LeaveView: View {
                         }
 
                         if !data.balances.isEmpty {
-                            Text("Balances").font(.headline).foregroundStyle(.white.opacity(0.9))
+                            Text("Balances").font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                             ForEach(data.balances) { b in
                                 if b.isNoPayLeave { nplCard(b) } else { balanceCard(b) }
                             }
                         }
 
-                        Text("My requests").font(.headline).foregroundStyle(.white.opacity(0.9))
+                        Text("My requests").font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                         if data.requests.isEmpty {
                             EmptyHint(icon: "calendar", text: "No leave requests yet.")
                         } else {
@@ -60,7 +60,7 @@ struct LeaveView: View {
         }
         .sheet(item: $applySheet, onDismiss: { Task { await load() } }) { sheet in
             ApplyLeaveView(types: sheet.types, balances: sheet.balances, isIntern: auth.isIntern)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
         }
     }
 
@@ -68,14 +68,14 @@ struct LeaveView: View {
         Card {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(b.name).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                    Text(b.paid ? "Paid" : "Unpaid").font(.caption2).foregroundStyle(.white.opacity(0.6))
+                    Text(b.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                    Text(b.paid ? "Paid" : "Unpaid").font(.caption2).foregroundStyle(Theme.ink.opacity(0.6))
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(Fmt.days(b.available)).font(.title3.weight(.bold))
                         .foregroundStyle(b.available < 0 ? .red : Theme.sky)
-                    Text("available").font(.caption2).foregroundStyle(.white.opacity(0.6))
+                    Text("available").font(.caption2).foregroundStyle(Theme.ink.opacity(0.6))
                 }
             }
             HStack(spacing: 16) {
@@ -94,14 +94,14 @@ struct LeaveView: View {
         return Card {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(b.name).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                    Text("Unpaid · capped").font(.caption2).foregroundStyle(.white.opacity(0.6))
+                    Text(b.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                    Text("Unpaid · capped").font(.caption2).foregroundStyle(Theme.ink.opacity(0.6))
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(Fmt.days(b.available)).font(.title3.weight(.bold))
                         .foregroundStyle(b.available <= 0 ? .red : Theme.sky)
-                    Text("remaining of \(Fmt.num(cap))").font(.caption2).foregroundStyle(.white.opacity(0.6))
+                    Text("remaining of \(Fmt.num(cap))").font(.caption2).foregroundStyle(Theme.ink.opacity(0.6))
                 }
             }
             if cap > 0 {
@@ -118,16 +118,16 @@ struct LeaveView: View {
             }
             .padding(.top, 8)
             Text("No Pay Leave is capped at 21 days a year, prorated by the full months you have served.")
-                .font(.caption2).foregroundStyle(.white.opacity(0.55))
+                .font(.caption2).foregroundStyle(Theme.ink.opacity(0.55))
                 .padding(.top, 4)
         }
     }
 
     private func miniStat(_ label: String, _ v: Double) -> some View {
         VStack(spacing: 2) {
-            Text(label).font(.caption2).foregroundStyle(.white.opacity(0.55))
+            Text(label).font(.caption2).foregroundStyle(Theme.ink.opacity(0.55))
             Text(v.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", v) : String(format: "%.1f", v))
-                .font(.footnote.weight(.semibold)).foregroundStyle(.white)
+                .font(.footnote.weight(.semibold)).foregroundStyle(Theme.ink)
         }
     }
 

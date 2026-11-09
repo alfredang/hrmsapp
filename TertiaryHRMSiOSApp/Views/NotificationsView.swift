@@ -42,7 +42,7 @@ struct NotificationsView: View {
         GradientScreen {
             Group {
                 if loading && store.items.isEmpty {
-                    VStack { Spacer(); ProgressView().tint(.white); Spacer() }.frame(maxWidth: .infinity)
+                    VStack { Spacer(); ProgressView().tint(Theme.premier); Spacer() }.frame(maxWidth: .infinity)
                 } else if store.items.isEmpty {
                     EmptyHint(icon: "bell.slash", text: "No notifications yet.")
                 } else {
@@ -77,11 +77,11 @@ struct NotificationsView: View {
                         HStack {
                             Text(n.title)
                                 .font(.subheadline.weight(n.read ? .regular : .bold))
-                                .foregroundStyle(n.read ? .white.opacity(0.7) : .white)
+                                .foregroundStyle(n.read ? Theme.ink.opacity(0.7) : Theme.ink)
                             Spacer()
-                            Text(relative(n.createdAt)).font(.caption2).foregroundStyle(.white.opacity(0.5))
+                            Text(relative(n.createdAt)).font(.caption2).foregroundStyle(Theme.ink.opacity(0.5))
                         }
-                        Text(n.message).font(.caption).foregroundStyle(.white.opacity(0.7)).lineLimit(2)
+                        Text(n.message).font(.caption).foregroundStyle(Theme.ink.opacity(0.7)).lineLimit(2)
                     }
                     if !n.read {
                         Circle().fill(Theme.sky).frame(width: 8, height: 8).padding(.top, 6)
@@ -131,7 +131,7 @@ struct NotificationBell: View {
     var body: some View {
         Button { show = true } label: {
             ZStack(alignment: .topTrailing) {
-                Image(systemName: "bell.fill").foregroundStyle(.white)
+                Image(systemName: "bell.fill").foregroundStyle(Theme.ink)
                 if let badge = store.badge {
                     Text(badge)
                         .font(.system(size: 10, weight: .bold))

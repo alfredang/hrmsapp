@@ -31,7 +31,7 @@ struct WeeklyTimesheetView: View {
                             confirmSubmit = true
                         }
                         Text("Log hours worked on weekends and public holidays. Submit by 11:30 PM SGT. Off In Lieu days are credited after admin approval.")
-                            .font(.caption2).foregroundStyle(.white.opacity(0.6))
+                            .font(.caption2).foregroundStyle(Theme.ink.opacity(0.6))
                     }
                     .padding(20)
                 }
@@ -63,20 +63,20 @@ struct WeeklyTimesheetView: View {
                     Image(systemName: "chevron.left")
                         .font(.headline).foregroundStyle(Theme.sky)
                         .frame(width: 40, height: 40)
-                        .background(.white.opacity(0.1))
+                        .background(Theme.ink.opacity(0.1))
                         .clipShape(Circle())
                 }
                 Spacer()
                 VStack(spacing: 2) {
-                    Text("Week of").font(.caption2).foregroundStyle(.white.opacity(0.6))
-                    Text(Fmt.date(weekStart)).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    Text("Week of").font(.caption2).foregroundStyle(Theme.ink.opacity(0.6))
+                    Text(Fmt.date(weekStart)).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                 }
                 Spacer()
                 Button { changeWeek(by: 7) } label: {
                     Image(systemName: "chevron.right")
                         .font(.headline).foregroundStyle(Theme.sky)
                         .frame(width: 40, height: 40)
-                        .background(.white.opacity(0.1))
+                        .background(Theme.ink.opacity(0.1))
                         .clipShape(Circle())
                 }
             }
@@ -106,9 +106,9 @@ struct WeeklyTimesheetView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(day.dayName) · \(Fmt.date(day.date))")
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                     if let ph = day.phName, !ph.isEmpty {
-                        Text(ph).font(.caption2).foregroundStyle(.yellow)
+                        Text(ph).font(.caption2).foregroundStyle(Theme.warning)
                     }
                 }
                 Spacer()
@@ -133,12 +133,12 @@ struct WeeklyTimesheetView: View {
                 }
             } else {
                 Text("Workday")
-                    .font(.caption).foregroundStyle(.white.opacity(0.5))
+                    .font(.caption).foregroundStyle(Theme.ink.opacity(0.5))
                     .padding(.top, 4)
             }
             if let comment = day.adminComment, !comment.isEmpty {
                 Text(comment)
-                    .font(.caption).foregroundStyle(.white.opacity(0.7))
+                    .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                     .padding(.top, 6)
             }
         }

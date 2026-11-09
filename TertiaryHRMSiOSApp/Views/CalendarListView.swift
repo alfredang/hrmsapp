@@ -14,7 +14,7 @@ struct CalendarListView: View {
                         }
                         ForEach(grouped(data.events), id: \.key) { month, events in
                             VStack(alignment: .leading, spacing: 10) {
-                                Text(month).font(.headline).foregroundStyle(.white.opacity(0.9))
+                                Text(month).font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                                 ForEach(events) { e in row(e) }
                             }
                         }
@@ -31,13 +31,13 @@ struct CalendarListView: View {
         Card {
             HStack(spacing: 14) {
                 VStack(spacing: 2) {
-                    Text(dayNum(e.startDate)).font(.title3.weight(.bold)).foregroundStyle(.white)
-                    Text(weekday(e.startDate)).font(.caption2).foregroundStyle(.white.opacity(0.6))
+                    Text(dayNum(e.startDate)).font(.title3.weight(.bold)).foregroundStyle(Theme.ink)
+                    Text(weekday(e.startDate)).font(.caption2).foregroundStyle(Theme.ink.opacity(0.6))
                 }
                 .frame(width: 46)
                 Rectangle().fill(tint(e.type)).frame(width: 3, height: 36).clipShape(Capsule())
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(e.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    Text(e.title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                     Text(label(e.type)).font(.caption2).foregroundStyle(tint(e.type))
                 }
                 Spacer()

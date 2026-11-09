@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Premier Blue gradient screen background that ignores safe area.
+/// The light premium-blue page background (ignores the safe area).
 struct GradientScreen<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
@@ -8,7 +8,7 @@ struct GradientScreen<Content: View>: View {
     }
 }
 
-/// A glassy card surface used across feature screens.
+/// A white card with a hairline blue border and a soft shadow.
 struct Card<Content: View>: View {
     var padding: CGFloat = 16
     @ViewBuilder var content: Content
@@ -18,10 +18,11 @@ struct Card<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) { content }
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white.opacity(0.07))
+            .background(Theme.card)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.white.opacity(0.12), lineWidth: 1))
+                .stroke(Theme.cardBorder, lineWidth: 1))
+            .shadow(color: Theme.navy950.opacity(0.05), radius: 8, y: 3)
     }
 }
 
@@ -35,8 +36,8 @@ struct StatTile: View {
         Card {
             VStack(alignment: .leading, spacing: 6) {
                 if let icon { Image(systemName: icon).foregroundStyle(tint) }
-                Text(value).font(.title2.weight(.bold)).foregroundStyle(.white)
-                Text(label).font(.caption).foregroundStyle(.white.opacity(0.7))
+                Text(value).font(.title2.weight(.bold)).foregroundStyle(Theme.ink)
+                Text(label).font(.caption).foregroundStyle(Theme.mist)
             }
         }
     }
@@ -49,16 +50,19 @@ struct StatusPill: View {
         Text(status.capitalized)
             .font(.caption2.weight(.bold))
             .padding(.horizontal, 10).padding(.vertical, 4)
-            .background(color.opacity(0.25))
+            .lineLimit(1)
+            .fixedSize()
+            .background(color.opacity(0.12))
             .foregroundStyle(color)
             .clipShape(Capsule())
-            .overlay(Capsule().stroke(color.opacity(0.5), lineWidth: 1))
+            .overlay(Capsule().stroke(color.opacity(0.25), lineWidth: 1))
     }
     private var color: Color {
         switch status.uppercased() {
-        case "APPROVED", "PAID": return .green
-        case "PENDING": return .yellow
-        case "REJECTED", "CANCELLED": return .red
+        case "APPROVED", "PAID": return Theme.success
+        case "PENDING": return Theme.warning
+        case "REJECTED": return Theme.danger
+        case "CANCELLED": return Theme.mist
         default: return Theme.sky
         }
     }
@@ -74,12 +78,12 @@ struct AsyncContent<T, Content: View>: View {
         Group {
             switch state {
             case .idle, .loading:
-                VStack { Spacer(); ProgressView().tint(.white); Spacer() }
+                VStack { Spacer(); ProgressView().tint(Theme.premier); Spacer() }
                     .frame(maxWidth: .infinity)
             case .failed(let message):
                 VStack(spacing: 14) {
-                    Image(systemName: "wifi.exclamationmark").font(.largeTitle).foregroundStyle(.white.opacity(0.8))
-                    Text(message).font(.subheadline).foregroundStyle(.white.opacity(0.8))
+                    Image(systemName: "wifi.exclamationmark").font(.largeTitle).foregroundStyle(Theme.mist)
+                    Text(message).font(.subheadline).foregroundStyle(Theme.ink.opacity(0.8))
                         .multilineTextAlignment(.center)
                     Button("Retry") { Task { await load() } }
                         .buttonStyle(.borderedProminent).tint(Theme.premier)
@@ -102,8 +106,8 @@ struct EmptyHint: View {
     let text: String
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: icon).font(.title).foregroundStyle(.white.opacity(0.6))
-            Text(text).font(.subheadline).foregroundStyle(.white.opacity(0.7))
+            Image(systemName: icon).font(.title).foregroundStyle(Theme.royal300)
+            Text(text).font(.subheadline).foregroundStyle(Theme.mist)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 40)
     }

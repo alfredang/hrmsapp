@@ -8,7 +8,7 @@ struct TertiaryHRMSApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(auth)
-                .preferredColorScheme(.dark)   // the Premier Blue frontend is a dark, branded surface
+                .preferredColorScheme(.light)   // one light premium-blue theme (no dark mode)
         }
     }
 }

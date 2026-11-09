@@ -67,9 +67,9 @@ business rules locally; the server remains the single source of truth.
 | 🧾 **Payslips** | Personal payslips with a native **PDFKit** viewer for the authenticated PDF |
 | 💳 **Expenses** | Personal expense claims with status and approved totals, plus **submit a claim with a receipt photo** (camera or library) |
 | 📅 **Calendar** | A month grid of the **whole team's approved leave** — filter to *Only me*; tap a day for who's out. Colleagues' leave *type* stays private unless you're an approver |
-| ⏱️ **Timesheet** | One-tap **clock in / out** with a live elapsed timer and a monthly daily check-in/out history with total hours — an open punch shows **hours so far** today, or **"No clock-out"** for an earlier day |
-| 👥 **Intern Attendance** (admin) | Each intern's days worked + total hours per month, drilling into their daily history |
-| 🎓 **Trainers** (Trainer Admin) | Read-only trainer directory — search, ACLP / ACTA / DACE / DDDLP, Finance and IBF Fit filters; profiles with masked NRIC, tap-to-call/mail, accreditation, certifications, skills, experience, courses taught and recent classes — `GET /api/mobile/trainers` |
+| ⏱️ **Clock In / Out** | One-tap **clock in / out** with a live elapsed timer and a monthly daily check-in/out history with total hours — an open punch shows **hours so far** today, or **"No clock-out"** for an earlier day |
+| 🗂️ **Timesheet** (interns only) | Interns: their own days and hours per month. Approvers: one Timesheet screen — missing-punch and Off In Lieu approvals plus every intern's days worked + total hours per month, drilling into their daily history. Staff log weekend / PH work under **Off In Lieu** |
+| 🎓 **Trainer Management** (Trainer Admin) | Search with skill / certification suggestions (with counts) that become removable filter tokens; one Filters menu for ACLP / ACTA / DACE / DDDLP / Finance / IBF Fit and Trainers / Applicants; compact rows with the matching skill first and call / WhatsApp / email / copy; profiles with masked NRIC and collapsible sections — `GET /api/mobile/trainers` |
 | 🩺 **Leave & MC Summary** (admin) | Every staff member's and intern's MC and leave for the month (approved vs pending, intern time-off hours), drilling into each person's requests and AL / MC balances — `GET /api/mobile/leave-summary` |
 | 🔔 **Notifications** | In-app bell with unread badge — leave/OT approvals & rejections, marked read on tap |
 | 🙋 **Profile** | Your full employee record, with **self-service edit** and **change password** |
@@ -88,7 +88,7 @@ business rules locally; the server remains the single source of truth.
   writes — apply-leave, claims, clock, approvals, profile — plus PDF download) over a shared cookie store.
 - **System frameworks only** — SwiftUI, Foundation/URLSession, PDFKit. No third-party dependencies.
 - **XcodeGen** project generation (`project.yml`); the `.xcodeproj` is gitignored.
-- iOS 16+, iPhone, portrait. Theme: **TIA premium blue** (navy #0D1638 → #1A2F86 → royal #2F5BE6, gold #F5B83D accent).
+- iOS 16+, iPhone, portrait. Theme: **one light TIA premium-blue theme** (white cards on a pale blue surface, navy #0D1638 text, royal #2F5BE6 actions, gold #F5B83D only as a sparing accent). No dark mode (`.preferredColorScheme(.light)`), matching the web app.
 
 ## Build
 

@@ -23,17 +23,18 @@ struct LoginView: View {
                     }
                 }
                 .padding(20)
-                .background(.white.opacity(0.06))
+                .background(Theme.card)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                        .stroke(Theme.cardBorder, lineWidth: 1)
                 )
+                .shadow(color: Theme.navy950.opacity(0.06), radius: 14, y: 6)
                 .padding(.horizontal, 22)
 
                 Text("Authorized employees only · Secured by Tertiary Infotech")
                     .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(Theme.ink.opacity(0.55))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
 
@@ -118,7 +119,7 @@ struct LoginView: View {
 
     private var rememberRow: some View {
         Toggle(isOn: $auth.rememberEmail) {
-            Text("Remember my email").font(.footnote).foregroundStyle(.white.opacity(0.85))
+            Text("Remember my email").font(.footnote).foregroundStyle(Theme.ink.opacity(0.85))
         }
         .tint(Theme.azure)
     }
@@ -127,11 +128,11 @@ struct LoginView: View {
         VStack(spacing: 4) {
             Text(title)
                 .font(.title2.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text(subtitle)
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(Theme.ink.opacity(0.7))
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

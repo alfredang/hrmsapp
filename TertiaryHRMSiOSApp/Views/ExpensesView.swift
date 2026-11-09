@@ -16,7 +16,7 @@ struct ExpensesView: View {
                         }
                         StatTile(value: Fmt.money(data.approvedTotal), label: "Approved total", icon: "checkmark.seal.fill", tint: .green)
 
-                        Text("Claims").font(.headline).foregroundStyle(.white.opacity(0.9))
+                        Text("Claims").font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                         if data.claims.isEmpty {
                             EmptyHint(icon: "creditcard", text: "No expense claims yet.")
                         } else {
@@ -30,7 +30,7 @@ struct ExpensesView: View {
                     NavigationStack {
                         NewClaimView(categories: data.categories)
                     }
-                    .preferredColorScheme(.dark)
+                    .preferredColorScheme(.light)
                 }
             }
         }
@@ -38,7 +38,7 @@ struct ExpensesView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showNewClaim = true } label: {
-                    Image(systemName: "plus.circle.fill").foregroundStyle(.white)
+                    Image(systemName: "plus.circle.fill").foregroundStyle(Theme.ink)
                 }
             }
         }
@@ -48,16 +48,16 @@ struct ExpensesView: View {
         Card {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(c.description).font(.subheadline.weight(.semibold)).foregroundStyle(.white).lineLimit(1)
+                    Text(c.description).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink).lineLimit(1)
                     Text([c.category, Fmt.date(c.expenseDate)].compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption).foregroundStyle(.white.opacity(0.7))
+                        .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                     if let r = c.rejectionReason, !r.isEmpty {
-                        Text(r).font(.caption2).foregroundStyle(.red.opacity(0.9)).lineLimit(2)
+                        Text(r).font(.caption2).foregroundStyle(Theme.danger).lineLimit(2)
                     }
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
-                    Text(Fmt.money(c.amount, currency: c.currency)).font(.subheadline.weight(.bold)).foregroundStyle(.white)
+                    Text(Fmt.money(c.amount, currency: c.currency)).font(.subheadline.weight(.bold)).foregroundStyle(Theme.ink)
                     StatusPill(status: c.status)
                 }
             }

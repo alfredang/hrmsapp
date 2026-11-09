@@ -30,15 +30,15 @@ struct PayslipsView: View {
         Card {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(period(p)).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                    Text("Paid \(Fmt.date(p.paymentDate))").font(.caption).foregroundStyle(.white.opacity(0.7))
+                    Text(period(p)).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                    Text("Paid \(Fmt.date(p.paymentDate))").font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(Fmt.money(p.netSalary)).font(.subheadline.weight(.bold)).foregroundStyle(.green)
+                    Text(Fmt.money(p.netSalary)).font(.subheadline.weight(.bold)).foregroundStyle(Theme.success)
                     StatusPill(status: p.status)
                 }
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.white.opacity(0.4))
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.ink.opacity(0.4))
             }
         }
     }
@@ -68,11 +68,11 @@ struct PayslipPDFView: View {
                 PDFKitView(data: data).ignoresSafeArea(edges: .bottom)
             } else if let error {
                 VStack(spacing: 14) {
-                    Image(systemName: "doc.questionmark").font(.largeTitle).foregroundStyle(.white.opacity(0.8))
-                    Text(error).font(.subheadline).foregroundStyle(.white.opacity(0.8)).multilineTextAlignment(.center)
+                    Image(systemName: "doc.questionmark").font(.largeTitle).foregroundStyle(Theme.ink.opacity(0.8))
+                    Text(error).font(.subheadline).foregroundStyle(Theme.ink.opacity(0.8)).multilineTextAlignment(.center)
                 }.padding(32)
             } else {
-                ProgressView().tint(.white)
+                ProgressView().tint(Theme.premier)
             }
         }
         .navigationTitle("Payslip")

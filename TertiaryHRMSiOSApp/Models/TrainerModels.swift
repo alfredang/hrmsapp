@@ -271,6 +271,120 @@ struct TrainerFilter: Equatable {
     }
 }
 
+// MARK: - Directory search (client side, mirrors the web `filterTrainers` / `topTags`)
+
+/// A skill or professional certification offered as a search suggestion, with the number
+/// of trainers who have it. Picking one turns it into a removable filter token.
+struct TrainerTag: Identifiable, Hashable {
+    enum Kind: String { case skill = "Skill", certification = "Certification" }
+    let tag: String
+    let count: Int
+    let kind: Kind
+    var id: String { tag.lowercased() }
+}
+
+/// Accreditation filters shown in the filter menu (not a wall of chips).
+enum TrainerAccreditation: String, CaseIterable, Identifiable, Hashable {
+    case aclp = "ACLP", acta = "ACTA", dace = "DACE", dddlp = "DDDLP"
+    case finance = "Finance background", ibfFit = "IBF Fit"
+    var id: String { rawValue }
+    var title: String { self == .finance ? "Finance" : rawValue }
+    var systemImage: String {
+        switch self {
+        case .finance: return "banknote"
+        case .ibfFit: return "checkmark.shield"
+        default: return "checkmark.seal"
+        }
+    }
+    func matches(_ t: TrainerListItem) -> Bool {
+        switch self {
+        case .finance: return t.financeBackground
+        case .ibfFit: return t.ibfFitDeclaration
+        default: return t.trainingCerts.contains { TrainerDirectory.norm($0) == TrainerDirectory.norm(rawValue) }
+        }
+    }
+}
+
+enum TrainerDirectory {
+    /// Lower-case, collapse whitespace (same idea as the web `norm`).
+    static func norm(_ s: String) -> String {
+        s.lowercased().split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+    }
+
+    private static let aliases = ["dddpl": "dddlp", "alcp": "aclp", "ccar f": "ccar-f", "ccarf": "ccar-f"]
+
+    static func isApplicant(_ t: TrainerListItem) -> Bool { t.status == "Applicant" || t.status == "Contacted" }
+
+    static func haystack(_ t: TrainerListItem) -> String {
+        norm(([t.name, t.nickname ?? "", t.email ?? "", t.phone ?? "", t.trainerType ?? "",
+               t.education ?? "", t.summary ?? ""] + t.trainingCerts + t.certifications + t.skills + t.courseTitles)
+            .joined(separator: " "))
+    }
+
+    /// Every word of the query must appear somewhere in the trainer's record.
+    static func matches(_ t: TrainerListItem, query: String) -> Bool {
+        let terms = norm(query).split(separator: " ").map(String.init)
+        guard !terms.isEmpty else { return true }
+        let hay = haystack(t)
+        return terms.allSatisfy { hay.contains(aliases[$0] ?? $0) }
+    }
+
+    static func hasTag(_ t: TrainerListItem, _ tag: String) -> Bool {
+        let n = norm(tag)
+        return (t.skills + t.certifications + t.trainingCerts).contains { norm($0) == n }
+    }
+
+    static func filter(_ list: [TrainerListItem], query: String, tags: [String],
+                       accreditations: Set<TrainerAccreditation>, status: TrainerFilter.Status) -> [TrainerListItem] {
+        list.filter { t in
+            if status == .trainers && isApplicant(t) { return false }
+            if status == .applicants && !isApplicant(t) { return false }
+            if !accreditations.allSatisfy({ $0.matches(t) }) { return false }
+            if !tags.allSatisfy({ hasTag(t, $0) }) { return false }
+            return matches(t, query: query)
+        }
+    }
+
+    /// Skills and certifications across the list with trainer counts, most common first.
+    static func vocabulary(_ list: [TrainerListItem]) -> [TrainerTag] {
+        var counts: [String: (tag: String, count: Int, kind: TrainerTag.Kind)] = [:]
+        for t in list {
+            var seen = Set<String>()
+            for (raw, kind) in t.certifications.map({ ($0, TrainerTag.Kind.certification) }) + t.skills.map({ ($0, .skill) }) {
+                let key = norm(raw)
+                guard !key.isEmpty, !seen.contains(key) else { continue }
+                seen.insert(key)
+                if let cur = counts[key] { counts[key] = (cur.tag, cur.count + 1, cur.kind) }
+                else { counts[key] = (raw, 1, kind) }
+            }
+        }
+        return counts.values
+            .map { TrainerTag(tag: $0.tag, count: $0.count, kind: $0.kind) }
+            .sorted { $0.count != $1.count ? $0.count > $1.count : $0.tag.localizedCaseInsensitiveCompare($1.tag) == .orderedAscending }
+    }
+
+    /// Suggestions for the typed text: tags that start with it first, then ones that contain it.
+    /// With an empty search, the most common tags.
+    static func suggestions(_ vocab: [TrainerTag], text: String, excluding: [String], limit: Int = 8) -> [TrainerTag] {
+        let taken = Set(excluding.map(norm))
+        let pool = vocab.filter { !taken.contains(norm($0.tag)) }
+        let needle = norm(text)
+        guard !needle.isEmpty else { return Array(pool.prefix(limit)) }
+        let starts = pool.filter { norm($0.tag).hasPrefix(needle) }
+        let contains = pool.filter { !norm($0.tag).hasPrefix(needle) && norm($0.tag).contains(needle) }
+        return Array((starts + contains).prefix(limit))
+    }
+
+    /// Skills and certifications with the ones matching the search / filters first, so the
+    /// reason a trainer matched is visible.
+    static func orderByMatch(_ items: [String], needles: [String]) -> [String] {
+        let ns = needles.map { norm($0) }.filter { $0.count > 1 }
+        guard !ns.isEmpty else { return items }
+        let hit: (String) -> Bool = { s in ns.contains { norm(s).contains($0) } }
+        return items.filter(hit) + items.filter { !hit($0) }
+    }
+}
+
 // MARK: - Lenient decoding helpers
 
 extension KeyedDecodingContainer {

@@ -8,25 +8,21 @@ struct BrandHeader: View {
         VStack(spacing: compact ? 10 : 16) {
             ZStack {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(.white.opacity(0.14))
+                    .fill(Theme.brand)
                     .frame(width: compact ? 76 : 92, height: compact ? 76 : 92)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .stroke(.white.opacity(0.25), lineWidth: 1)
-                    )
                 Image(systemName: "person.2.fill")
                     .font(.system(size: compact ? 34 : 42, weight: .bold))
                     .foregroundStyle(.white)
             }
-            .shadow(color: .black.opacity(0.25), radius: 18, y: 10)
+            .shadow(color: Theme.navy800.opacity(0.25), radius: 18, y: 10)
 
             VStack(spacing: 4) {
                 Text("TIA HRMS")
                     .font(.system(size: compact ? 24 : 30, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.ink)
                 Text("Human Resource Management")
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(Theme.mist)
             }
         }
     }
@@ -45,7 +41,7 @@ struct BrandBarTitle: View {
                 .clipShape(Circle())
             Text("Tertiary Infotech Academy")
                 .font(.headline.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.ink)
         }
     }
 }
@@ -89,14 +85,14 @@ struct PremierButton: View {
             .foregroundStyle(.white)
             .background(Theme.accent)
             .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
-            .opacity(enabled && !loading ? 1 : 0.55)
-            .shadow(color: Theme.premier.opacity(0.5), radius: 14, y: 8)
+            .opacity(enabled && !loading ? 1 : 0.5)
+            .shadow(color: Theme.premier.opacity(0.28), radius: 10, y: 5)
         }
         .disabled(!enabled || loading)
     }
 }
 
-/// A glassy text field styled for the dark Premier Blue surface.
+/// A white text field with a hairline border, for the light premium-blue surface.
 struct PremierField: View {
     let title: String
     let systemImage: String
@@ -113,7 +109,7 @@ struct PremierField: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(Theme.ink.opacity(0.7))
                 .frame(width: 22)
             Group {
                 if isSecure && !revealed {
@@ -123,7 +119,7 @@ struct PremierField: View {
                 }
             }
             .focused($focused)
-            .foregroundStyle(.white)
+            .foregroundStyle(Theme.ink)
             .tint(Theme.sky)
             .keyboardType(keyboard)
             .textInputAutocapitalization(.never)
@@ -135,7 +131,7 @@ struct PremierField: View {
             if isSecure {
                 Button { revealed.toggle() } label: {
                     Image(systemName: revealed ? "eye.slash.fill" : "eye.fill")
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Theme.ink.opacity(0.6))
                 }
             }
         }
@@ -150,7 +146,7 @@ struct PremierField: View {
     }
 
     private var prompt: Text {
-        Text(title).foregroundColor(.white.opacity(0.55))
+        Text(title).foregroundColor(Theme.ink.opacity(0.55))
     }
 }
 
@@ -163,7 +159,7 @@ extension View {
     }
 }
 
-/// Inline status banner (error / info / success) on the dark surface.
+/// Inline status banner (error / info / success).
 struct StatusBanner: View {
     enum Kind { case error, info, notice, success }
     let kind: Kind
@@ -179,18 +175,12 @@ struct StatusBanner: View {
     }
     private var fill: Color {
         switch kind {
-        case .error: return .red
+        case .error: return Theme.danger
         case .info, .notice: return Theme.premier
-        case .success: return .green
+        case .success: return Theme.success
         }
     }
-    private var stroke: Color {
-        switch kind {
-        case .error: return .red
-        case .info, .notice: return Theme.sky
-        case .success: return .green
-        }
-    }
+    private var stroke: Color { fill }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -198,13 +188,13 @@ struct StatusBanner: View {
             Text(text).font(.footnote)
             Spacer(minLength: 0)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(fill)
         .padding(12)
-        .background(fill.opacity(0.28))
+        .background(fill.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(stroke.opacity(0.5), lineWidth: 1)
+                .stroke(stroke.opacity(0.3), lineWidth: 1)
         )
     }
 }
@@ -234,7 +224,9 @@ struct GoogleSignInButton: View {
             .background(.white)
             .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .opacity(enabled && !loading ? 1 : 0.55)
-            .shadow(color: .black.opacity(0.25), radius: 10, y: 6)
+            .overlay(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
+                .stroke(Theme.fieldBorder, lineWidth: 1))
+            .shadow(color: Theme.navy950.opacity(0.06), radius: 6, y: 3)
         }
         .disabled(!enabled || loading)
         .accessibilityLabel("Continue with Google")
@@ -377,7 +369,7 @@ struct OrDivider: View {
             line
             Text(label)
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(Theme.ink.opacity(0.6))
             line
         }
         .accessibilityHidden(true)
@@ -385,7 +377,7 @@ struct OrDivider: View {
 
     private var line: some View {
         Rectangle()
-            .fill(.white.opacity(0.18))
+            .fill(Theme.ink.opacity(0.18))
             .frame(height: 1)
     }
 }

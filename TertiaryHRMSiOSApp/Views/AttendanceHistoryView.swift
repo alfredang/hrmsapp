@@ -32,6 +32,13 @@ enum AttendanceMonth {
         return f.string(from: d)
     }
 
+    /// "6 Nov" for a plain `yyyy-MM-dd` (compact table cells).
+    static func shortLabel(_ ymd: String) -> String {
+        guard let d = Fmt.ymdDate(String(ymd.prefix(10))) else { return ymd }
+        let f = DateFormatter(); f.timeZone = TimeZone(identifier: "UTC"); f.dateFormat = "d MMM"
+        return f.string(from: d)
+    }
+
     /// Today's `yyyy-MM-dd` in Singapore time.
     static func today() -> String {
         let f = DateFormatter(); f.timeZone = sgt; f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "yyyy-MM-dd"
@@ -57,7 +64,7 @@ struct MonthSwitcher: View {
             }
             .accessibilityLabel("Previous month")
             Text(AttendanceMonth.label(month))
-                .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                 .frame(minWidth: 120)
             Button { month = AttendanceMonth.shift(month, by: 1) } label: {
                 Image(systemName: "chevron.right").frame(width: 32, height: 32)
@@ -66,9 +73,10 @@ struct MonthSwitcher: View {
             .opacity(month >= AttendanceMonth.current() ? 0.3 : 1)
             .accessibilityLabel("Next month")
         }
-        .foregroundStyle(.white.opacity(0.8))
+        .foregroundStyle(Theme.sky)
         .padding(4)
-        .background(.white.opacity(0.07))
+        .background(Theme.card)
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.cardBorder, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
@@ -90,28 +98,28 @@ struct AttendanceHistorySection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(title).font(.headline).foregroundStyle(.white.opacity(0.9))
+                Text(title).font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                 Spacer()
                 MonthSwitcher(month: $month)
             }
             HStack(spacing: 12) {
                 StatTile(value: loading || data == nil ? "—" : String(format: "%.1f h", data!.totalHours),
-                         label: "Total hours", icon: "sum", tint: .mint)
+                         label: "Total hours", icon: "sum", tint: .teal)
                 StatTile(value: loading || data == nil ? "—" : "\(data!.daysWorked)",
                          label: "Days worked", icon: "calendar.badge.checkmark", tint: Theme.sky)
             }
             if loading {
-                ProgressView().tint(.white).frame(maxWidth: .infinity).padding(.vertical, 30)
+                ProgressView().tint(Theme.premier).frame(maxWidth: .infinity).padding(.vertical, 30)
             } else if let error {
                 StatusBanner(kind: .error, text: error)
             } else if let data, !data.days.isEmpty {
                 ForEach(data.days) { row($0) }
                 Card {
                     HStack {
-                        Text("Total").font(.subheadline.weight(.bold)).foregroundStyle(.white)
+                        Text("Total").font(.subheadline.weight(.bold)).foregroundStyle(Theme.ink)
                         Spacer()
                         Text(String(format: "%.2f h", data.totalHours))
-                            .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(.mint)
+                            .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.success)
                     }
                 }
             } else {
@@ -138,76 +146,6 @@ struct AttendanceHistorySection: View {
     }
 }
 
-/// Admin: each intern's days worked and total hours for a month, drilling
-/// into that intern's daily check-in / check-out history. Mirrors the web
-/// app's Intern Attendance page (`/attendance/overview`).
-struct InternAttendanceView: View {
-    @State private var month = AttendanceMonth.current()
-    @State private var state: LoadState<AttendanceSummary> = .idle
-
-    var body: some View {
-        GradientScreen {
-            AsyncContent(state: $state, load: load) { data in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Intern Attendance").font(.headline).foregroundStyle(.white.opacity(0.9))
-                            Spacer()
-                            MonthSwitcher(month: $month)
-                        }
-                        HStack(spacing: 12) {
-                            StatTile(value: "\(data.employees.count)", label: "People tracked",
-                                     icon: "person.2.fill", tint: Theme.sky)
-                            StatTile(value: String(format: "%.1f h", data.totalHours), label: "Total hours",
-                                     icon: "sum", tint: .mint)
-                        }
-                        if data.employees.isEmpty {
-                            EmptyHint(icon: "person.crop.circle.badge.questionmark",
-                                      text: "No interns or check-ins for \(AttendanceMonth.label(month)).")
-                        }
-                        ForEach(data.employees) { r in
-                            NavigationLink {
-                                InternAttendanceDetailView(row: r, month: month)
-                            } label: { row(r) }
-                        }
-                    }
-                    .padding(20)
-                }
-                .refreshable { await load() }
-            }
-        }
-        .brandBar()
-        .onChange(of: month) { _ in Task { await load() } }
-    }
-
-    private func row(_ r: AttendanceSummaryRow) -> some View {
-        Card {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(r.name).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                    Text("\(r.employeeCode)\(r.isIntern ? "" : " · non-intern") · \(r.daysWorked) day\(r.daysWorked == 1 ? "" : "s")")
-                        .font(.caption).foregroundStyle(.white.opacity(0.7))
-                    Text("Last check-in: \(r.lastPunchDate.map(AttendanceMonth.dayLabel) ?? "—")")
-                        .font(.caption2).foregroundStyle(.white.opacity(0.55))
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 6) {
-                    Text(String(format: "%.2f h", r.totalHours))
-                        .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(.mint)
-                    if r.clockedInNow { StatusPill(status: "WORKING") }
-                }
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.white.opacity(0.4))
-            }
-        }
-    }
-
-    private func load() async {
-        if case .loaded = state {} else { state = .loading }
-        do { state = .loaded(try await HRMSAPI.shared.attendanceSummary(month: month)) }
-        catch { state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load.") }
-    }
-}
-
 /// One intern's daily history (admin drill-down).
 struct InternAttendanceDetailView: View {
     let row: AttendanceSummaryRow
@@ -218,7 +156,7 @@ struct InternAttendanceDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("\(row.name) · \(row.employeeCode)")
-                        .font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                        .font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
                     AttendanceHistorySection(employeeId: row.id, title: "Daily history", month: $month)
                 }
                 .padding(20)

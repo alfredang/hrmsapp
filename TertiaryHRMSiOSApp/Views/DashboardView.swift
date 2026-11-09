@@ -16,7 +16,7 @@ struct DashboardView: View {
                             sectionTitle("Approvals queue")
                             HStack(spacing: 12) {
                                 NavigationLink(destination: ApprovalsView()) {
-                                    StatTile(value: "\(s.pendingLeaves)", label: "Pending leave", icon: "calendar.badge.exclamationmark", tint: .yellow)
+                                    StatTile(value: "\(s.pendingLeaves)", label: "Pending leave", icon: "calendar.badge.exclamationmark", tint: Theme.gold600)
                                 }
                                 NavigationLink(destination: ApprovalsView()) {
                                     StatTile(value: "\(s.pendingClaims)", label: "Pending claims", icon: "doc.badge.clock", tint: .orange)
@@ -26,7 +26,7 @@ struct DashboardView: View {
 
                         sectionTitle("Quick actions")
                         HStack(spacing: 12) {
-                            quickAction("Clock in / out", "clock.badge.checkmark.fill", .yellow) { ClockView() }
+                            quickAction("Clock in / out", "clock.badge.checkmark.fill", Theme.gold600) { ClockView() }
                             quickAction("Snap a claim", "camera.fill", .orange) { NewClaimView() }
                         }
 
@@ -36,7 +36,7 @@ struct DashboardView: View {
                             StatTile(value: fmt(s.mcAvailable), label: "Medical leave", icon: "cross.case.fill", tint: .pink)
                         }
                         HStack(spacing: 12) {
-                            StatTile(value: fmt(s.otRemaining), label: "OT leave", icon: "clock.arrow.circlepath", tint: .mint)
+                            StatTile(value: fmt(s.otRemaining), label: "OT leave", icon: "clock.arrow.circlepath", tint: .teal)
                             StatTile(value: Fmt.money(s.expenseYtd), label: "Expenses YTD", icon: "creditcard.fill", tint: .green)
                         }
                     }
@@ -52,13 +52,13 @@ struct DashboardView: View {
     private func greeting(_ s: DashboardSummary) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Welcome back").font(.subheadline).foregroundStyle(.white.opacity(0.75))
+                Text("Welcome back").font(.subheadline).foregroundStyle(Theme.ink.opacity(0.75))
                 Text(s.name ?? auth.user?.displayName ?? "Employee")
-                    .font(.title.weight(.bold)).foregroundStyle(.white)
+                    .font(.title.weight(.bold)).foregroundStyle(Theme.ink)
                 Text(s.role?.capitalized ?? "")
                     .font(.caption.weight(.semibold))
                     .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(.white.opacity(0.16)).clipShape(Capsule()).foregroundStyle(.white)
+                    .background(Theme.mist100.opacity(0.55)).clipShape(Capsule()).foregroundStyle(Theme.navy800)
             }
         }
     }
@@ -69,14 +69,14 @@ struct DashboardView: View {
             Card {
                 VStack(alignment: .leading, spacing: 6) {
                     Image(systemName: icon).foregroundStyle(tint)
-                    Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                 }
             }
         }
     }
 
     private func sectionTitle(_ t: String) -> some View {
-        Text(t).font(.headline).foregroundStyle(.white.opacity(0.9))
+        Text(t).font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
     }
 
     private func fmt(_ v: Double?) -> String {
