@@ -95,7 +95,7 @@ struct ApplyLeaveView: View {
                                 Text("Select…").tag("")
                                 ForEach(types) { t in Text(typeLabel(t)).tag(t.id) }
                             }
-                            .pickerStyle(.menu).tint(.white)
+                            .pickerStyle(.menu).tint(Theme.premier)
                         }
 
                         if internSick {
@@ -106,11 +106,11 @@ struct ApplyLeaveView: View {
 
                         field("From") {
                             DatePicker("", selection: $start, displayedComponents: .date)
-                                .labelsHidden().colorScheme(.dark)
+                                .labelsHidden()
                         }
                         field("To") {
                             DatePicker("", selection: $end, in: start..., displayedComponents: .date)
-                                .labelsHidden().colorScheme(.dark)
+                                .labelsHidden()
                         }
 
                         if allowsHalfDay {
@@ -128,8 +128,8 @@ struct ApplyLeaveView: View {
                         if isNoPay { nplPanel }
 
                         field("Reason (optional)") {
-                            TextField("", text: $reason, prompt: Text("e.g. Family matters").foregroundColor(.white.opacity(0.5)), axis: .vertical)
-                                .lineLimit(2...4).foregroundStyle(.white)
+                            TextField("", text: $reason, prompt: Text("e.g. Family matters").foregroundColor(Theme.ink.opacity(0.5)), axis: .vertical)
+                                .lineLimit(2...4).foregroundStyle(Theme.ink)
                                 .focused($reasonFocused)
                                 .tint(Theme.sky)
                         }
@@ -188,7 +188,7 @@ struct ApplyLeaveView: View {
     /// Medical-certificate photo: camera or library, attached to the request.
     private var mcPhotoSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Medical certificate").font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.85))
+            Text("Medical certificate").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink.opacity(0.85))
             VStack(alignment: .leading, spacing: 10) {
                 if let mcImage {
                     Image(uiImage: mcImage)
@@ -201,7 +201,7 @@ struct ApplyLeaveView: View {
                         Button(role: .destructive) { self.mcImage = nil } label: {
                             Label("Remove", systemImage: "trash")
                                 .frame(maxWidth: .infinity).frame(height: 44)
-                                .background(.white.opacity(0.1)).foregroundStyle(.red.opacity(0.9))
+                                .background(Theme.ink.opacity(0.1)).foregroundStyle(Theme.danger)
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                     }
@@ -210,15 +210,15 @@ struct ApplyLeaveView: View {
                     PhotosPicker(selection: $photoItem, matching: .images) {
                         Label("Choose from library", systemImage: "photo.on.rectangle")
                             .frame(maxWidth: .infinity).frame(height: 44)
-                            .background(.white.opacity(0.1)).foregroundStyle(.white)
+                            .background(Theme.ink.opacity(0.1)).foregroundStyle(Theme.ink)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     Text("Your MC photo is filed to your Medical Certificates folder and attached to this request.")
-                        .font(.caption2).foregroundStyle(.white.opacity(0.6))
+                        .font(.caption2).foregroundStyle(Theme.ink.opacity(0.6))
                 }
             }
             .padding(12)
-            .background(.white.opacity(0.08))
+            .background(Theme.ink.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
@@ -227,8 +227,8 @@ struct ApplyLeaveView: View {
         Button(action: action) {
             Label(title, systemImage: icon)
                 .frame(maxWidth: .infinity).frame(height: 44)
-                .background(prominent ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.white.opacity(0.1)))
-                .foregroundStyle(.white)
+                .background(prominent ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.ink.opacity(0.1)))
+                .foregroundStyle(Theme.ink)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .opacity(disabled ? 0.45 : 1)
         }
@@ -240,28 +240,28 @@ struct ApplyLeaveView: View {
     private var workingDaysPreview: some View {
         let r = workingDays
         return VStack(alignment: .leading, spacing: 8) {
-            Text("Number of working days").font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.85))
+            Text("Number of working days").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink.opacity(0.85))
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("\(r.workingDays)").font(.title.weight(.bold)).foregroundStyle(.white)
+                    Text("\(r.workingDays)").font(.title.weight(.bold)).foregroundStyle(Theme.ink)
                         .monospacedDigit()
                     Text(r.workingDays == 1 ? "working day" : "working days")
-                        .font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                        .font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
                     Spacer()
                     Image(systemName: "calendar.badge.checkmark").foregroundStyle(Theme.sky)
                 }
                 if r.allNonWorking {
                     Text("This range falls entirely on weekends / public holidays.")
-                        .font(.caption).foregroundStyle(.yellow)
+                        .font(.caption).foregroundStyle(Theme.warning)
                 } else if r.calendarDays != r.workingDays {
-                    Text(breakdown(r)).font(.caption).foregroundStyle(.white.opacity(0.7))
+                    Text(breakdown(r)).font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                 }
                 Text("Weekends and Singapore public holidays are automatically excluded.")
-                    .font(.caption2).foregroundStyle(.white.opacity(0.5))
+                    .font(.caption2).foregroundStyle(Theme.ink.opacity(0.5))
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white.opacity(0.08))
+            .background(Theme.ink.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
@@ -294,11 +294,11 @@ struct ApplyLeaveView: View {
 
     private func field<C: View>(_ label: String, @ViewBuilder _ content: () -> C) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(label).font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.85))
+            Text(label).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink.opacity(0.85))
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
-                .background(.white.opacity(0.08))
+                .background(Theme.ink.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
@@ -374,7 +374,7 @@ struct ApplyLeaveView: View {
     /// The No Pay Leave cap panel shown while NPL is selected.
     private var nplPanel: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("No Pay Leave").font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.85))
+            Text("No Pay Leave").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink.opacity(0.85))
             VStack(alignment: .leading, spacing: 8) {
                 if let b = nplBalance {
                     let cap = b.proRated ?? b.entitlement
@@ -382,22 +382,22 @@ struct ApplyLeaveView: View {
                                bookedLabel: "Booked")
                     if Double(workingDays.workingDays) > b.available {
                         Text("This request (\(workingDays.workingDays) day\(workingDays.workingDays == 1 ? "" : "s")) is more than your remaining No Pay Leave (\(Fmt.num(b.available))). Please shorten it or speak to HR.")
-                            .font(.caption).foregroundStyle(.yellow)
+                            .font(.caption).foregroundStyle(Theme.warning)
                     }
                 }
                 Text("No Pay Leave is capped at 21 days a year, prorated by the full months you have served.")
-                    .font(.caption2).foregroundStyle(.white.opacity(0.55))
+                    .font(.caption2).foregroundStyle(Theme.ink.opacity(0.55))
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white.opacity(0.08))
+            .background(Theme.ink.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 
     private func nplFigures(_ npl: NplStatus, bookedLabel: String? = nil) -> some View {
         HStack(spacing: 0) {
-            figure("Cap to date", npl.cap, .white)
+            figure("Cap to date", npl.cap, Theme.ink)
             if let bookedLabel {
                 figure(bookedLabel, npl.used, Theme.mist)
             } else {
@@ -411,7 +411,7 @@ struct ApplyLeaveView: View {
     private func figure(_ label: String, _ v: Double, _ tint: Color) -> some View {
         VStack(spacing: 2) {
             Text(Fmt.num(v)).font(.headline.weight(.bold)).foregroundStyle(tint).monospacedDigit()
-            Text(label).font(.caption2).foregroundStyle(.white.opacity(0.6))
+            Text(label).font(.caption2).foregroundStyle(Theme.ink.opacity(0.6))
         }
         .frame(maxWidth: .infinity)
     }

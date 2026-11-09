@@ -1,112 +1,190 @@
 import SwiftUI
 
-/// Trainer Admins: the read-only trainer directory (`GET /api/mobile/trainers`).
-/// Search + accreditation / finance / IBF-fit filters run server-side; tap a trainer
-/// for the full profile. Shown from the More menu only when the summary reports
-/// `canManageTrainers`; the server enforces TRAINER_ADMIN (403 otherwise).
+/// Trainer Admins: the trainer directory (`GET /api/mobile/trainers`), built to find a
+/// trainer by skill or certification fast and reach them in one tap.
+/// - `.searchable` with suggestions of skills / certifications (with trainer counts); a
+///   picked suggestion becomes a removable filter token.
+/// - Accreditation (ACLP / ACTA / DACE / DDDLP / Finance / IBF Fit) and Trainers /
+///   Applicants live in one filter menu, not a wall of chips.
+/// - Compact rows: name, accreditation badges, the matching skill first; call / WhatsApp /
+///   email / copy from the row's contact menu.
+/// The whole list is loaded once and filtered on the device (same rules as the web).
+/// Shown from the More menu only when the summary reports `canManageTrainers`; the server
+/// enforces TRAINER_ADMIN (403 otherwise). The list never carries NRIC.
 struct TrainersView: View {
-    @State private var filter = TrainerFilter()
-    @State private var state: LoadState<TrainersResponse> = .idle
-    @State private var lastLoaded: TrainersResponse?
+    @State private var state: LoadState<[TrainerListItem]> = .idle
+    @State private var query = PreviewData.query ?? ""
+    @State private var tokens: [TrainerTag] = []
+    @State private var accreditations: Set<TrainerAccreditation> = []
+    @State private var status: TrainerFilter.Status = .trainers
 
     var body: some View {
         GradientScreen {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    filters
-                    results
+            AsyncContent(state: $state, load: load) { all in
+                let shown = filtered(all)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        summaryBar(shown: shown.count, total: all.count)
+                        if shown.isEmpty {
+                            EmptyHint(icon: "person.crop.circle.badge.questionmark",
+                                      text: "No trainers match. Remove a filter or try another skill.")
+                        } else {
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(shown.enumerated()), id: \.element.id) { i, t in
+                                    if i > 0 { Divider().padding(.leading, 16) }
+                                    TrainerRow(trainer: t, needles: needles)
+                                }
+                            }
+                            .background(Theme.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.cardBorder, lineWidth: 1))
+                            .shadow(color: Theme.navy950.opacity(0.05), radius: 8, y: 3)
+                        }
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 12)
                 }
-                .padding(20)
+                .refreshable { await load() }
             }
-            .refreshable { await load() }
         }
         .brandBar()
-        .searchable(text: $filter.query, placement: .navigationBarDrawer(displayMode: .always),
-                    prompt: "Name, cert, skill or course")
+        .searchable(text: $query, tokens: $tokens, placement: .navigationBarDrawer(displayMode: .always),
+                    prompt: "Skill, certification or name") { token in
+            Label(token.tag, systemImage: token.kind == .skill ? "wrench.and.screwdriver" : "rosette")
+        }
+        .searchSuggestions { suggestionList }
         .autocorrectionDisabled()
-        // Debounced server-side search: re-runs whenever any filter changes.
-        .task(id: filter) {
-            if lastLoaded != nil { try? await Task.sleep(nanoseconds: 300_000_000) }
-            guard !Task.isCancelled else { return }
-            await load()
-        }
+        .textInputAutocapitalization(.never)
     }
 
-    // MARK: Filters
-
-    private var filters: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Trainers").font(.title2.weight(.bold)).foregroundStyle(.white)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(TrainingCert.allCases) { cert in
-                        FilterChip(title: cert.rawValue, isOn: filter.certs.contains(cert)) {
-                            if filter.certs.contains(cert) { filter.certs.remove(cert) } else { filter.certs.insert(cert) }
-                        }
-                        .accessibilityHint(cert.fullName)
-                    }
-                    FilterChip(title: "Finance", systemImage: "banknote", isOn: filter.finance) { filter.finance.toggle() }
-                    FilterChip(title: "IBF Fit", systemImage: "checkmark.shield", isOn: filter.ibfFit) { filter.ibfFit.toggle() }
-                }
-                .padding(.vertical, 2)
-            }
-            Picker("Show", selection: $filter.status) {
-                ForEach(TrainerFilter.Status.allCases) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.segmented)
-        }
-    }
-
-    // MARK: Results
+    // MARK: Search suggestions
 
     @ViewBuilder
-    private var results: some View {
-        switch state {
-        case .failed(let message):
-            VStack(spacing: 12) {
-                Image(systemName: "exclamationmark.lock.fill").font(.largeTitle).foregroundStyle(.white.opacity(0.8))
-                Text(message).font(.subheadline).foregroundStyle(.white.opacity(0.85)).multilineTextAlignment(.center)
-                Button("Retry") { Task { await load() } }
-                    .buttonStyle(.borderedProminent).tint(Theme.premier)
-            }
-            .frame(maxWidth: .infinity).padding(.vertical, 32)
-        default:
-            if let data = currentData {
-                HStack {
-                    Text("\(data.count) \(data.count == 1 ? "trainer" : "trainers")")
-                        .font(.footnote.weight(.semibold)).foregroundStyle(Theme.mist)
-                    Spacer()
-                    if case .loading = state { ProgressView().tint(.white).controlSize(.small) }
-                }
-                if data.trainers.isEmpty {
-                    EmptyHint(icon: "person.crop.circle.badge.questionmark", text: "No trainers match these filters.")
-                }
-                LazyVStack(spacing: 12) {
-                    ForEach(data.trainers) { t in
-                        NavigationLink { TrainerProfileView(trainerId: t.id, name: t.name) } label: { TrainerRow(trainer: t) }
-                            .buttonStyle(.plain)
+    private var suggestionList: some View {
+        if case .loaded(let all) = state {
+            let vocab = TrainerDirectory.vocabulary(all)
+            let picks = TrainerDirectory.suggestions(vocab, text: query, excluding: tokens.map(\.tag))
+            if !picks.isEmpty {
+                Section(query.isEmpty ? "Popular skills & certifications" : "Skills & certifications") {
+                    ForEach(picks) { s in
+                        HStack {
+                            Label(s.tag, systemImage: s.kind == .skill ? "wrench.and.screwdriver" : "rosette")
+                                .foregroundStyle(Theme.ink)
+                            Spacer()
+                            Text("\(s.count)").font(.footnote.weight(.semibold)).monospacedDigit()
+                                .foregroundStyle(Theme.mist)
+                        }
+                        .searchCompletion(s)
                     }
                 }
-            } else {
-                ProgressView().tint(.white).frame(maxWidth: .infinity).padding(.vertical, 40)
             }
         }
     }
 
-    /// Keep the previous results on screen while a new search loads (no flicker).
-    private var currentData: TrainersResponse? {
-        if case .loaded(let d) = state { return d }
-        return lastLoaded
+    // MARK: Filter menu
+
+    private var activeFilterCount: Int { accreditations.count + (status == .trainers ? 0 : 1) }
+
+    private var filterMenu: some View {
+        Menu {
+            Section("Accreditation") {
+                ForEach(TrainerAccreditation.allCases) { a in
+                    Toggle(isOn: Binding(
+                        get: { accreditations.contains(a) },
+                        set: { on in if on { accreditations.insert(a) } else { accreditations.remove(a) } }
+                    )) { Label(a.title, systemImage: a.systemImage) }
+                }
+            }
+            Section("Show") {
+                Picker("Show", selection: $status) {
+                    Text("Trainers").tag(TrainerFilter.Status.trainers)
+                    Text("Applicants").tag(TrainerFilter.Status.applicants)
+                    Text("Everyone").tag(TrainerFilter.Status.all)
+                }
+            }
+            if activeFilterCount > 0 || !tokens.isEmpty {
+                Button(role: .destructive) { clearAll() } label: { Label("Clear all filters", systemImage: "xmark.circle") }
+            }
+        } label: {
+            Label(activeFilterCount > 0 ? "Filters (\(activeFilterCount))" : "Filters",
+                  systemImage: activeFilterCount > 0
+                  ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.sky)
+                .padding(.horizontal, 10).frame(minHeight: 34)
+                .background(Theme.sky.opacity(0.09))
+                .clipShape(Capsule())
+        }
+        .accessibilityLabel("Filters")
+        .accessibilityValue(activeFilterCount > 0 ? "\(activeFilterCount) on" : "none")
+    }
+
+    // MARK: Summary bar (count + removable accreditation filters)
+
+    private func summaryBar(shown: Int, total: Int) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Trainers").font(.title2.weight(.bold)).foregroundStyle(Theme.ink)
+                Spacer()
+                Text("\(shown) of \(total)").font(.footnote.weight(.semibold)).monospacedDigit()
+                    .foregroundStyle(Theme.mist)
+                // In the content (not the nav bar) so it stays reachable while searching.
+                filterMenu
+            }
+            let chips = activeChips
+            if !chips.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(chips, id: \.title) { chip in
+                            Button(action: chip.remove) {
+                                HStack(spacing: 4) {
+                                    Text(chip.title)
+                                    Image(systemName: "xmark").font(.caption2.weight(.bold))
+                                }
+                                .font(.footnote.weight(.semibold))
+                                .padding(.horizontal, 10).frame(minHeight: 32)
+                                .foregroundStyle(Theme.sky)
+                                .background(Theme.mist100.opacity(0.55))
+                                .clipShape(Capsule())
+                            }
+                            .accessibilityLabel("Remove filter \(chip.title)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private struct Chip { let title: String; let remove: () -> Void }
+
+    private var activeChips: [Chip] {
+        var out = TrainerAccreditation.allCases.filter { accreditations.contains($0) }.map { a in
+            Chip(title: a.title) { accreditations.remove(a) }
+        }
+        if status != .trainers {
+            out.append(Chip(title: status == .applicants ? "Applicants" : "Everyone") { status = .trainers })
+        }
+        return out
+    }
+
+    private func clearAll() {
+        tokens = []; accreditations = []; status = .trainers; query = ""
+    }
+
+    // MARK: Data
+
+    /// The search words and picked tags — used to put the matching skill first in each row.
+    private var needles: [String] { tokens.map(\.tag) + [query] }
+
+    private func filtered(_ all: [TrainerListItem]) -> [TrainerListItem] {
+        TrainerDirectory.filter(all, query: query, tags: tokens.map(\.tag),
+                                accreditations: accreditations, status: status)
     }
 
     private func load() async {
-        state = .loading
+        if case .loaded = state {} else { state = .loading }
         do {
-            let data = try await HRMSAPI.shared.trainers(filter)
-            lastLoaded = data
-            state = .loaded(data)
+            state = .loaded(try await HRMSAPI.shared.trainers(TrainerFilter(status: .all)).trainers)
         } catch is CancellationError {
-            // Superseded by a newer search.
         } catch {
             if (error as? URLError)?.code == .cancelled { return }
             state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load trainers.")
@@ -116,55 +194,69 @@ struct TrainersView: View {
 
 // MARK: - Row
 
+/// One compact trainer row: name + accreditation badges, then the matching skill first.
+/// Tap opens the profile; the round button (or a long press) offers call / WhatsApp / email / copy.
 private struct TrainerRow: View {
     let trainer: TrainerListItem
+    let needles: [String]
 
     var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(trainer.name).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                            .multilineTextAlignment(.leading)
-                        if let sub = subtitle {
-                            Text(sub).font(.caption).foregroundStyle(.white.opacity(0.7))
-                        }
-                    }
-                    Spacer(minLength: 4)
-                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(.white.opacity(0.4))
-                        .padding(.top, 4)
-                }
-                if !trainer.trainingCerts.isEmpty || trainer.financeBackground || trainer.ibfFitDeclaration {
-                    FlowLayout(spacing: 6) {
-                        ForEach(trainer.trainingCerts, id: \.self) { AccreditationBadge(text: $0) }
-                        if trainer.financeBackground { TagPill(text: "Finance", systemImage: "banknote") }
-                        if trainer.ibfFitDeclaration { TagPill(text: "IBF Fit", systemImage: "checkmark.shield") }
+        HStack(spacing: 10) {
+            NavigationLink { TrainerProfileView(trainerId: trainer.id, name: trainer.name) } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(trainer.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                        .lineLimit(1).truncationMode(.tail)
+                    HStack(spacing: 6) {
+                        badges
+                        Text(expertise)
+                            .font(.caption).foregroundStyle(Theme.mist)
+                            .lineLimit(1).truncationMode(.tail)
                     }
                 }
-                let tags = trainer.topTags()
-                if !tags.isEmpty {
-                    Text(tags.joined(separator: " · ")).font(.caption).foregroundStyle(Theme.mist)
-                        .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if trainer.phone != nil || trainer.email != nil {
+                Menu {
+                    ContactMenuItems(phone: trainer.phone, email: trainer.email)
+                } label: {
+                    Image(systemName: "phone.circle.fill")
+                        .font(.title2).foregroundStyle(Theme.sky)
+                        .frame(width: 44, height: 44)
                 }
-                HStack(spacing: 6) {
-                    Image(systemName: "calendar").font(.caption2)
-                    Text(lastClass).font(.caption2)
-                }
-                .foregroundStyle(.white.opacity(0.6))
+                .accessibilityLabel("Contact \(trainer.name)")
             }
         }
-        .accessibilityElement(children: .combine)
+        .padding(.leading, 16).padding(.trailing, 6).padding(.vertical, 8)
+        .contextMenu { ContactMenuItems(phone: trainer.phone, email: trainer.email) }
     }
 
-    private var subtitle: String? {
-        let parts = [trainer.nickname.map { "“\($0)”" }, trainer.trainerType,
-                     trainer.status == "Active" ? nil : trainer.status].compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    private var badges: some View {
+        HStack(spacing: 3) {
+            ForEach(trainer.trainingCerts.prefix(4), id: \.self) { AccreditationBadge(text: $0, compact: true) }
+            if trainer.financeBackground {
+                Image(systemName: "banknote").font(.caption2).foregroundStyle(Theme.success)
+                    .accessibilityLabel("Finance background")
+            }
+            if trainer.ibfFitDeclaration {
+                Image(systemName: "checkmark.shield.fill").font(.caption2).foregroundStyle(Theme.sky)
+                    .accessibilityLabel("IBF Fit")
+            }
+            if TrainerDirectory.isApplicant(trainer) {
+                Text(trainer.status).font(.caption2.weight(.semibold)).foregroundStyle(Theme.warning)
+            }
+        }
+        .fixedSize()
     }
 
-    private var lastClass: String {
-        guard let d = trainer.lastClassDate else { return trainer.classesCount > 0 ? "\(trainer.classesCount) classes" : "No classes on record" }
-        return "Last class \(Fmt.date(d)) · \(trainer.classesCount) class\(trainer.classesCount == 1 ? "" : "es")"
+    private var expertise: String {
+        let items = TrainerDirectory.orderByMatch(trainer.skills + trainer.certifications, needles: needles)
+        if items.isEmpty {
+            return trainer.lastClassDate.map { "Last class \(Fmt.date($0))" } ?? (trainer.trainerType ?? "—")
+        }
+        return items.prefix(6).joined(separator: " · ")
     }
 }
 
@@ -191,19 +283,19 @@ struct TrainerProfileView: View {
                         }
                         if let edu = t.education {
                             section("Education", "graduationcap.fill") {
-                                Text(edu).font(.subheadline).foregroundStyle(.white)
+                                Text(edu).font(.subheadline).foregroundStyle(Theme.ink)
                             }
                         }
                         if !t.skills.isEmpty {
                             section("Skills", "wrench.and.screwdriver.fill") { tags(t.skills) }
                         }
                         if !t.experience.isEmpty {
-                            section("Work experience", "briefcase.fill") {
+                            section("Work experience", "briefcase.fill", expanded: false) {
                                 VStack(alignment: .leading, spacing: 10) {
                                     ForEach(Array(t.experience.enumerated()), id: \.offset) { _, line in
                                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                                             Circle().fill(Theme.sky).frame(width: 5, height: 5)
-                                            Text(line).font(.subheadline).foregroundStyle(.white)
+                                            Text(line).font(.subheadline).foregroundStyle(Theme.ink)
                                         }
                                     }
                                 }
@@ -213,7 +305,7 @@ struct TrainerProfileView: View {
                         recentSection(t)
                         if let notes = t.adminNotes {
                             section("Admin notes", "note.text") {
-                                Text(notes).font(.subheadline).foregroundStyle(.white.opacity(0.9))
+                                Text(notes).font(.subheadline).foregroundStyle(Theme.ink.opacity(0.9))
                             }
                         }
                     }
@@ -228,9 +320,9 @@ struct TrainerProfileView: View {
     private func header(_ t: TrainerDetail) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 8) {
-                Text(t.name).font(.title3.weight(.bold)).foregroundStyle(.white)
+                Text(t.name).font(.title3.weight(.bold)).foregroundStyle(Theme.ink)
                 let sub = [t.nickname.map { "“\($0)”" }, t.trainerType, t.status].compactMap { $0 }
-                Text(sub.joined(separator: " · ")).font(.subheadline).foregroundStyle(.white.opacity(0.75))
+                Text(sub.joined(separator: " · ")).font(.subheadline).foregroundStyle(Theme.ink.opacity(0.75))
                 HStack(spacing: 8) {
                     TagPill(text: t.inTms ? "In TMS" : "Not in TMS",
                             systemImage: t.inTms ? "checkmark.circle.fill" : "minus.circle")
@@ -240,7 +332,10 @@ struct TrainerProfileView: View {
                     Text("Last class \(Fmt.date(last))").font(.caption).foregroundStyle(Theme.mist)
                 }
                 if let summary = t.summary {
-                    Text(summary).font(.footnote).foregroundStyle(.white.opacity(0.85)).padding(.top, 2)
+                    Text(summary).font(.footnote).foregroundStyle(Theme.ink.opacity(0.85)).padding(.top, 2)
+                }
+                if t.phone != nil || t.email != nil {
+                    ContactButtonsRow(phone: t.phone, email: t.email).padding(.top, 6)
                 }
             }
         }
@@ -255,7 +350,7 @@ struct TrainerProfileView: View {
                     infoRow("NRIC", icon: "lock.fill") {
                         HStack {
                             Text(showNric ? (t.nric ?? "") : t.maskedNric)
-                                .font(.subheadline.monospaced()).foregroundStyle(.white)
+                                .font(.subheadline.monospaced()).foregroundStyle(Theme.ink)
                                 .textSelection(.enabled)
                             Spacer()
                             Button(showNric ? "Hide" : "Show") { showNric.toggle() }
@@ -275,7 +370,7 @@ struct TrainerProfileView: View {
                 }
                 if let nat = t.nationality {
                     infoRow("Nationality", icon: "globe.asia.australia.fill") {
-                        Text(nat).font(.subheadline).foregroundStyle(.white)
+                        Text(nat).font(.subheadline).foregroundStyle(Theme.ink)
                     }
                 }
                 if let li = t.linkedinUrl, let url = URL(string: li.hasPrefix("http") ? li : "https://\(li)") {
@@ -321,8 +416,8 @@ struct TrainerProfileView: View {
     private func flag(_ label: String, on: Bool) -> some View {
         HStack(spacing: 8) {
             Image(systemName: on ? "checkmark.seal.fill" : "xmark.circle")
-                .foregroundStyle(on ? Theme.gold : .white.opacity(0.35))
-            Text(label).font(.subheadline).foregroundStyle(on ? .white : .white.opacity(0.5))
+                .foregroundStyle(on ? Theme.gold : Theme.ink.opacity(0.35))
+            Text(label).font(.subheadline).foregroundStyle(on ? .white : Theme.ink.opacity(0.5))
         }
         .accessibilityElement(children: .combine)
         .accessibilityValue(on ? "Yes" : "No")
@@ -331,7 +426,7 @@ struct TrainerProfileView: View {
     private func detailList(_ title: String, _ items: [String]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.caption.weight(.semibold)).foregroundStyle(Theme.mist)
-            ForEach(items, id: \.self) { Text("• \($0)").font(.caption).foregroundStyle(.white.opacity(0.8)) }
+            ForEach(items, id: \.self) { Text("• \($0)").font(.caption).foregroundStyle(Theme.ink.opacity(0.8)) }
         }
     }
 
@@ -340,15 +435,15 @@ struct TrainerProfileView: View {
     @ViewBuilder
     private func coursesSection(_ t: TrainerDetail) -> some View {
         if !t.courses.isEmpty {
-            section("Courses taught", "book.closed.fill") {
+            section("Courses taught (\(t.courses.count))", "book.closed.fill", expanded: false) {
                 VStack(spacing: 0) {
                     ForEach(Array(t.courses.enumerated()), id: \.offset) { i, c in
-                        if i > 0 { Divider().overlay(.white.opacity(0.12)) }
+                        if i > 0 { Divider().overlay(Theme.ink.opacity(0.12)) }
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(c.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                            Text(c.title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                             let meta = [c.code, "\(c.classes) class\(c.classes == 1 ? "" : "es")",
                                         range(c.first, c.last)].compactMap { $0 }
-                            Text(meta.joined(separator: " · ")).font(.caption).foregroundStyle(.white.opacity(0.65))
+                            Text(meta.joined(separator: " · ")).font(.caption).foregroundStyle(Theme.ink.opacity(0.65))
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 10)
@@ -361,16 +456,16 @@ struct TrainerProfileView: View {
     @ViewBuilder
     private func recentSection(_ t: TrainerDetail) -> some View {
         if !t.recentClasses.isEmpty {
-            section("Recent classes", "clock.arrow.circlepath") {
+            section("Recent classes", "clock.arrow.circlepath", expanded: false) {
                 VStack(spacing: 0) {
                     ForEach(Array(t.recentClasses.enumerated()), id: \.offset) { i, c in
-                        if i > 0 { Divider().overlay(.white.opacity(0.12)) }
+                        if i > 0 { Divider().overlay(Theme.ink.opacity(0.12)) }
                         HStack(alignment: .top, spacing: 10) {
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(c.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                                Text(c.title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                                 Text([c.start.map { Fmt.date($0) }, c.run.map { "Run \($0)" }].compactMap { $0 }
                                     .joined(separator: " · "))
-                                    .font(.caption).foregroundStyle(.white.opacity(0.65))
+                                    .font(.caption).foregroundStyle(Theme.ink.opacity(0.65))
                             }
                             Spacer()
                             if let status = c.status { StatusPill(status: status) }
@@ -393,11 +488,10 @@ struct TrainerProfileView: View {
 
     // MARK: Building blocks (inset-grouped sections on the brand surface)
 
-    private func section<C: View>(_ title: String, _ icon: String, @ViewBuilder _ content: () -> C) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(title, systemImage: icon)
-                .font(.headline).foregroundStyle(.white.opacity(0.9))
-                .accessibilityAddTraits(.isHeader)
+    /// A collapsible section (secondary detail starts collapsed to keep the profile short).
+    private func section<C: View>(_ title: String, _ icon: String, expanded: Bool = true,
+                                  @ViewBuilder _ content: () -> C) -> some View {
+        CollapsibleSection(title: title, icon: icon, expanded: expanded) {
             Card { content() }
         }
     }
@@ -410,7 +504,7 @@ struct TrainerProfileView: View {
         HStack(spacing: 12) {
             Image(systemName: icon).foregroundStyle(Theme.sky).frame(width: 22)
             VStack(alignment: .leading, spacing: 2) {
-                Text(label).font(.caption).foregroundStyle(.white.opacity(0.6))
+                Text(label).font(.caption).foregroundStyle(Theme.ink.opacity(0.6))
                 value()
             }
             Spacer(minLength: 0)
@@ -426,12 +520,12 @@ struct TrainerProfileView: View {
                     HStack {
                         Text(value).font(.subheadline).foregroundStyle(Theme.sky).lineLimit(1)
                         Spacer()
-                        Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.white.opacity(0.4))
+                        Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(Theme.ink.opacity(0.4))
                     }
                 }
             }
         } else {
-            infoRow(label, icon: icon) { Text(value).font(.subheadline).foregroundStyle(.white) }
+            infoRow(label, icon: icon) { Text(value).font(.subheadline).foregroundStyle(Theme.ink) }
         }
     }
 
@@ -459,10 +553,10 @@ struct FilterChip: View {
                 Text(title).font(.footnote.weight(.semibold))
             }
             .padding(.horizontal, 14).frame(minHeight: 36)
-            .foregroundStyle(isOn ? Theme.navy950 : .white)
-            .background(isOn ? AnyShapeStyle(Theme.sky) : AnyShapeStyle(.white.opacity(0.1)))
+            .foregroundStyle(isOn ? .white : Theme.ink)
+            .background(isOn ? AnyShapeStyle(Theme.sky) : AnyShapeStyle(Theme.card))
             .clipShape(Capsule())
-            .overlay(Capsule().stroke(.white.opacity(isOn ? 0 : 0.2), lineWidth: 1))
+            .overlay(Capsule().stroke(Theme.fieldBorder.opacity(isOn ? 0 : 1), lineWidth: 1))
         }
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
@@ -471,10 +565,11 @@ struct FilterChip: View {
 /// Gold accreditation badge (ACLP / ACTA / …) — the brand's sparing warm accent.
 struct AccreditationBadge: View {
     let text: String
+    var compact = false
     var body: some View {
         Text(text)
-            .font(.caption2.weight(.bold))
-            .padding(.horizontal, 8).padding(.vertical, 3)
+            .font(compact ? .system(size: 10, weight: .bold) : .caption2.weight(.bold))
+            .padding(.horizontal, compact ? 5 : 8).padding(.vertical, compact ? 1.5 : 3)
             .foregroundStyle(Theme.navy950)
             .background(Theme.gold)
             .clipShape(Capsule())
@@ -491,8 +586,8 @@ struct TagPill: View {
         }
         .font(.caption.weight(.medium))
         .padding(.horizontal, 10).padding(.vertical, 5)
-        .foregroundStyle(.white)
-        .background(.white.opacity(0.12))
+        .foregroundStyle(Theme.navy800)
+        .background(Theme.mist100.opacity(0.45))
         .clipShape(Capsule())
     }
 }

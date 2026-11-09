@@ -23,7 +23,7 @@ struct EmployeeRecordsView: View {
                                 ClockHistoryView(name: data.employee.name, attendance: data.attendance)
                             } label: {
                                 StatTile(value: "\(data.attendance.daysWorked)", label: "Days clocked",
-                                         icon: "clock.fill", tint: .mint)
+                                         icon: "clock.fill", tint: .teal)
                             }
                             NavigationLink {
                                 LeaveHistoryListView(title: "MC history", name: data.employee.name,
@@ -59,9 +59,9 @@ struct EmployeeRecordsView: View {
     private func header(_ e: RecordsEmployee) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 4) {
-                Text(e.name).font(.title3.weight(.bold)).foregroundStyle(.white)
+                Text(e.name).font(.title3.weight(.bold)).foregroundStyle(Theme.ink)
                 Text([e.position, e.department].compactMap { $0 }.joined(separator: " · "))
-                    .font(.subheadline).foregroundStyle(.white.opacity(0.75))
+                    .font(.subheadline).foregroundStyle(Theme.ink.opacity(0.75))
                 Text([e.employeeCode, e.employmentType?.replacingOccurrences(of: "_", with: " ").capitalized]
                     .compactMap { $0 }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(Theme.sky)
@@ -81,14 +81,14 @@ struct EmployeeRecordsView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         if data.attendance.days.isEmpty {
                             Text("No clock-ins on record.")
-                                .font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                                .font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
                         } else {
                             ForEach(data.attendance.days.prefix(previewCount)) { PunchLine(day: $0) }
                         }
-                        Divider().overlay(.white.opacity(0.15))
+                        Divider().overlay(Theme.ink.opacity(0.15))
                         HStack {
                             Text(String(format: "%.1f h total", data.attendance.totalHours))
-                                .font(.caption.weight(.semibold)).foregroundStyle(.mint)
+                                .font(.caption.weight(.semibold)).foregroundStyle(Theme.success)
                             Spacer()
                             Text("See all clock in/out").font(.caption.weight(.semibold)).foregroundStyle(Theme.sky)
                             Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.sky)
@@ -118,7 +118,7 @@ struct EmployeeRecordsView: View {
                 }
             }
             if rows.isEmpty {
-                Card { Text(empty).font(.subheadline).foregroundStyle(.white.opacity(0.7)) }
+                Card { Text(empty).font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7)) }
             } else {
                 ForEach(rows.prefix(previewCount)) { LeaveRequestRow(request: $0) }
             }
@@ -126,7 +126,7 @@ struct EmployeeRecordsView: View {
     }
 
     private func sectionTitle(_ title: String, icon: String) -> some View {
-        Label(title, systemImage: icon).font(.headline).foregroundStyle(.white.opacity(0.9))
+        Label(title, systemImage: icon).font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
     }
 
     /// Approved days only — pending/rejected requests weren't taken.
@@ -165,10 +165,10 @@ struct ClockHistoryView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
                     Text("\(name) · Clock in/out history")
-                        .font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                        .font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
                     HStack(spacing: 12) {
                         StatTile(value: String(format: "%.1f h", attendance.totalHours),
-                                 label: "Total hours", icon: "sum", tint: .mint)
+                                 label: "Total hours", icon: "sum", tint: .teal)
                         StatTile(value: "\(attendance.daysWorked)",
                                  label: "Days worked", icon: "calendar.badge.checkmark", tint: Theme.sky)
                     }
@@ -178,12 +178,12 @@ struct ClockHistoryView: View {
                     ForEach(months, id: \.month) { group in
                         HStack {
                             Text(AttendanceMonth.label(group.month))
-                                .font(.headline).foregroundStyle(.white.opacity(0.9))
+                                .font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                             Spacer()
                             Text(String(format: "%.2f h · %d day%@",
                                         group.days.reduce(0) { $0 + ($1.hours ?? 0) },
                                         group.days.count, group.days.count == 1 ? "" : "s"))
-                                .font(.caption.weight(.semibold)).monospacedDigit().foregroundStyle(.mint)
+                                .font(.caption.weight(.semibold)).monospacedDigit().foregroundStyle(Theme.success)
                         }
                         .padding(.top, 6)
                         ForEach(group.days) { d in Card { PunchLine(day: d) } }
@@ -207,7 +207,7 @@ struct LeaveHistoryListView: View {
         GradientScreen {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
-                    Text("\(name) · \(title)").font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                    Text("\(name) · \(title)").font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
                     if rows.isEmpty {
                         EmptyHint(icon: "tray", text: empty)
                     }
@@ -233,25 +233,25 @@ struct PunchLine: View {
         HStack {
             VStack(alignment: .leading, spacing: 3) {
                 Text(AttendanceMonth.dayLabel(day.date))
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                 Text("In \(AttendanceMonth.time(day.clockIn))  ·  Out \(day.clockOut != nil ? AttendanceMonth.time(day.clockOut) : (inProgress ? "…" : "—"))")
-                    .font(.caption).foregroundStyle(.white.opacity(0.7))
+                    .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
             }
             Spacer()
             if let h = day.hours {
                 Text(String(format: "%.2f h", h))
-                    .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(.mint)
+                    .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.success)
             } else if inProgress, let start = Fmt.dateObj(day.clockIn) {
                 TimelineView(.periodic(from: .now, by: 60)) { ctx in
                     VStack(alignment: .trailing, spacing: 1) {
                         Text(String(format: "%.2f h", max(0, ctx.date.timeIntervalSince(start) / 3600)))
-                            .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(.yellow)
-                        Text("so far").font(.caption2).foregroundStyle(.white.opacity(0.7))
+                            .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.warning)
+                        Text("so far").font(.caption2).foregroundStyle(Theme.ink.opacity(0.7))
                     }
                 }
             } else if open {
                 Text("No clock-out")
-                    .font(.caption.weight(.semibold)).foregroundStyle(.yellow)
+                    .font(.caption.weight(.semibold)).foregroundStyle(Theme.warning)
             }
         }
     }
@@ -265,17 +265,17 @@ struct LeaveRequestRow: View {
         Card {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(request.leaveType).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    Text(request.leaveType).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                     Text("\(Fmt.date(request.startDate)) → \(Fmt.date(request.endDate))")
-                        .font(.caption).foregroundStyle(.white.opacity(0.7))
+                        .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                     if let reason = request.reason, !reason.isEmpty {
-                        Text(reason).font(.caption2).foregroundStyle(.white.opacity(0.55)).lineLimit(2)
+                        Text(reason).font(.caption2).foregroundStyle(Theme.ink.opacity(0.55)).lineLimit(2)
                     }
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
                     StatusPill(status: request.status)
-                    Text(Fmt.days(request.days)).font(.caption2).foregroundStyle(.white.opacity(0.7))
+                    Text(Fmt.days(request.days)).font(.caption2).foregroundStyle(Theme.ink.opacity(0.7))
                 }
             }
         }

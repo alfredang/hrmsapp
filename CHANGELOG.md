@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased] — branch feat/neat-ui-light-theme (not submitted; 1.14 is in App Review)
+- One light premium-blue theme everywhere (white cards on a pale blue surface, navy text, royal-blue actions, gold only on accreditation badges). Dark mode is gone: the app is forced light, like the web app.
+- Approvals: pending leave / MC and hourly time off are one-line tables (name, status, type, dates, days, applied, reason). Tap a row for the full reason and Approve / Reject. Sections collapse; time-off requests can now be approved in the app.
+- Time Off (approvers): new Mine / Team switch. Team lists everyone's requests as one-line rows with a status filter.
+- Leave & MC: new People / Requests switch. Requests lists every leave and MC request of the month on one line each, with a leave-type filter.
+- Trainer Management: search suggests skills and certifications with trainer counts, and a picked suggestion becomes a removable filter. Accreditation (ACLP / ACTA / DACE / DDDLP / Finance / IBF Fit) and Trainers / Applicants sit in one Filters menu. Rows are compact (name, badges, matching skill first) with call / WhatsApp / email / copy. The profile has Call, WhatsApp, Email and Copy buttons; long sections collapse. The NRIC stays masked until you tap Show.
+- Timesheet: Intern Attendance is merged into one admin Timesheet (missing-punch and Off In Lieu approvals, then interns' days and hours per month; tap an intern for each day). Interns see their own Timesheet; other staff see Off In Lieu instead of Timesheet.
+- More menu grouped into My work / Manage / Help, with new Feedback (WhatsApp) and About screens.
+
 ## [1.14] — 2026-11-09 (build 20)
 - The app is now called TIA HRMS, with a new premium-blue look.
 - Apply for leave: when annual leave would exceed your balance, the app explains why and offers "Apply as No Pay Leave instead" for the same dates.

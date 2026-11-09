@@ -55,9 +55,9 @@ struct ProfileView: View {
             Label(title, systemImage: icon)
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity).frame(height: 44)
-                .background(.white.opacity(0.1)).foregroundStyle(.white)
+                .background(Theme.ink.opacity(0.1)).foregroundStyle(Theme.ink)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.white.opacity(0.18), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.ink.opacity(0.18), lineWidth: 1))
         }
     }
 
@@ -65,27 +65,27 @@ struct ProfileView: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle().fill(Theme.accent).frame(width: 88, height: 88)
-                Text(initials(e.name)).font(.system(size: 34, weight: .bold, design: .rounded)).foregroundStyle(.white)
+                Text(initials(e.name)).font(.system(size: 34, weight: .bold, design: .rounded)).foregroundStyle(Theme.ink)
             }
             .shadow(color: Theme.premier.opacity(0.5), radius: 14, y: 8)
-            Text(e.name).font(.title3.weight(.bold)).foregroundStyle(.white)
+            Text(e.name).font(.title3.weight(.bold)).foregroundStyle(Theme.ink)
             Text(e.roles.joined(separator: " · "))
                 .font(.caption.weight(.semibold))
                 .padding(.horizontal, 12).padding(.vertical, 5)
-                .background(.white.opacity(0.16)).clipShape(Capsule()).foregroundStyle(.white)
+                .background(Theme.ink.opacity(0.16)).clipShape(Capsule()).foregroundStyle(Theme.ink)
         }
     }
 
     private func detail(_ label: String, _ value: String, last: Bool = false) -> some View {
         VStack(spacing: 0) {
             HStack {
-                Text(label).font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                Text(label).font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
                 Spacer()
-                Text(value).font(.subheadline.weight(.medium)).foregroundStyle(.white)
+                Text(value).font(.subheadline.weight(.medium)).foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.trailing)
             }
             .padding(.vertical, 11)
-            if !last { Rectangle().fill(.white.opacity(0.08)).frame(height: 1) }
+            if !last { Rectangle().fill(Theme.ink.opacity(0.08)).frame(height: 1) }
         }
     }
 

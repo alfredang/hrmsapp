@@ -44,19 +44,19 @@ struct TeamView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle().fill(Theme.accent).frame(width: 46, height: 46)
-                    Text(initials(e.name)).font(.subheadline.weight(.bold)).foregroundStyle(.white)
+                    Text(initials(e.name)).font(.subheadline.weight(.bold)).foregroundStyle(Theme.ink)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(e.name).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    Text(e.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                     Text([e.position, e.department].compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption).foregroundStyle(.white.opacity(0.7))
+                        .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                     if isAdmin, let email = e.email {
                         Text(email).font(.caption2).foregroundStyle(Theme.sky)
                     }
                 }
                 Spacer()
                 if isAdmin {
-                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(.white.opacity(0.4))
+                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.ink.opacity(0.4))
                 }
             }
         }

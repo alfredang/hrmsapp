@@ -1,51 +1,77 @@
 import SwiftUI
 
 /// TIA HRMS "premium blue" brand palette (BRAND.md, 9 Nov 2026).
-/// Navy foundations rising to royal blue, with gold as the single, sparing warm accent.
-/// The app runs on a dark branded surface, so `royal300` is the primary on dark and
-/// `royal600` the primary for fills / light-mode tint (AccentColor asset).
+/// One light theme (Alfred, 10 Nov 2026): a soft blue-white surface, navy text, royal-blue
+/// primary, and gold as the single, sparing warm accent. There is no dark mode — the app
+/// forces `.preferredColorScheme(.light)` at the root, matching the web app.
 enum Theme {
     // MARK: Brand tokens
-    /// navy-950 — darkest background, top of gradients, bars.
+    /// navy-950 — primary text, headings.
     static let navy950 = Color(hex: 0x0D1638)
     /// navy-800 — gradient middle, headers.
     static let navy800 = Color(hex: 0x1A2F86)
-    /// royal-600 — gradient end, primary buttons (light-mode primary).
+    /// royal-600 — primary buttons, links, active tab, tint.
     static let royal600 = Color(hex: 0x2F5BE6)
-    /// royal-500 — hover / pressed-light, top of the button gradient.
+    /// royal-500 — top of the button gradient.
     static let royal500 = Color(hex: 0x3D6BF0)
-    /// royal-300 — primary on dark backgrounds (links, tint, active tab).
+    /// royal-300 — light blue for soft fills.
     static let royal300 = Color(hex: 0x8FB0FF)
-    /// mist-100 — secondary text on blue.
-    static let mist = Color(hex: 0xC9D8FF)
-    /// gold-400 — the single warm accent: badges, highlights. Use sparingly.
+    /// mist-100 — pale blue for chips, selected rows and tinted surfaces.
+    static let mist100 = Color(hex: 0xC9D8FF)
+    /// gold-400 — the single warm accent: accreditation badges, highlights. Use sparingly.
     static let gold = Color(hex: 0xF5B83D)
     /// gold-600 — gold pressed / gradient end.
     static let gold600 = Color(hex: 0xD9921C)
 
-    // MARK: Semantic aliases (kept so every screen picks up the palette)
+    // MARK: Semantic aliases (every screen reads these)
     static let navy = navy950
     static let premier = royal600
     static let azure = royal500
-    static let sky = royal300
+    /// Primary interactive colour on the light surface (links, icons, tint).
+    static let sky = royal600
+    /// Primary text.
+    static let ink = navy950
+    /// Secondary text / metadata (navy-blue grey, AA on white).
+    static let mist = Color(hex: 0x4D5B8C)
 
-    /// Opaque bar colour (tab + nav bars) — navy-950.
-    static let barUIColor = UIColor(red: 0x0D / 255, green: 0x16 / 255, blue: 0x38 / 255, alpha: 1)
+    /// Opaque bar colour (tab + nav bars) — white.
+    static let barUIColor = UIColor.white
+    static let barTitleUIColor = UIColor(red: 0x0D / 255, green: 0x16 / 255, blue: 0x38 / 255, alpha: 1)
 
-    // MARK: Neutrals
-    static let ink = Color(red: 0.07, green: 0.09, blue: 0.15)          // near-black text
-    static let field = Color.white.opacity(0.12)
-    static let fieldBorder = Color.white.opacity(0.22)
+    // MARK: Surfaces
+    /// Page background base colour.
+    static let surface = Color(hex: 0xF3F6FD)
+    /// Cards and grouped sections.
+    static let card = Color.white
+    static let cardBorder = Color(hex: 0x2F5BE6).opacity(0.10)
+    static let field = Color.white
+    static let fieldBorder = Color(hex: 0x0D1638).opacity(0.14)
+
+    // MARK: Status colours (darkened so text stays readable on white)
+    static let success = Color(hex: 0x15803D)
+    static let warning = Color(hex: 0xB45309)
+    static let danger = Color(hex: 0xC2271D)
 
     // MARK: Gradients
-    /// The brand backdrop: linear 160°, navy-950 → navy-800 (50%) → royal-600.
+    /// The page backdrop: a very light blue-white wash.
     static let backdrop = LinearGradient(
+        stops: [
+            .init(color: Color(hex: 0xF8FAFF), location: 0),
+            .init(color: Color(hex: 0xF1F5FE), location: 0.55),
+            .init(color: Color(hex: 0xE6EDFD), location: 1),
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+
+    /// The brand gradient (navy-950 → navy-800 → royal-600, 160°) — the brand mark only.
+    static let brand = LinearGradient(
         stops: [
             .init(color: navy950, location: 0),
             .init(color: navy800, location: 0.5),
             .init(color: royal600, location: 1),
         ],
-        startPoint: UnitPoint(x: 0.32, y: 0),   // 160° ≈ top, slightly left → bottom, slightly right
+        startPoint: UnitPoint(x: 0.32, y: 0),
         endPoint: UnitPoint(x: 0.68, y: 1)
     )
 

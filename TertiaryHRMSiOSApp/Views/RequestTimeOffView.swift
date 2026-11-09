@@ -39,15 +39,15 @@ struct RequestTimeOffView: View {
 
                         field("Date") {
                             DatePicker("", selection: $date, displayedComponents: .date)
-                                .labelsHidden().colorScheme(.dark)
+                                .labelsHidden()
                         }
                         field("From") {
                             DatePicker("", selection: $start, displayedComponents: .hourAndMinute)
-                                .labelsHidden().colorScheme(.dark)
+                                .labelsHidden()
                         }
                         field("To") {
                             DatePicker("", selection: $end, displayedComponents: .hourAndMinute)
-                                .labelsHidden().colorScheme(.dark)
+                                .labelsHidden()
                         }
 
                         if let h = previewHours {
@@ -67,9 +67,9 @@ struct RequestTimeOffView: View {
                         if reason == "OTHERS" {
                             field("Details") {
                                 TextField("", text: $detail,
-                                          prompt: Text("Please describe the reason").foregroundColor(.white.opacity(0.5)),
+                                          prompt: Text("Please describe the reason").foregroundColor(Theme.ink.opacity(0.5)),
                                           axis: .vertical)
-                                    .lineLimit(2...4).foregroundStyle(.white)
+                                    .lineLimit(2...4).foregroundStyle(Theme.ink)
                                     .focused($detailFocused)
                                     .tint(Theme.sky)
                             }
@@ -99,11 +99,11 @@ struct RequestTimeOffView: View {
 
     private func field<C: View>(_ label: String, @ViewBuilder _ content: () -> C) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(label).font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.85))
+            Text(label).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink.opacity(0.85))
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
-                .background(.white.opacity(0.08))
+                .background(Theme.ink.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }

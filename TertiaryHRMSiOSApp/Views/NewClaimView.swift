@@ -59,7 +59,7 @@ struct NewClaimView: View {
                         Task { await submit() }
                     }
                     Text("Your receipt photo is filed to your personal Google Drive folder under \(claimType == .medical ? "Medical Claims" : "Expense Claims") and sent for approval.")
-                        .font(.caption2).foregroundStyle(.white.opacity(0.6))
+                        .font(.caption2).foregroundStyle(Theme.ink.opacity(0.6))
                 }
                 .padding(20)
             }
@@ -99,7 +99,7 @@ struct NewClaimView: View {
     private var typePicker: some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Claim type").font(.headline).foregroundStyle(.white.opacity(0.9))
+                Text("Claim type").font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                 HStack(spacing: 10) {
                     ForEach(ClaimType.allCases) { t in
                         Button {
@@ -110,8 +110,8 @@ struct NewClaimView: View {
                                 Text(t.rawValue).fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity).frame(height: 46)
-                            .background(claimType == t ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.white.opacity(0.1)))
-                            .foregroundStyle(.white)
+                            .background(claimType == t ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.ink.opacity(0.1)))
+                            .foregroundStyle(Theme.ink)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                     }
@@ -123,7 +123,7 @@ struct NewClaimView: View {
     private var photoSection: some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Receipt photo").font(.headline).foregroundStyle(.white.opacity(0.9))
+                Text("Receipt photo").font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
                 if let image {
                     Image(uiImage: image)
                         .resizable().scaledToFit()
@@ -134,7 +134,7 @@ struct NewClaimView: View {
                         Button(role: .destructive) { self.image = nil } label: {
                             Label("Remove", systemImage: "trash")
                                 .frame(maxWidth: .infinity).frame(height: 44)
-                                .background(.white.opacity(0.1)).foregroundStyle(.red.opacity(0.9))
+                                .background(Theme.ink.opacity(0.1)).foregroundStyle(Theme.danger)
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                     }
@@ -143,12 +143,12 @@ struct NewClaimView: View {
                     PhotosPicker(selection: $photoItem, matching: .images) {
                         Label("Choose from library", systemImage: "photo.on.rectangle")
                             .frame(maxWidth: .infinity).frame(height: 44)
-                            .background(.white.opacity(0.1)).foregroundStyle(.white)
+                            .background(Theme.ink.opacity(0.1)).foregroundStyle(Theme.ink)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     if !CameraPicker.isAvailable {
                         Text("Camera not available on this device — choose from the photo library.")
-                            .font(.caption2).foregroundStyle(.white.opacity(0.5))
+                            .font(.caption2).foregroundStyle(Theme.ink.opacity(0.5))
                     }
                 }
             }
@@ -159,7 +159,7 @@ struct NewClaimView: View {
         Button(action: action) {
             Label(title, systemImage: icon)
                 .frame(maxWidth: .infinity).frame(height: 44)
-                .background(Theme.accent).foregroundStyle(.white)
+                .background(Theme.accent).foregroundStyle(Theme.ink)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .opacity(disabled ? 0.45 : 1)
         }
@@ -169,7 +169,7 @@ struct NewClaimView: View {
     private var detailsSection: some View {
         Card {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Details").font(.headline).foregroundStyle(.white.opacity(0.9))
+                Text("Details").font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
 
                 if claimType == .expense {
                     Menu {
@@ -178,11 +178,11 @@ struct NewClaimView: View {
                         }
                     } label: {
                         HStack {
-                            Image(systemName: "tag.fill").foregroundStyle(.white.opacity(0.7)).frame(width: 22)
+                            Image(systemName: "tag.fill").foregroundStyle(Theme.ink.opacity(0.7)).frame(width: 22)
                             Text(expenseCategories.first(where: { $0.id == categoryId })?.name ?? "Select category")
-                                .foregroundStyle(categoryId == nil ? .white.opacity(0.55) : .white)
+                                .foregroundStyle(categoryId == nil ? Theme.ink.opacity(0.55) : Theme.ink)
                             Spacer()
-                            Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(.white.opacity(0.5))
+                            Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(Theme.ink.opacity(0.5))
                         }
                         .padding(.horizontal, 16).frame(height: Theme.controlHeight)
                         .background(Theme.field)
@@ -193,7 +193,7 @@ struct NewClaimView: View {
                 } else {
                     HStack(spacing: 8) {
                         Image(systemName: "cross.case.fill").foregroundStyle(.pink)
-                        Text("Filed under Medical Claim").foregroundStyle(.white.opacity(0.85)).font(.subheadline)
+                        Text("Filed under Medical Claim").foregroundStyle(Theme.ink.opacity(0.85)).font(.subheadline)
                     }
                 }
 
@@ -205,11 +205,11 @@ struct NewClaimView: View {
 
                 DatePicker(selection: $expenseDate, in: ...Date(), displayedComponents: .date) {
                     Label("Receipt date", systemImage: "calendar")
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(Theme.ink.opacity(0.85))
                 }
                 .datePickerStyle(.compact)
                 .tint(Theme.sky)
-                .colorScheme(.dark)
+                
                 .frame(height: 44)
             }
         }

@@ -37,7 +37,7 @@ struct TeamCalendarView: View {
         .sheet(item: $selected) { bucket in
             DayDetailSheet(bucket: bucket)
                 .presentationDetents([.medium])
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
         }
     }
 
@@ -47,15 +47,15 @@ struct TeamCalendarView: View {
         HStack {
             Text(monthTitle)
                 .font(.title2.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.ink)
             Spacer()
             HStack(spacing: 8) {
                 navButton("chevron.left") { shift(-1) }
                 Button("Today") { month = Date().startOfMonth }
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.ink)
                     .padding(.horizontal, 14).padding(.vertical, 8)
-                    .background(.white.opacity(0.10))
+                    .background(Theme.ink.opacity(0.10))
                     .clipShape(Capsule())
                 navButton("chevron.right") { shift(1) }
             }
@@ -66,9 +66,9 @@ struct TeamCalendarView: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.ink)
                 .frame(width: 38, height: 38)
-                .background(.white.opacity(0.10))
+                .background(Theme.ink.opacity(0.10))
                 .clipShape(Circle())
         }
         .accessibilityLabel(icon == "chevron.left" ? "Previous month" : "Next month")
@@ -102,7 +102,7 @@ struct TeamCalendarView: View {
             ForEach(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], id: \.self) { d in
                 Text(d)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(Theme.ink.opacity(0.55))
                     .frame(maxWidth: .infinity)
             }
         }
@@ -129,7 +129,7 @@ struct TeamCalendarView: View {
             HStack {
                 Text("\(cal.component(.day, from: day))")
                     .font(.caption.weight(isToday ? .bold : .semibold))
-                    .foregroundStyle(isToday ? .white : .white.opacity(0.85))
+                    .foregroundStyle(isToday ? .white : Theme.ink.opacity(0.85))
                     .frame(width: 22, height: 22)
                     .background(isToday ? Theme.sky : .clear)
                     .clipShape(Circle())
@@ -146,18 +146,18 @@ struct TeamCalendarView: View {
             if entries.count > shown {
                 Text("+\(entries.count - shown) more")
                     .font(.system(size: 9))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Theme.ink.opacity(0.6))
             }
             Spacer(minLength: 0)
         }
         .padding(4)
         .frame(height: 84, alignment: .topLeading)
         .frame(maxWidth: .infinity)
-        .background(isToday ? Color.white.opacity(0.10) : Color.white.opacity(0.04))
+        .background(isToday ? Theme.mist100.opacity(0.55) : Theme.card)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(.white.opacity(0.08), lineWidth: 1)
+                .stroke(Theme.ink.opacity(0.08), lineWidth: 1)
         )
         .contentShape(Rectangle())
         .onTapGesture {
@@ -188,7 +188,7 @@ struct TeamCalendarView: View {
             Spacer()
         }
         .font(.caption2)
-        .foregroundStyle(.white.opacity(0.7))
+        .foregroundStyle(Theme.ink.opacity(0.7))
     }
 
     private func legendDot(_ c: Color, _ label: String) -> some View {
@@ -296,14 +296,14 @@ private struct DayDetailSheet: View {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(title)
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.ink)
 
                     if let h = bucket.holiday {
                         Card {
                             HStack(spacing: 10) {
                                 Image(systemName: "flag.fill")
                                     .foregroundStyle(Color(red: 0.88, green: 0.25, blue: 0.35))
-                                Text(h).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                                Text(h).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                                 Spacer()
                             }
                         }
@@ -319,10 +319,10 @@ private struct DayDetailSheet: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(e.isSelf ? "You" : e.employeeName)
                                         .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(e.isSelf ? Theme.sky : .white)
+                                        .foregroundStyle(e.isSelf ? Theme.sky : Theme.ink)
                                     Text(detail(e))
                                         .font(.caption2)
-                                        .foregroundStyle(.white.opacity(0.7))
+                                        .foregroundStyle(Theme.ink.opacity(0.7))
                                 }
                                 Spacer()
                             }

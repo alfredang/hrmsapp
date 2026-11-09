@@ -7,7 +7,7 @@ struct MainTabView: View {
     @EnvironmentObject private var auth: AuthViewModel
 
     init() {
-        // Dark, translucent tab + nav bars to sit on the Premier Blue backdrop.
+        // White tab + nav bars with a hairline shadow on the light premium-blue surface.
         let tab = UITabBarAppearance()
         tab.configureWithOpaqueBackground()
         tab.backgroundColor = Theme.barUIColor
@@ -17,8 +17,8 @@ struct MainTabView: View {
         let nav = UINavigationBarAppearance()
         nav.configureWithOpaqueBackground()
         nav.backgroundColor = Theme.barUIColor
-        nav.titleTextAttributes = [.foregroundColor: UIColor.white]
-        nav.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+        nav.titleTextAttributes = [.foregroundColor: Theme.barTitleUIColor]
+        nav.largeTitleTextAttributes = [.foregroundColor: Theme.barTitleUIColor]
         UINavigationBar.appearance().standardAppearance = nav
         UINavigationBar.appearance().scrollEdgeAppearance = nav
     }
@@ -41,7 +41,7 @@ struct MainTabView: View {
             if Self.previewOpen == "applyleave" {
                 ApplyLeaveView(types: PreviewData.leave.types, balances: PreviewData.leave.balances,
                                isIntern: auth.isIntern)
-                    .preferredColorScheme(.dark)
+                    .preferredColorScheme(.light)
             } else {
             NavigationStack {
                 switch Self.previewOpen {
@@ -49,7 +49,11 @@ struct MainTabView: View {
                 case "claim": NewClaimView()
                 case "approvals": ApprovalsView()
                 case "calendar": TeamCalendarView()
-                case "interns": InternAttendanceView()
+                case "interns", "timesheet": TimesheetAdminView()
+                case "mytimesheet": MyTimesheetView()
+                case "timeoff": TimeOffView()
+                case "feedback": FeedbackView()
+                case "about": AboutView()
                 case "leavesummary": LeaveSummaryView()
                 case "records": EmployeeRecordsView(employee: PreviewData.employees.employees[0])
                 case "leave": LeaveView()
@@ -62,7 +66,7 @@ struct MainTabView: View {
                 default: EmptyView()
                 }
             }
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(.light)
             }
         }
     }

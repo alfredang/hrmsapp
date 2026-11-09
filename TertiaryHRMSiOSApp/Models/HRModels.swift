@@ -378,11 +378,14 @@ struct TimeOffRequest: Codable, Identifiable {
     let approvalComment: String?
     let rejectionReason: String?
     let createdAt: String?
+    /// The requester — present on the admin list (`GET /api/time-off`, nested `employee.name`).
+    var employeeName: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, date, startTime, endTime, hours, reason, reasonDetail, status,
-             approvalComment, rejectionReason, createdAt
+             approvalComment, rejectionReason, createdAt, employee
     }
+    private struct EmployeeRef: Codable { let name: String? }
     // `hours` arrives as a decimal string (e.g. "2.50") — decode leniently.
     init(from d: Decoder) throws {
         let c = try d.container(keyedBy: CodingKeys.self)
@@ -397,6 +400,19 @@ struct TimeOffRequest: Codable, Identifiable {
         approvalComment = try? c.decodeIfPresent(String.self, forKey: .approvalComment)
         rejectionReason = try? c.decodeIfPresent(String.self, forKey: .rejectionReason)
         createdAt = try? c.decodeIfPresent(String.self, forKey: .createdAt)
+        employeeName = (try? c.decodeIfPresent(EmployeeRef.self, forKey: .employee))?.name
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id); try c.encode(date, forKey: .date)
+        try c.encode(startTime, forKey: .startTime); try c.encode(endTime, forKey: .endTime)
+        try c.encode(hours, forKey: .hours); try c.encode(reason, forKey: .reason)
+        try c.encodeIfPresent(reasonDetail, forKey: .reasonDetail); try c.encode(status, forKey: .status)
+        try c.encodeIfPresent(approvalComment, forKey: .approvalComment)
+        try c.encodeIfPresent(rejectionReason, forKey: .rejectionReason)
+        try c.encodeIfPresent(createdAt, forKey: .createdAt)
+        try c.encodeIfPresent(EmployeeRef(name: employeeName), forKey: .employee)
     }
     private static func flexNumber(_ c: KeyedDecodingContainer<CodingKeys>, _ k: CodingKeys) -> Double {
         if let d = try? c.decode(Double.self, forKey: k) { return d }
@@ -408,7 +424,9 @@ struct TimeOffRequest: Codable, Identifiable {
     // used to build the `-uiPreview` sample data.
     init(id: String, date: String, startTime: String, endTime: String, hours: Double,
          reason: String, reasonDetail: String?, status: String,
-         approvalComment: String?, rejectionReason: String?, createdAt: String?) {
+         approvalComment: String?, rejectionReason: String?, createdAt: String?,
+         employeeName: String? = nil) {
+        self.employeeName = employeeName
         self.id = id; self.date = date; self.startTime = startTime; self.endTime = endTime
         self.hours = hours; self.reason = reason; self.reasonDetail = reasonDetail
         self.status = status; self.approvalComment = approvalComment
@@ -420,9 +438,62 @@ struct TimeOffRequest: Codable, Identifiable {
         switch reason.uppercased() {
         case "EXAMS": return "Exams"
         case "EMERGENCY": return "Emergency"
+        case "UNPAID_LEAVE": return "Unpaid leave"
         default: return "Others"
         }
     }
+
+    /// "Exams — detail" (the full text shown in the record sheet).
+    var reasonText: String {
+        if let d = reasonDetail, !d.isEmpty { return "\(reasonLabel) — \(d)" }
+        return reasonLabel
+    }
+}
+
+/// `GET /api/mobile/time-off` → `{ requests: [...] }` (the signed-in employee's own).
+struct TimeOffEnvelope: Decodable { let requests: [TimeOffRequest] }
+
+// MARK: - Missing-punch corrections (admin)  (GET /api/attendance/corrections?scope=all&status=PENDING)
+struct AttendanceCorrection: Codable, Identifiable {
+    let id: String
+    let employeeId: String
+    let employeeName: String
+    let employeeCode: String
+    /// `yyyy-MM-dd`
+    let date: String
+    /// CLOCK_IN | CLOCK_OUT | BOTH
+    let kind: String
+    let requestedClockIn: String?
+    let requestedClockOut: String?
+    let currentClockIn: String?
+    let currentClockOut: String?
+    let reason: String
+    let status: String
+    let rejectionReason: String?
+    let createdAt: String?
+
+    var kindLabel: String {
+        switch kind.uppercased() {
+        case "CLOCK_IN": return "Missing clock-in"
+        case "CLOCK_OUT": return "Missing clock-out"
+        default: return "Missing clock-in & out"
+        }
+    }
+}
+
+// MARK: - Off In Lieu entries (admin)  (GET /api/timesheet/admin — last 30 days, weekend / PH work)
+struct OffInLieuEntry: Codable, Identifiable {
+    let id: String
+    let employeeId: String
+    let employeeCode: String?
+    let employeeName: String
+    let date: String
+    let dayName: String
+    let isPublicHoliday: Bool
+    let hours: Double
+    let otCredited: Double
+    let status: String
+    let adminComment: String?
 }
 
 // MARK: - Timesheet  (existing /api/timesheet)

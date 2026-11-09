@@ -6,9 +6,12 @@ Guidance for Claude Code when working in this repository.
 
 **TIA HRMS — native iOS app** (Swift + SwiftUI, MVVM; home-screen name **TIA HRMS** since v1.14, formerly "Tertiary HRMS"). The App Store build of Tertiary
 Infotech Academy's HR Management System, **rebuilt fully native — no Capacitor, no WebView**.
-Deployment target **iOS 16**, **iPhone only**, theme **TIA premium blue** (BRAND.md in `../../tertiary/tia-hrms-brand/`: navy-950 #0D1638 → navy-800
-#1A2F86 → royal-600 #2F5BE6 backdrop, royal-300 #8FB0FF primary on dark, gold-400 #F5B83D as the single
-sparing accent — `Theme/Theme.swift`, AccentColor asset). The app icon is unchanged (all HRMS apps share it).
+Deployment target **iOS 16**, **iPhone only**, **one light TIA premium-blue theme** (10 Nov 2026; BRAND.md in
+`../../tertiary/tia-hrms-brand/`): pale blue-white surface (`Theme.backdrop`), white cards, navy-950 #0D1638 text
+(`Theme.ink`), navy-grey secondary text (`Theme.mist`), royal-600 #2F5BE6 primary (`Theme.sky`/`premier`), gold-400
+#F5B83D only as a sparing accent (accreditation badges), darkened status colours (`Theme.success/warning/danger`).
+The navy→royal brand gradient (`Theme.brand`) is for the brand mark only. **No dark mode**: the root forces
+`.preferredColorScheme(.light)` — never add a dark/theme toggle or `.white` text on the light surface. The app icon is unchanged (all HRMS apps share it).
 **This app is the design reference the Android app mirrors 1:1** — follow Apple HIG and the
 `mobile-ios-design` skill for new screens.
 
@@ -88,14 +91,21 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   switched to No Pay Leave up front with reason "Sick leave (MC)" and the MC photo kept (mirrors the
   web form's `internSick`). The Leave tab shows the **No Pay Leave** card from the NPL balance row
   (`proRated` = prorated 21-day cap, `available` = remaining).
-- **Trainers** (Trainer Admins only, More menu) — read-only directory `TrainersView` over
-  `GET /api/mobile/trainers?q=&cert=&finance=1&ibfFit=1&status=` (search + ACLP/ACTA/DACE/DDDLP,
-  Finance, IBF Fit chips) and `TrainerProfileView` over `GET /api/mobile/trainers/{id}` (NRIC masked
-  `S****567D` with a Show toggle; tap-to-call/mail). Shown only when `summary.canManageTrainers`
+- **Trainer Management** (Trainer Admins only, More → Manage) — `TrainersView` loads the whole list once
+  (`GET /api/mobile/trainers`) and filters on the device with `TrainerDirectory` (mirrors the web
+  `filterTrainers` / `topTags`): `.searchable` with skill / certification suggestions + counts that become
+  removable tokens, one Filters menu (ACLP/ACTA/DACE/DDDLP/Finance/IBF Fit, Trainers/Applicants), compact rows
+  (name, badges, matching skill first) with a contact menu (call / WhatsApp `wa.me/65XXXXXXXX` for 8-digit SG
+  numbers / email / copy — `ContactLinks`). `TrainerProfileView` over `GET /api/mobile/trainers/{id}` (NRIC masked
+  `S****567D` with a Show toggle; Call / WhatsApp / Email / Copy buttons; collapsible sections). Shown only when `summary.canManageTrainers`
   (role TRAINER_ADMIN); the server returns 403 otherwise. Models in `Models/TrainerModels.swift`,
   decoded leniently (importer-built JSON).
-- **Approvals** (approvers only) — approve/reject pending **leave & expense** requests in-app
-  (`GET /api/mobile/approvals`; actions `POST /api/leave|expenses/{id}/approve|reject`). Gated by
+- **Approvals** (approvers only) — approve/reject pending **leave, time off & expense** requests in-app
+  (`GET /api/mobile/approvals` + `GET /api/time-off` (approvers get everyone's); actions
+  `POST /api/leave|time-off|expenses/{id}/approve|reject`). Leave and time off are **one-line tables**
+  (`OneLineTable` in `Views/Components/NeatComponents.swift`: frozen name column, the rest scrolls sideways;
+  order name, status, type, dates, days, applied, reason) — a tap opens `RecordSheet` with the full reason
+  and Approve / Reject. Time Off has a Mine / Team switch for approvers; Leave & MC has People / Requests. Gated by
   `summary.isAdmin`; **enforced server-side** (403 for staff/interns), not just hidden in the UI.
 - **Team** — company directory (richer contact fields for supervisory roles). Approvers tap a
   person for `EmployeeRecordsView` (`GET /api/mobile/employees/{id}/records`, approver-or-self):
@@ -105,13 +115,16 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   with a receipt photo** (camera or library → `POST /api/mobile/claims` multipart → the server
   files the photo in the employee's own Google Drive folder under "Expense Claims" /
   "Medical Claims" and raises the approval). Expense and Medical claim types.
-- **Timesheet** — a simple **clock in / out** with a live elapsed timer and a **monthly daily
+- **Clock In / Out** — `ClockView`: clock in / out with a live elapsed timer and a **monthly daily
   history** (check-in, check-out, hours, month total — `AttendanceHistorySection` over
   `/api/mobile/attendance/history?month=`), one-tap punches stored centrally in `AttendancePunch`.
-- **Intern Attendance** (approvers only, More menu) — `InternAttendanceView` over
-  `/api/mobile/attendance/summary?month=`: each intern's days worked + total hours, drilling into
-  that intern's daily history. Mirrors the web's `/attendance/overview`.
-  `TimesheetView` renders the clock experience (`ClockView`); also a Dashboard quick action.
+- **Timesheet = interns only** (`Views/TimesheetViews.swift`, mirrors the web 10 Nov 2026):
+  approvers get ONE `TimesheetAdminView` (More → Manage → Timesheet) — pending missing punches
+  (`GET /api/attendance/corrections?scope=all&status=PENDING`, approve/reject `POST /api/attendance/corrections/{id}`),
+  Off In Lieu entries (`GET/POST /api/timesheet/admin`) and every intern's days + hours for a month
+  (`/api/mobile/attendance/summary?month=`), tap an intern → `InternAttendanceDetailView`. The separate
+  "Intern Attendance" screen is gone. Interns see `MyTimesheetView`; other staff see **Off In Lieu**
+  (`WeeklyTimesheetView`, weekend / PH hours) and no Timesheet.
 - **Notifications** — in-app list + nav-bar bell with unread badge. `GET /api/notifications`
   (raw array), mark-read `POST /api/notifications/{id}/read`; filtered to staff-relevant types
   (LEAVE_/OT_/WOODS_SQUARE_ APPROVED/REJECTED/DECLINED, INFO). `NotificationStore` keeps the badge in sync.
@@ -188,5 +201,11 @@ notes. `Support/PrivacyInfo.xcprivacy` declares Email (App Functionality, not tr
 
 ## Conventions
 
-Follow the bundled `mobile-ios-design` skill: Apple HIG, SF Symbols, large typography, ≥56pt touch
-targets. The app runs in a dark, branded TIA premium-blue surface (`.preferredColorScheme(.dark)`).
+Follow the bundled `mobile-ios-design` skill: Apple HIG, SF Symbols, large typography, ≥44pt touch
+targets. One light premium-blue theme (`.preferredColorScheme(.light)`); colours only from `Theme`.
+Keep screens neat: group with `CollapsibleSection`, list admin records as one line (`OneLineTable`) with the
+detail in a sheet (`RecordSheet`), put filters in a `Menu` rather than rows of chips. The tab bar stays at five
+tabs (HIG maximum), so the house **Feedback** + **About** screens live in More → Help.
+Tests: `TertiaryHRMSiOSAppTests` (unit) and `TertiaryHRMSiOSAppUITests` (UI on `-uiPreview` data; set
+`TEST_RUNNER_SCREENSHOT_DIR=<dir>` to save screenshots). Extra capture flags: `-uiPreviewFlag team|requests`,
+`-uiPreviewQuery <text>`, `-uiPreviewOpen timesheet|mytimesheet|timeoff|feedback|about`.
