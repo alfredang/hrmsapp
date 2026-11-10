@@ -1,10 +1,11 @@
 # Changelog
 
-## [1.15] — 2026-11-11 (build 25 uploaded; not yet submitted — waiting on the server deploy)
+## [1.15] — 2026-11-11 (build 27 uploaded; build 25 was submitted to App Review first)
 - Push notifications (APNs): interns get missed clock-in / clock-out and timesheet reminders; admins get new leave, MC, time-off and expense-claim requests. The token is registered after sign-in (`POST /api/mobile/push-token`) and removed on sign-out; a tapped push opens the matching screen (Approvals, Clock In/Out, Leave, Expenses, Time Off, Timesheet). The Notifications list now shows every notification addressed to you, and tapping one opens its screen.
 - Trainers (More → My work): a read-only trainer contact list for every staff member and intern (search; tap for email, call and WhatsApp). Trainer Management stays under Manage for Trainer Admins.
 - Trainer Management: long certificate names show as short codes (ACLP, ACTA, DACE, DDDLP; "ALCP"/"DDDPL" typos fixed), chips never push the row off-screen, and an IBF badge marks the IBF Fit declaration. The profile's Accreditation card lists only what the trainer holds, with readable labels.
-- Calendar: weeks start on Monday; public holidays are shaded grey and named (e.g. "Deepavali").
+- Calendar in the Planner app's design: Month / List toggle; Mon-first edge-to-edge grid with greyed adjacent-month days; tinted chips (You blue, Colleague amber) and "+N"; today as a premium-blue circle; public holidays grey and named; tap a day for its leave and holiday below the grid; List shows upcoming leave and holidays by day; Everyone / Only me in the filter menu.
+- More menu: Applications (MC, Leave, Time Off, Expense Claims, Off In Lieu / intern Timesheet), Staff (Calendar, Payslips, My Profile, Trainers), Intern (Time In/Out — interns and admins), Manage, Help. MC opens the leave form on Medical Leave.
 - New premium-blue app icon (saturated royal blue #0E4FD0→#0138A5→#001C68, matching the TC LMS SG app; master in tia-hrms-brand/icon-1024.png).
 - White initials on the premium-blue avatars (Team, Profile) and white text on selected royal-blue buttons.
 - Build 22 (same version, without push) was uploaded earlier and superseded; build 23 had everything except the calendar change; build 24 (no new icon) was never finished uploading.
