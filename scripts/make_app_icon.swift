@@ -1,4 +1,4 @@
-// Generates the Tertiary HRMS 1024×1024 App Store icon — refined "Premier Blue".
+// Generates the TIA HRMS 1024×1024 App Store icon — TC LMS-style royal blue (11 Nov 2026).
 // App Store compliant: opaque, NO alpha channel (CGContext with .noneSkipLast).
 // Design: a glossy deep-navy → premier-blue → azure gradient with a top sheen and
 // bottom vignette, a soft white "badge ring", a bold white people mark, and a small
@@ -23,22 +23,16 @@ NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: false)
 let ctx = cg
 let full = NSRect(x: 0, y: 0, width: S, height: S)
 
-// --- Base gradient (deep navy → premier → azure), vertical for a clean look ---
-let navy    = NSColor(srgbRed: 0.031, green: 0.094, blue: 0.243, alpha: 1)  // #08183E
-let premier = NSColor(srgbRed: 0.114, green: 0.306, blue: 0.847, alpha: 1)  // #1D4ED8
-let azure   = NSColor(srgbRed: 0.243, green: 0.530, blue: 0.980, alpha: 1)  // #3E87FA
-NSGradient(colors: [navy, premier, azure], atLocations: [0.0, 0.58, 1.0], colorSpace: .sRGB)!
-    .draw(in: full, angle: -90)
-
-// --- Diagonal sheen (top-left light) for a glossy, premium feel ---
-let sheen = NSGradient(colors: [NSColor(white: 1, alpha: 0.22), NSColor(white: 1, alpha: 0)])!
-sheen.draw(in: full, relativeCenterPosition: NSPoint(x: -0.45, y: 0.6))
-
-// --- Bottom vignette for depth ---
-ctx.saveGState()
-let vig = NSGradient(colors: [NSColor(white: 0, alpha: 0), NSColor(red: 0.02, green: 0.06, blue: 0.18, alpha: 0.45)])!
-vig.draw(in: full, angle: -90)
-ctx.restoreGState()
+// --- Base: saturated royal-blue radial gradient, matching the TC LMS SG icon (Alfred, 11 Nov
+//     2026: "premium blue background like the TC LMS SG app", one brand across the apps).
+//     No white sheen — it greyed the old icon.
+let premier = NSColor(srgbRed: 0.004, green: 0.220, blue: 0.647, alpha: 1)  // #0138A5
+let glow    = NSColor(srgbRed: 0.055, green: 0.310, blue: 0.816, alpha: 1)  // #0E4FD0
+let edge    = NSColor(srgbRed: 0.000, green: 0.110, blue: 0.408, alpha: 1)  // #001C68
+NSColor(srgbRed: 0.000, green: 0.110, blue: 0.408, alpha: 1).setFill()
+full.fill()
+NSGradient(colors: [glow, premier, edge], atLocations: [0.0, 0.55, 1.0], colorSpace: .sRGB)!
+    .draw(in: full.insetBy(dx: -S*0.25, dy: -S*0.25), relativeCenterPosition: NSPoint(x: 0, y: 0.12))
 
 // --- Soft "badge" ring behind the mark ---
 ctx.saveGState()

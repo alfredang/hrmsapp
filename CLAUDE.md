@@ -11,7 +11,7 @@ Deployment target **iOS 16**, **iPhone only**, **one light TIA premium-blue them
 (`Theme.ink`), navy-grey secondary text (`Theme.mist`), royal-600 #2F5BE6 primary (`Theme.sky`/`premier`), gold-400
 #F5B83D only as a sparing accent (accreditation badges), darkened status colours (`Theme.success/warning/danger`).
 The navy→royal brand gradient (`Theme.brand`) is for the brand mark only. **No dark mode**: the root forces
-`.preferredColorScheme(.light)` — never add a dark/theme toggle or `.white` text on the light surface. On a royal fill (`Theme.accent`/`premier`: initials avatars, accent buttons) text is always `.white`, never navy (Alfred, 11 Nov 2026). The app icon is unchanged (all HRMS apps share it).
+`.preferredColorScheme(.light)` — never add a dark/theme toggle or `.white` text on the light surface. On a royal fill (`Theme.accent`/`premier`: initials avatars, accent buttons) text is always `.white`, never navy (Alfred, 11 Nov 2026). App icon (since 1.15): saturated premium-blue master `../../tertiary/tia-hrms-brand/icon-1024.png` (generator `scripts/make_app_icon.swift`), shared with Android.
 **This app is the design reference the Android app mirrors 1:1** — follow Apple HIG and the
 `mobile-ios-design` skill for new screens.
 
