@@ -44,7 +44,7 @@ struct TeamView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle().fill(Theme.accent).frame(width: 46, height: 46)
-                    Text(initials(e.name)).font(.subheadline.weight(.bold)).foregroundStyle(Theme.ink)
+                    Text(initials(e.name)).font(.subheadline.weight(.bold)).foregroundStyle(.white)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(e.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)

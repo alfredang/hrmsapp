@@ -65,7 +65,7 @@ struct ProfileView: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle().fill(Theme.accent).frame(width: 88, height: 88)
-                Text(initials(e.name)).font(.system(size: 34, weight: .bold, design: .rounded)).foregroundStyle(Theme.ink)
+                Text(initials(e.name)).font(.system(size: 34, weight: .bold, design: .rounded)).foregroundStyle(.white)
             }
             .shadow(color: Theme.premier.opacity(0.5), radius: 14, y: 8)
             Text(e.name).font(.title3.weight(.bold)).foregroundStyle(Theme.ink)

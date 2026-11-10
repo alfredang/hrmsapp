@@ -11,7 +11,7 @@ Deployment target **iOS 16**, **iPhone only**, **one light TIA premium-blue them
 (`Theme.ink`), navy-grey secondary text (`Theme.mist`), royal-600 #2F5BE6 primary (`Theme.sky`/`premier`), gold-400
 #F5B83D only as a sparing accent (accreditation badges), darkened status colours (`Theme.success/warning/danger`).
 The navy→royal brand gradient (`Theme.brand`) is for the brand mark only. **No dark mode**: the root forces
-`.preferredColorScheme(.light)` — never add a dark/theme toggle or `.white` text on the light surface. The app icon is unchanged (all HRMS apps share it).
+`.preferredColorScheme(.light)` — never add a dark/theme toggle or `.white` text on the light surface. On a royal fill (`Theme.accent`/`premier`: initials avatars, accent buttons) text is always `.white`, never navy (Alfred, 11 Nov 2026). The app icon is unchanged (all HRMS apps share it).
 **This app is the design reference the Android app mirrors 1:1** — follow Apple HIG and the
 `mobile-ios-design` skill for new screens.
 
@@ -140,6 +140,12 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Accounting module** entirely (bank-statement import, transaction dedupe, reconciliation, income/expense tracking) — finance/back-office only, not part of the mobile employee experience.
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
+
+## Push notifications (since 1.15)
+- `Services/PushManager.swift` + `AppDelegate` (`@UIApplicationDelegateAdaptor`): after sign-in it asks for alert/badge/sound, registers with APNs and POSTs the hex token to `/api/mobile/push-token` `{token, platform:"ios", environment: sandbox|production}` (DEBUG = sandbox); sign-out DELETEs it **before** the session cookie is cleared. A tapped push sets `pendingLink` (the payload's web `link`); `MainTabView` maps it through `PushRoute.from(link:isAdmin:isIntern:)` to a tab or a sheet. The in-app Notifications list routes the same way.
+- Entitlement `Support/TertiaryHRMSiOSApp.entitlements` uses `$(APS_ENVIRONMENT)` (Debug development / Release production, set per config in `project.yml`). Push is enabled on the App ID; the manual App Store profile **"HRMS App Store API"** was regenerated with push on 11 Nov 2026. If a capability is ever added again, regenerate that profile (ASC API `POST /v1/profiles`, IOS_APP_STORE, cert JU3U329V25) or export fails with "doesn't include the aps-environment entitlement".
+- Xcode has no Apple ID signed in on this Mac: archive/export with `-allowProvisioningUpdates -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8 -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID`.
+- The APNs auth key for the server is `B8VV93SZCQ` (team GU9WTSTX9M); the server holds it, never this repo.
 
 ## Build & run
 

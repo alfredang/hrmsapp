@@ -175,6 +175,8 @@ enum PreviewData {
         ],
         holidays: [
             TeamHoliday(id: "h1", title: "Public Holiday", startDate: "2026-09-21T00:00:00Z", endDate: "2026-09-21T00:00:00Z"),
+            TeamHoliday(id: "h2", title: "Deepavali", startDate: "2026-11-08T00:00:00Z", endDate: "2026-11-08T00:00:00Z"),
+            TeamHoliday(id: "h3", title: "Christmas Day", startDate: "2026-12-25", endDate: "2026-12-25"),
         ])
 
     static let calendar = CalendarResponse(events: [
@@ -425,12 +427,14 @@ enum PreviewData {
     static let trainerList: [TrainerListItem] = [
         TrainerListItem(id: "tr-1", name: "ALFRED ANG CHEW HOE (DR)", nickname: "Alfred", phone: "+65 9123 4567",
                         email: "alfred.ang@example.com", trainerType: "ACLP", inTms: true,
-                        trainingCerts: ["ACLP", "ACTA", "DACE"], certifications: ["PMP", "AWS Solutions Architect"],
+                        trainingCerts: ["Advanced Certificate in Learning and Performance (ACLP, 2023)", "ACTA", "DACE",
+                                        "Graduate Certificate in Workplace Learning (GCWLP)"],
+                        certifications: ["PMP", "AWS Solutions Architect"],
                         skills: ["Python", "Generative AI", "Power BI"], education: "PhD, National University of Singapore",
                         financeBackground: true, ibfFitDeclaration: true, classesCount: 214, lastClassDate: "2026-11-04",
                         courseTitles: ["Generative AI for Business", "Python for Data Analytics"]),
         TrainerListItem(id: "tr-2", name: "TAN MEI LING", phone: "+65 9234 5678", email: "meiling.tan@example.com",
-                        trainerType: "ACLP", inTms: true, trainingCerts: ["ACLP"],
+                        trainerType: "ACLP", inTms: true, trainingCerts: ["ALCP", "Associate Adult Educator (AAE) Programme"],
                         certifications: ["CFA Level II", "CCAR-F"], skills: ["Financial Modelling", "Excel"],
                         financeBackground: true, ibfFitDeclaration: true, classesCount: 58, lastClassDate: "2026-10-28",
                         courseTitles: ["Financial Modelling with Excel"]),
@@ -446,6 +450,16 @@ enum PreviewData {
                         status: "Applicant", inTms: false, trainingCerts: [], certifications: ["Google Data Analytics"],
                         skills: ["SQL", "Tableau"]),
     ]
+
+    /// More → Trainers (contact list for everyone), derived from the same sample trainers.
+    static var trainerContacts: TrainerContactsResponse {
+        let list = trainerList.filter { $0.status != "Applicant" }.map {
+            TrainerContact(id: $0.id, name: $0.name, email: $0.email, phone: $0.phone,
+                           trainingCerts: $0.trainingCerts, skills: $0.skills,
+                           courseTitles: $0.courseTitles, lastClassDate: $0.lastClassDate)
+        }
+        return TrainerContactsResponse(count: list.count, trainers: list)
+    }
 
     static func trainers(_ f: TrainerFilter) -> TrainersResponse {
         let q = f.query.lowercased()

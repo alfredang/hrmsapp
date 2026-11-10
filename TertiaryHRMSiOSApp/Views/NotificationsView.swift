@@ -35,6 +35,7 @@ private extension AppNotification {
 /// maps to an in-app screen, could route — kept as mark-read for now to stay
 /// within the current tab structure).
 struct NotificationsView: View {
+    @EnvironmentObject private var auth: AuthViewModel
     @ObservedObject private var store = NotificationStore.shared
     @State private var loading = true
 
@@ -66,6 +67,11 @@ struct NotificationsView: View {
     private func row(_ n: AppNotification) -> some View {
         Button {
             Task { await store.markRead(n.id) }
+            // Open the related screen (approvals, clock, leave…) when the link maps to one.
+            let isAdmin = ["ADMIN", "HR", "MANAGER"].contains(auth.user?.primaryRole.uppercased() ?? "")
+            if PushRoute.from(link: n.link, isAdmin: isAdmin, isIntern: auth.isIntern) != .notifications {
+                PushManager.shared.pendingLink = n.link
+            }
         } label: {
             Card {
                 HStack(alignment: .top, spacing: 12) {
@@ -100,14 +106,20 @@ struct NotificationsView: View {
         case "OT_REJECTED": return "clock.badge.xmark.fill"
         case "WOODS_SQUARE_APPROVED": return "door.left.hand.open"
         case "WOODS_SQUARE_DECLINED": return "door.left.hand.closed"
+        case "ATTENDANCE_MISSED", "ATTENDANCE_ROLLUP": return "clock.badge.exclamationmark.fill"
+        case "TIMESHEET_REMINDER": return "calendar.badge.clock"
+        case "LEAVE_REQUEST", "EXPENSE_REQUEST", "TIME_OFF_REQUEST", "APPROVAL_REQUEST": return "tray.full.fill"
+        case "EXPENSE_APPROVED", "TIME_OFF_APPROVED": return "checkmark.circle.fill"
+        case "EXPENSE_REJECTED", "TIME_OFF_REJECTED": return "xmark.circle.fill"
         default: return "info.circle.fill"
         }
     }
 
     private func tint(_ n: AppNotification) -> Color {
         switch n.type {
-        case "LEAVE_APPROVED", "OT_APPROVED", "WOODS_SQUARE_APPROVED": return .green
-        case "LEAVE_REJECTED", "OT_REJECTED", "WOODS_SQUARE_DECLINED": return .red
+        case "LEAVE_APPROVED", "OT_APPROVED", "WOODS_SQUARE_APPROVED", "EXPENSE_APPROVED", "TIME_OFF_APPROVED": return Theme.success
+        case "LEAVE_REJECTED", "OT_REJECTED", "WOODS_SQUARE_DECLINED", "EXPENSE_REJECTED", "TIME_OFF_REJECTED": return Theme.danger
+        case "ATTENDANCE_MISSED", "ATTENDANCE_ROLLUP", "TIMESHEET_REMINDER": return Theme.warning
         default: return Theme.sky
         }
     }

@@ -111,7 +111,7 @@ struct NewClaimView: View {
                             }
                             .frame(maxWidth: .infinity).frame(height: 46)
                             .background(claimType == t ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.ink.opacity(0.1)))
-                            .foregroundStyle(Theme.ink)
+                            .foregroundStyle(claimType == t ? Color.white : Theme.ink)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                     }
@@ -159,7 +159,7 @@ struct NewClaimView: View {
         Button(action: action) {
             Label(title, systemImage: icon)
                 .frame(maxWidth: .infinity).frame(height: 44)
-                .background(Theme.accent).foregroundStyle(Theme.ink)
+                .background(Theme.accent).foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .opacity(disabled ? 0.45 : 1)
         }

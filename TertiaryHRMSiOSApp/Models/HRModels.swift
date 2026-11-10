@@ -268,6 +268,11 @@ struct AppNotification: Codable, Identifiable {
         "WOODS_SQUARE_APPROVED", "WOODS_SQUARE_DECLINED", "INFO",
     ]
     var isStaffRelevant: Bool { AppNotification.staffTypes.contains(type) }
+
+    /// The server already scopes `/api/notifications` to the signed-in user, so every row is
+    /// theirs: decisions, missed clock-in/out and timesheet reminders, and (for admins) new
+    /// leave / MC / time-off / expense requests awaiting approval. All of them are shown.
+    var isShownInApp: Bool { true }
 }
 
 // MARK: - Attendance clock in/out  (/api/mobile/attendance)

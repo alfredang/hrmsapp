@@ -191,7 +191,7 @@ actor HRMSAPI {
     func notifications() async throws -> [AppNotification] {
         if isPreview { return PreviewData.notifications }
         let all: [AppNotification] = try await get("api/notifications")
-        return all.filter(\.isStaffRelevant)
+        return all.filter(\.isShownInApp)
     }
 
     /// Mark a single notification read (owner only). POST /api/notifications/{id}/read.
@@ -261,6 +261,19 @@ actor HRMSAPI {
         guard (200..<300).contains(code) else {
             throw LeaveSubmitError.parse(status: code, data: data)
         }
+    }
+
+    // MARK: - Trainer contacts (every signed-in user)
+
+    /// GET /api/mobile/trainers/contacts?q= — read-only contact list (name, email, phone,
+    /// courses, skills). Demo / App Review accounts get an empty list.
+    func trainerContacts(query: String = "") async throws -> TrainerContactsResponse {
+        if isPreview { return PreviewData.trainerContacts }
+        var comps = URLComponents(url: base.appendingPathComponent("api/mobile/trainers/contacts"),
+                                  resolvingAgainstBaseURL: false)!
+        let q = query.trimmingCharacters(in: .whitespaces)
+        comps.queryItems = q.isEmpty ? nil : [URLQueryItem(name: "q", value: q)]
+        return try await get(url: comps.url!)
     }
 
     // MARK: - Trainer directory (Trainer Admins; 403 for everyone else)
@@ -446,7 +459,7 @@ actor HRMSAPI {
         req.httpBody = try JSONSerialization.data(withJSONObject: ["personalInfo": personalInfo])
         let (data, resp) = try await safe(req)
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-        if code == 401 || code == 403 { throw APIError.unauthorized }
+        if code == 401 { throw APIError.unauthorized }
         guard (200..<300).contains(code) else {
             let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
             throw NSError(domain: "HRMS", code: code,
@@ -469,6 +482,30 @@ actor HRMSAPI {
             throw NSError(domain: "HRMS", code: code,
                           userInfo: [NSLocalizedDescriptionKey: msg ?? "Could not update your password."])
         }
+    }
+
+    // MARK: - Push notifications (APNs device token)
+
+    /// POST /api/mobile/push-token {token, platform: "ios", environment}.
+    func registerPushToken(_ token: String, environment: String) async throws {
+        try await pushToken(method: "POST", body: ["token": token, "platform": "ios", "environment": environment])
+    }
+
+    /// DELETE /api/mobile/push-token {token} — on sign-out, best effort.
+    func unregisterPushToken(_ token: String) async throws {
+        try await pushToken(method: "DELETE", body: ["token": token])
+    }
+
+    private func pushToken(method: String, body: [String: Any]) async throws {
+        if isPreview { return }
+        var req = URLRequest(url: base.appendingPathComponent("api/mobile/push-token"))
+        req.httpMethod = method
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (_, resp) = try await safe(req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 { throw APIError.unauthorized }
+        guard (200..<300).contains(code) else { throw APIError.http(code) }
     }
 
     // MARK: - Authenticated PDF download (existing payslip PDF route)

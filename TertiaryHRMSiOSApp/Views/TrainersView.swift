@@ -235,20 +235,23 @@ private struct TrainerRow: View {
 
     private var badges: some View {
         HStack(spacing: 3) {
-            ForEach(trainer.trainingCerts.prefix(4), id: \.self) { AccreditationBadge(text: $0, compact: true) }
+            ForEach(TrainingCert.shortCodes(trainer.trainingCerts).prefix(4), id: \.self) {
+                AccreditationBadge(text: $0, compact: true)
+            }
+            if trainer.ibfFitDeclaration {
+                AccreditationBadge(text: "IBF", compact: true).accessibilityLabel("IBF Fit declaration on file")
+            }
             if trainer.financeBackground {
                 Image(systemName: "banknote").font(.caption2).foregroundStyle(Theme.success)
                     .accessibilityLabel("Finance background")
             }
-            if trainer.ibfFitDeclaration {
-                Image(systemName: "checkmark.shield.fill").font(.caption2).foregroundStyle(Theme.sky)
-                    .accessibilityLabel("IBF Fit")
-            }
             if TrainerDirectory.isApplicant(trainer) {
                 Text(trainer.status).font(.caption2.weight(.semibold)).foregroundStyle(Theme.warning)
+                    .lineLimit(1)
             }
         }
-        .fixedSize()
+        .lineLimit(1)
+        .layoutPriority(1)   // badges are short codes; the expertise text gives way and truncates
     }
 
     private var expertise: String {
@@ -387,27 +390,32 @@ struct TrainerProfileView: View {
 
     // MARK: Accreditation
 
-    private func accreditation(_ t: TrainerDetail) -> some View {
-        let held = Set(t.trainingCerts.map { $0.uppercased() })
-        let others = t.trainingCerts.filter { c in !TrainingCert.allCases.contains { $0.rawValue == c.uppercased() } }
-        return section("Accreditation", "checkmark.seal.fill") {
-            VStack(alignment: .leading, spacing: 12) {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 10) {
-                    ForEach(TrainingCert.allCases) { cert in
-                        flag(cert.rawValue, on: held.contains(cert.rawValue))
-                            .accessibilityHint(cert.fullName)
+    /// Only what the trainer HOLDS (Alfred, 11 Nov 2026): held accreditations as gold badges with
+    /// navy codes, "IBF" when the IBF Fit declaration is on file, then finance background.
+    /// Nothing missing is ever listed. With nothing held, only the finance evidence remains.
+    @ViewBuilder private func accreditation(_ t: TrainerDetail) -> some View {
+        let held = TrainingCert.allCases.filter { c in t.trainingCerts.contains { TrainingCert.canonical($0) == c } }
+        let others = TrainingCert.shortCodes(t.trainingCerts.filter { TrainingCert.canonical($0) == nil })
+        let hasBadges = !held.isEmpty || !others.isEmpty || t.ibfFitDeclaration
+        if hasBadges || t.financeBackground || !t.financeEvidence.isEmpty {
+            section("Accreditation", "checkmark.seal.fill") {
+                VStack(alignment: .leading, spacing: 12) {
+                    if hasBadges {
+                        FlowLayout(spacing: 6) {
+                            ForEach(held) { c in AccreditationBadge(text: c.rawValue).accessibilityHint(c.fullName) }
+                            ForEach(others, id: \.self) { AccreditationBadge(text: $0) }
+                            if t.ibfFitDeclaration {
+                                AccreditationBadge(text: "IBF").accessibilityLabel("IBF Fit declaration on file")
+                            }
+                        }
                     }
-                    flag("Finance background", on: t.financeBackground)
-                    flag("IBF Fit declaration", on: t.ibfFitDeclaration)
-                }
-                if !others.isEmpty {
-                    FlowLayout(spacing: 6) { ForEach(others, id: \.self) { AccreditationBadge(text: $0) } }
-                }
-                if !t.financeEvidence.isEmpty {
-                    detailList("Finance evidence", t.financeEvidence)
-                }
-                if !t.ibfFitFiles.isEmpty {
-                    detailList("IBF Fit files", t.ibfFitFiles)
+                    if t.financeBackground { flag("Finance background", on: true) }
+                    if !t.financeEvidence.isEmpty {
+                        detailList("Finance evidence", t.financeEvidence)
+                    }
+                    if t.ibfFitDeclaration, !t.ibfFitFiles.isEmpty {
+                        detailList("IBF Fit files", t.ibfFitFiles)
+                    }
                 }
             }
         }
@@ -417,7 +425,7 @@ struct TrainerProfileView: View {
         HStack(spacing: 8) {
             Image(systemName: on ? "checkmark.seal.fill" : "xmark.circle")
                 .foregroundStyle(on ? Theme.gold : Theme.ink.opacity(0.35))
-            Text(label).font(.subheadline).foregroundStyle(on ? .white : Theme.ink.opacity(0.5))
+            Text(label).font(.subheadline.weight(on ? .semibold : .regular)).foregroundStyle(on ? Theme.ink : Theme.ink.opacity(0.5))
         }
         .accessibilityElement(children: .combine)
         .accessibilityValue(on ? "Yes" : "No")
@@ -567,7 +575,8 @@ struct AccreditationBadge: View {
     let text: String
     var compact = false
     var body: some View {
-        Text(text)
+        Text(compact ? TrainingCert.shortCode(text) : text)
+            .lineLimit(1).truncationMode(.tail)
             .font(compact ? .system(size: 10, weight: .bold) : .caption2.weight(.bold))
             .padding(.horizontal, compact ? 5 : 8).padding(.vertical, compact ? 1.5 : 3)
             .foregroundStyle(Theme.navy950)
@@ -600,7 +609,7 @@ struct FlowLayout: Layout {
         let maxWidth = proposal.width ?? .infinity
         var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0, width: CGFloat = 0
         for v in subviews {
-            let s = v.sizeThatFits(.unspecified)
+            let s = Self.fit(v, maxWidth)
             if x > 0, x + s.width > maxWidth { x = 0; y += rowHeight + spacing; rowHeight = 0 }
             x += s.width + spacing
             rowHeight = max(rowHeight, s.height)
@@ -612,11 +621,19 @@ struct FlowLayout: Layout {
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
         for v in subviews {
-            let s = v.sizeThatFits(.unspecified)
+            let s = Self.fit(v, bounds.width)
             if x > bounds.minX, x + s.width > bounds.maxX { x = bounds.minX; y += rowHeight + spacing; rowHeight = 0 }
             v.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(s))
             x += s.width + spacing
             rowHeight = max(rowHeight, s.height)
         }
+    }
+
+    /// The chip's natural size, but never wider than the row: a long label (e.g. a full
+    /// certificate name) is re-measured at the row width so it truncates instead of overflowing.
+    private static func fit(_ v: LayoutSubview, _ maxWidth: CGFloat) -> CGSize {
+        let s = v.sizeThatFits(.unspecified)
+        guard maxWidth.isFinite, s.width > maxWidth else { return s }
+        return v.sizeThatFits(ProposedViewSize(width: maxWidth, height: nil))
     }
 }

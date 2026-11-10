@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.15] — 2026-11-11 (build 24 uploaded; not yet submitted — waiting on the server deploy)
+- Push notifications (APNs): interns get missed clock-in / clock-out and timesheet reminders; admins get new leave, MC, time-off and expense-claim requests. The token is registered after sign-in (`POST /api/mobile/push-token`) and removed on sign-out; a tapped push opens the matching screen (Approvals, Clock In/Out, Leave, Expenses, Time Off, Timesheet). The Notifications list now shows every notification addressed to you, and tapping one opens its screen.
+- Trainers (More → My work): a read-only trainer contact list for every staff member and intern (search; tap for email, call and WhatsApp). Trainer Management stays under Manage for Trainer Admins.
+- Trainer Management: long certificate names show as short codes (ACLP, ACTA, DACE, DDDLP; "ALCP"/"DDDPL" typos fixed), chips never push the row off-screen, and an IBF badge marks the IBF Fit declaration. The profile's Accreditation card lists only what the trainer holds, with readable labels.
+- Calendar: weeks start on Monday; public holidays are shaded grey and named (e.g. "Deepavali").
+- White initials on the premium-blue avatars (Team, Profile) and white text on selected royal-blue buttons.
+- Build 22 (same version, without push) was uploaded earlier and superseded; build 23 had everything except the calendar change.
+
 ## [1.14] — 2026-11-10 (build 21, replaced build 20 in App Review; WAITING_FOR_REVIEW)
 - One light premium-blue theme everywhere (white cards on a pale blue surface, navy text, royal-blue actions, gold only on accreditation badges). Dark mode is gone: the app is forced light, like the web app.
 - Approvals: pending leave / MC and hourly time off are one-line tables (name, status, type, dates, days, applied, reason). Tap a row for the full reason and Approve / Reject. Sections collapse; time-off requests can now be approved in the app.

@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Team calendar — a month grid of everyone's approved leave, mirroring the web
-/// app's calendar (month title, ‹ Today ›, a Sun–Sat grid with a chip per
-/// person per day). A segmented control narrows it to just your own leave.
+/// app's calendar (month title, ‹ Today ›, a Mon–Sun grid with a chip per
+/// person per day; public holidays shaded grey and named). A segmented control narrows it to just your own leave.
 ///
 /// A colleague's leave *type* is only present when the server chose to disclose
 /// it (your own leave, or an approver viewing). When it is nil the chip reads
@@ -13,7 +13,16 @@ struct TeamCalendarView: View {
     @State private var month: Date = Date().startOfMonth
     @State private var selected: DayBucket?
 
-    private let cal = Calendar(identifier: .gregorian)
+    /// Weeks start on Monday (Alfred, 11 Nov 2026).
+    private let cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.firstWeekday = 2
+        return c
+    }()
+
+    /// Light grey fill for public-holiday cells (today's highlight still wins).
+    private static let holidayFill = Color(hex: 0xE9ECF2)
+    private static let holidayRed = Color(red: 0.88, green: 0.25, blue: 0.35)
 
     var body: some View {
         GradientScreen {
@@ -99,7 +108,7 @@ struct TeamCalendarView: View {
 
     private var weekdayRow: some View {
         HStack(spacing: 4) {
-            ForEach(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], id: \.self) { d in
+            ForEach(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], id: \.self) { d in
                 Text(d)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Theme.ink.opacity(0.55))
@@ -135,8 +144,9 @@ struct TeamCalendarView: View {
                     .clipShape(Circle())
                 Spacer(minLength: 0)
             }
-            if holiday != nil {
-                chip(text: "Holiday", tint: Color(red: 0.88, green: 0.25, blue: 0.35))
+            if let holiday {
+                // The holiday's own name ("Deepavali"), two lines, truncated only by width.
+                chip(text: holiday, tint: Self.holidayRed, lines: 2)
             }
             ForEach(entries.prefix(holiday == nil ? 2 : 1)) { e in
                 chip(text: e.isSelf ? "You" : firstName(e.employeeName),
@@ -153,7 +163,7 @@ struct TeamCalendarView: View {
         .padding(4)
         .frame(height: 84, alignment: .topLeading)
         .frame(maxWidth: .infinity)
-        .background(isToday ? Theme.mist100.opacity(0.55) : Theme.card)
+        .background(isToday ? Theme.mist100.opacity(0.55) : (holiday != nil ? Self.holidayFill : Theme.card))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -168,12 +178,23 @@ struct TeamCalendarView: View {
         .accessibilityLabel(accessibilityText(day, entries, holiday))
     }
 
-    private func chip(text: String, tint: Color) -> some View {
-        Text(text)
+    private func chip(text: String, tint: Color, lines: Int = 1) -> some View {
+        // Wrap only between words: each word may shrink a little to fit the cell, so a long
+        // name ("Christmas Day") breaks as "Christmas / Day", never mid-word.
+        let words = text.split(separator: " ").map(String.init)
+        return Group {
+            if lines > 1, words.count > 1 {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(words.first!).lineLimit(1).minimumScaleFactor(0.7)
+                    Text(words.dropFirst().joined(separator: " ")).lineLimit(1).minimumScaleFactor(0.7)
+                        .truncationMode(.tail)
+                }
+            } else {
+                Text(text).lineLimit(1).minimumScaleFactor(0.7).truncationMode(.tail)
+            }
+        }
             .font(.system(size: 9, weight: .semibold))
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .padding(.horizontal, 4).padding(.vertical, 2)
+            .padding(.horizontal, 3).padding(.vertical, 2)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(tint.opacity(0.85))
             .foregroundStyle(.black.opacity(0.85))
@@ -184,7 +205,7 @@ struct TeamCalendarView: View {
         HStack(spacing: 16) {
             legendDot(Theme.sky, "You")
             legendDot(Color(red: 0.95, green: 0.65, blue: 0.20), "Colleague")
-            legendDot(Color(red: 0.88, green: 0.25, blue: 0.35), "Holiday")
+            legendDot(Self.holidayRed, "Public holiday")
             Spacer()
         }
         .font(.caption2)
@@ -204,7 +225,8 @@ struct TeamCalendarView: View {
     /// its real weekday column.
     private func monthDays() -> [Date?] {
         guard let range = cal.range(of: .day, in: .month, for: month) else { return [] }
-        let leading = cal.component(.weekday, from: month) - 1   // 1 = Sunday
+        // .weekday is 1 = Sunday … 7 = Saturday whatever firstWeekday is; Monday-first column.
+        let leading = (cal.component(.weekday, from: month) + 5) % 7
         var out: [Date?] = Array(repeating: nil, count: leading)
         for d in range {
             if let date = cal.date(byAdding: .day, value: d - 1, to: month) { out.append(date) }
@@ -238,10 +260,27 @@ struct TeamCalendarView: View {
     private func holidayMap(_ data: TeamCalendarResponse) -> [String: String] {
         var out: [String: String] = [:]
         for h in data.holidays {
-            guard let d = Fmt.dateObj(h.startDate) else { continue }
-            out[key(cal.startOfDay(for: d))] = h.title
+            // Holidays are calendar dates: read the yyyy-MM-dd part so the day never shifts
+            // with the device's time zone; a multi-day holiday shades every day it covers.
+            guard let start = Self.calendarDay(h.startDate) else { continue }
+            let end = Self.calendarDay(h.endDate) ?? start
+            var day = start, n = 0
+            while day <= end, n < 10 {
+                out[key(day)] = h.title
+                guard let next = cal.date(byAdding: .day, value: 1, to: day) else { break }
+                day = next; n += 1
+            }
         }
         return out
+    }
+
+    /// "2026-11-08T00:00:00Z" or "2026-11-08" → that calendar day at local midnight.
+    private static func calendarDay(_ iso: String?) -> Date? {
+        guard let iso, iso.count >= 10, let utc = Fmt.ymdDate(String(iso.prefix(10))) else { return nil }
+        var utcCal = Calendar(identifier: .gregorian)
+        utcCal.timeZone = TimeZone(identifier: "UTC")!
+        let c = utcCal.dateComponents([.year, .month, .day], from: utc)
+        return Calendar(identifier: .gregorian).date(from: c)
     }
 
     private func key(_ d: Date) -> String {
@@ -303,7 +342,10 @@ private struct DayDetailSheet: View {
                             HStack(spacing: 10) {
                                 Image(systemName: "flag.fill")
                                     .foregroundStyle(Color(red: 0.88, green: 0.25, blue: 0.35))
-                                Text(h).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(h).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                                    Text("Public holiday").font(.caption2).foregroundStyle(Theme.mist)
+                                }
                                 Spacer()
                             }
                         }

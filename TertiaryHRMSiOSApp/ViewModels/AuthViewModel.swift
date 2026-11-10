@@ -89,6 +89,7 @@ final class AuthViewModel: ObservableObject {
         if let existing = try? await AuthService.shared.currentUser() {
             user = existing
             phase = .signedIn
+            PushManager.shared.onSignedIn()
         } else {
             phase = .signedOut
         }
@@ -183,6 +184,7 @@ final class AuthViewModel: ObservableObject {
     }
 
     func signOut() async {
+        await PushManager.shared.onSignedOut()   // while the session cookie is still valid
         await AuthService.shared.signOut()
         user = nil
         canManageTrainers = false
@@ -201,6 +203,7 @@ final class AuthViewModel: ObservableObject {
         password = ""; otp = ""
         infoMessage = nil; errorMessage = nil
         phase = .signedIn
+        PushManager.shared.onSignedIn()
     }
 
     private var normalizedEmail: String {

@@ -35,6 +35,8 @@ struct MoreView: View {
                         divider
                         link("Calendar", "calendar", Theme.sky) { CalendarListView() }
                         divider
+                        link("Trainers", "person.crop.rectangle.stack.fill", Theme.gold600) { TrainerContactsView() }
+                        divider
                         link("My profile", "person.crop.circle.fill", Theme.azure) { ProfileView() }
                     }
 

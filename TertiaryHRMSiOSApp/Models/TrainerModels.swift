@@ -11,6 +11,36 @@ import Foundation
 enum TrainingCert: String, CaseIterable, Identifiable {
     case aclp = "ACLP", acta = "ACTA", dace = "DACE", dddlp = "DDDLP"
     var id: String { rawValue }
+
+    /// The accreditation a free-text cert names, e.g. "Advanced Certificate in Learning and
+    /// Performance (ACLP, 2023)" → .aclp. Common typos: "ALCP" → ACLP, "DDDPL" → DDDLP.
+    static func canonical(_ raw: String) -> TrainingCert? {
+        let u = raw.uppercased()
+            .replacingOccurrences(of: "DDDPL", with: "DDDLP")
+            .replacingOccurrences(of: "ALCP", with: "ACLP")
+        let words = Set(u.split(whereSeparator: { !$0.isLetter }).map(String.init))
+        if let hit = allCases.first(where: { words.contains($0.rawValue) }) { return hit }
+        return allCases.first { u.contains($0.fullName.uppercased()) }
+    }
+
+    /// A chip label that always fits: the accreditation code when one is named, otherwise the
+    /// text cut to 14 characters.
+    static func shortCode(_ raw: String) -> String {
+        if let c = canonical(raw) { return c.rawValue }
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.count <= 14 ? t : String(t.prefix(13)) + "…"
+    }
+
+    /// Short codes for a list of certs, de-duplicated, accreditation codes first.
+    static func shortCodes(_ certs: [String]) -> [String] {
+        var seen = Set<String>(), known: [String] = [], other: [String] = []
+        for c in certs {
+            let code = shortCode(c)
+            guard !code.isEmpty, seen.insert(code).inserted else { continue }
+            if canonical(c) != nil { known.append(code) } else { other.append(code) }
+        }
+        return known + other
+    }
     var fullName: String {
         switch self {
         case .aclp: return "Advanced Certificate in Learning and Performance"
@@ -300,7 +330,10 @@ enum TrainerAccreditation: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .finance: return t.financeBackground
         case .ibfFit: return t.ibfFitDeclaration
-        default: return t.trainingCerts.contains { TrainerDirectory.norm($0) == TrainerDirectory.norm(rawValue) }
+        default: return t.trainingCerts.contains {
+            TrainerDirectory.norm($0) == TrainerDirectory.norm(rawValue)
+                || TrainingCert.canonical($0)?.rawValue == rawValue.uppercased()
+        }
         }
     }
 }

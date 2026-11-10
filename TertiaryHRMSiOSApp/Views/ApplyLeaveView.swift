@@ -228,7 +228,7 @@ struct ApplyLeaveView: View {
             Label(title, systemImage: icon)
                 .frame(maxWidth: .infinity).frame(height: 44)
                 .background(prominent ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.ink.opacity(0.1)))
-                .foregroundStyle(Theme.ink)
+                .foregroundStyle(prominent ? Color.white : Theme.ink)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .opacity(disabled ? 0.45 : 1)
         }

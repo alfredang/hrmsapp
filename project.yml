@@ -8,8 +8,8 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "1.14"
-    CURRENT_PROJECT_VERSION: "21"
+    MARKETING_VERSION: "1.15"
+    CURRENT_PROJECT_VERSION: "24"
     SWIFT_VERSION: "5.0"
     # Google Sign-In (native, ASWebAuthenticationSession + PKCE).
     # Paste the "iOS" OAuth client id from Google Cloud Console here; the URL scheme
@@ -37,6 +37,13 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1"   # iPhone only
         SUPPORTS_MACCATALYST: NO
+        # Push notifications (APNs). Debug builds get development tokens, Release production.
+        CODE_SIGN_ENTITLEMENTS: TertiaryHRMSiOSApp/Support/TertiaryHRMSiOSApp.entitlements
+      configs:
+        Debug:
+          APS_ENVIRONMENT: development
+        Release:
+          APS_ENVIRONMENT: production
     scheme:
       testTargets:
         - TertiaryHRMSiOSAppTests
