@@ -1,12 +1,29 @@
 import SwiftUI
 
-/// More tab — the remaining modules, grouped: My work, Manage (approvers / Trainer Admins)
-/// and Help (Feedback + About), then sign out.
+/// More tab (Alfred, 11 Nov 2026): Applications (MC, Leave, Time Off, Expense Claims, Off In Lieu
+/// or the intern Timesheet), Staff (Calendar, Payslips, My Profile, Trainers), Intern (Time In/Out —
+/// interns and admins only), Manage (approvers / Trainer Admins) and Help, then sign out.
 /// Timesheets are intern-only: interns see "Timesheet", other staff see "Off In Lieu", and
 /// approvers get the one admin "Timesheet" (intern hours + missing punches + Off In Lieu).
 struct MoreView: View {
     @EnvironmentObject private var auth: AuthViewModel
     @State private var signingOut = false
+    /// The leave form opened from Applications → MC / Leave, with the types loaded at tap time.
+    @State private var applySheet: ApplySheet?
+    @State private var loadingApply = false
+    @State private var applyError: String?
+
+    private struct ApplySheet: Identifiable {
+        let id = UUID()
+        let types: [LeaveType]
+        let balances: [LeaveBalance]
+        let code: String
+    }
+
+    /// Interns: roles exactly ["INTERN"] (`auth.isIntern`) or any account carrying INTERN.
+    private var isInternUser: Bool {
+        auth.isIntern || (auth.user?.roles ?? []).contains { $0.uppercased() == "INTERN" }
+    }
 
     /// Approver roles (mirrors the web's `hasAdminAccess`).
     private var isAdmin: Bool { ["ADMIN", "HR", "MANAGER"].contains(auth.user?.primaryRole.uppercased() ?? "") }
@@ -17,27 +34,36 @@ struct MoreView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     header
 
-                    group("My work") {
-                        link("Clock In / Out", "clock.badge.checkmark.fill", Theme.gold600) { ClockView() }
-                        if auth.isIntern {
-                            divider
-                            link("Timesheet", "tablecells", .teal) { MyTimesheetView() }
-                        } else {
-                            divider
-                            link("Off In Lieu", "calendar.badge.plus", .teal) { WeeklyTimesheetView() }
-                        }
+                    group("Applications") {
+                        action("MC", "cross.case.fill", .pink) { await openApply("MC") }
+                        divider
+                        action("Leave", "calendar.badge.clock", Theme.sky) { await openApply("AL") }
                         divider
                         link("Time Off", "hourglass", Theme.sky) { TimeOffView() }
                         divider
-                        link("Payslips", "doc.text.fill", Theme.success) { PayslipsView() }
+                        link("Expense Claims", "creditcard.fill", .orange) { ExpensesView() }
                         divider
-                        link("Expense claims", "creditcard.fill", .orange) { ExpensesView() }
-                        divider
+                        if auth.isIntern {
+                            link("Timesheet", "tablecells", .teal) { MyTimesheetView() }
+                        } else {
+                            link("Off In Lieu", "calendar.badge.plus", .teal) { WeeklyTimesheetView() }
+                        }
+                    }
+
+                    group("Staff") {
                         link("Calendar", "calendar", Theme.sky) { CalendarListView() }
                         divider
-                        link("Trainers", "person.crop.rectangle.stack.fill", Theme.gold600) { TrainerContactsView() }
+                        link("Payslips", "doc.text.fill", Theme.success) { PayslipsView() }
                         divider
-                        link("My profile", "person.crop.circle.fill", Theme.azure) { ProfileView() }
+                        link("My Profile", "person.crop.circle.fill", Theme.azure) { ProfileView() }
+                        divider
+                        link("Trainers", "person.crop.rectangle.stack.fill", Theme.gold600) { TrainerContactsView() }
+                    }
+
+                    if isInternUser || isAdmin {
+                        group("Intern") {
+                            link("Time In/Out", "clock.badge.checkmark.fill", Theme.gold600) { ClockView() }
+                        }
                     }
 
                     if isAdmin || auth.canManageTrainers {
@@ -73,6 +99,15 @@ struct MoreView: View {
         }
         .brandBar()
         .task { await auth.refreshCapabilities() }
+        .sheet(item: $applySheet) { sheet in
+            ApplyLeaveView(types: sheet.types, balances: sheet.balances, isIntern: auth.isIntern,
+                           initialTypeCode: sheet.code)
+                .preferredColorScheme(.light)
+        }
+        .alert("Could not open the form", isPresented: Binding(get: { applyError != nil },
+                                                               set: { if !$0 { applyError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(applyError ?? "") }
     }
 
     private var header: some View {
@@ -111,6 +146,35 @@ struct MoreView: View {
             }
             .padding(.horizontal, 12).padding(.vertical, 14)
             .contentShape(Rectangle())
+        }
+    }
+
+    /// A row that runs an action (opens a sheet) instead of pushing a screen.
+    private func action(_ title: String, _ icon: String, _ tint: Color, _ run: @escaping () async -> Void) -> some View {
+        Button { Task { await run() } } label: {
+            HStack(spacing: 14) {
+                Image(systemName: icon).foregroundStyle(tint).frame(width: 26)
+                Text(title).foregroundStyle(Theme.ink)
+                Spacer()
+                if loadingApply { ProgressView().controlSize(.small) }
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.mist.opacity(0.6))
+            }
+            .padding(.horizontal, 12).padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(loadingApply)
+    }
+
+    /// Load the leave types / balances, then open the leave form preselected on `code`.
+    private func openApply(_ code: String) async {
+        loadingApply = true
+        defer { loadingApply = false }
+        do {
+            let data = try await HRMSAPI.shared.leave()
+            applySheet = ApplySheet(types: data.types, balances: data.balances, code: code)
+        } catch {
+            applyError = (error as? LocalizedError)?.errorDescription ?? "Please try again."
         }
     }
 

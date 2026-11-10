@@ -16,6 +16,9 @@ struct ApplyLeaveView: View {
     let types: [LeaveType]
     var balances: [LeaveBalance] = []
     var isIntern = false
+    /// Leave type preselected when the form opens ("AL", or "MC" from More → Applications → MC).
+    /// Interns picking MC are still switched to No Pay Leave by `applyInternSickRule`.
+    var initialTypeCode: String = "AL"
     @Environment(\.dismiss) private var dismiss
 
     @State private var typeId = ""
@@ -77,10 +80,11 @@ struct ApplyLeaveView: View {
         isSingleDay && types.first(where: { $0.id == typeId })?.code == "AL"
     }
 
-    /// Default the picker to Annual Leave so applying is one tap away.
+    /// Default the picker to `initialTypeCode` (Annual Leave unless opened for MC).
     private func defaultType() {
         guard typeId.isEmpty else { return }
-        typeId = types.first(where: { $0.code == "AL" })?.id ?? types.first?.id ?? ""
+        typeId = types.first(where: { $0.code.uppercased() == initialTypeCode.uppercased() })?.id
+            ?? types.first(where: { $0.code == "AL" })?.id ?? types.first?.id ?? ""
     }
 
     var body: some View {
