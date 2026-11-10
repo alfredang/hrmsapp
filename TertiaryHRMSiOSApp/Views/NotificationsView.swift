@@ -108,7 +108,8 @@ struct NotificationsView: View {
         case "WOODS_SQUARE_DECLINED": return "door.left.hand.closed"
         case "ATTENDANCE_MISSED", "ATTENDANCE_ROLLUP": return "clock.badge.exclamationmark.fill"
         case "TIMESHEET_REMINDER": return "calendar.badge.clock"
-        case "LEAVE_REQUEST", "EXPENSE_REQUEST", "TIME_OFF_REQUEST", "APPROVAL_REQUEST": return "tray.full.fill"
+        case "LEAVE_REQUEST", "EXPENSE_REQUEST", "TIME_OFF_REQUEST", "APPROVAL_REQUEST",
+             "LEAVE_SUBMITTED", "TIME_OFF_SUBMITTED", "EXPENSE_SUBMITTED": return "tray.full.fill"
         case "EXPENSE_APPROVED", "TIME_OFF_APPROVED": return "checkmark.circle.fill"
         case "EXPENSE_REJECTED", "TIME_OFF_REJECTED": return "xmark.circle.fill"
         default: return "info.circle.fill"

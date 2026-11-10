@@ -13,7 +13,11 @@ struct TertiaryHRMSApp: App {
                 .preferredColorScheme(.light)   // one light premium-blue theme (no dark mode)
         }
         .onChange(of: scenePhase) { phase in
-            if phase == .active { Task { await PushManager.shared.onForeground() } }
+            if phase == .active {
+                Task { await PushManager.shared.onForeground() }
+                NotificationCenter.default.post(name: .hrmsForeground, object: nil)   // screens reload
+                CalendarAutoSync.shared.kick()                                         // iPhone Calendar sync
+            }
         }
     }
 }

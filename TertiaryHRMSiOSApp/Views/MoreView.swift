@@ -83,6 +83,8 @@ struct MoreView: View {
                     }
 
                     group("Help") {
+                        link("iPhone Calendar sync", "calendar.badge.checkmark", Theme.premier) { CalendarSyncSettingsView() }
+                        divider
                         link("Feedback", "bubble.left.and.bubble.right.fill", Theme.sky) { FeedbackView() }
                         divider
                         link("About", "info.circle.fill", Theme.sky) { AboutView() }

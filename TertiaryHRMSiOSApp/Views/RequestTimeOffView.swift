@@ -140,6 +140,7 @@ struct RequestTimeOffView: View {
                 try await HRMSAPI.shared.submitTimeOff(date: dateStr, startTime: s, endTime: e,
                                                        reason: reason, reasonDetail: detailOut)
                 submitting = false; done = true
+                CalendarAutoSync.shared.kick()
             } catch {
                 submitting = false
                 self.error = (error as NSError).localizedDescription

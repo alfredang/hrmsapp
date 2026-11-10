@@ -340,6 +340,7 @@ struct ApplyLeaveView: View {
                                                     documentUrl: docUrl, documentFileName: docName)
                 submittedAsNoPay = asNoPay || internSick || isNoPay
                 submitting = false; done = true
+                CalendarAutoSync.shared.kick()
             } catch let err as LeaveSubmitError {
                 submitting = false
                 submitError = err

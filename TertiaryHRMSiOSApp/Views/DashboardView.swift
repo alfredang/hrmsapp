@@ -47,6 +47,7 @@ struct DashboardView: View {
         }
         .brandBar(bell: true)
         .task { await NotificationStore.shared.refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: .hrmsForeground)) { _ in Task { await load() } }
     }
 
     private func greeting(_ s: DashboardSummary) -> some View {

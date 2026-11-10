@@ -49,6 +49,7 @@ struct LeaveView: View {
             }
         }
         .brandBar()
+        .onReceive(NotificationCenter.default.publisher(for: .hrmsForeground)) { _ in Task { await load() } }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

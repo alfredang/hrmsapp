@@ -67,6 +67,7 @@ struct ApprovalsView: View {
             }
         }
         .brandBar()
+        .onReceive(NotificationCenter.default.publisher(for: .hrmsForeground)) { _ in Task { await load() } }
         .sheet(item: $openLeave) { r in
             RecordSheet(title: r.employee, status: "PENDING", fields: LeaveRow(r).fields,
                         longText: r.reason,
@@ -164,6 +165,7 @@ struct ApprovalsView: View {
         errorMessage = nil
         do {
             try await HRMSAPI.shared.decide(kind, id: id, approve: approve, reason: reason)
+            CalendarAutoSync.shared.kick()
             await load()
         } catch {
             errorMessage = (error as NSError).localizedDescription

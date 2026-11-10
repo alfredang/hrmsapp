@@ -90,6 +90,7 @@ final class AuthViewModel: ObservableObject {
             user = existing
             phase = .signedIn
             PushManager.shared.onSignedIn()
+            CalendarAutoSync.shared.onSignedIn(isAdmin: isApprover)
         } else {
             phase = .signedOut
         }
@@ -185,6 +186,7 @@ final class AuthViewModel: ObservableObject {
 
     func signOut() async {
         await PushManager.shared.onSignedOut()   // while the session cookie is still valid
+        CalendarAutoSync.shared.onSignedOut()
         await AuthService.shared.signOut()
         user = nil
         canManageTrainers = false
@@ -204,7 +206,11 @@ final class AuthViewModel: ObservableObject {
         infoMessage = nil; errorMessage = nil
         phase = .signedIn
         PushManager.shared.onSignedIn()
+        CalendarAutoSync.shared.onSignedIn(isAdmin: isApprover)
     }
+
+    /// Approver roles (mirrors the web's `hasAdminAccess`).
+    var isApprover: Bool { ["ADMIN", "HR", "MANAGER"].contains(user?.primaryRole.uppercased() ?? "") }
 
     private var normalizedEmail: String {
         email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)

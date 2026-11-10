@@ -37,6 +37,12 @@
 		<false/>
 	</dict>
 
+	<!-- Calendar: one-way sync of approved leave, MC and time off to the user's chosen calendars. -->
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>TIA HRMS adds your approved leave, MC and time off to the calendars you choose.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>TIA HRMS adds your approved leave, MC and time off to the calendars you choose.</string>
+
 	<!-- Camera: receipt photos for expense / medical claims and MC photos for medical leave. -->
 	<key>NSCameraUsageDescription</key>
 	<string>TIA HRMS uses the camera to photograph receipts for expense and medical claims, and medical certificates for medical leave.</string>

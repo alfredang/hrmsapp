@@ -96,6 +96,7 @@ struct TimeOffView: View {
         error = nil
         do {
             try await HRMSAPI.shared.decide(.timeOff, id: r.id, approve: approve, reason: reason)
+            CalendarAutoSync.shared.kick()
             await loadTeam()
         } catch { self.error = (error as NSError).localizedDescription }
     }

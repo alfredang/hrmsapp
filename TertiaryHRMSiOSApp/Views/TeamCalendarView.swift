@@ -15,6 +15,7 @@ struct TeamCalendarView: View {
     @State private var mineOnly = false
     @State private var month: Date
     @State private var selectedDay: Date
+    @ObservedObject private var autoSync = CalendarAutoSync.shared
 
     private enum Mode: String, CaseIterable, Identifiable {
         case month, list
@@ -68,16 +69,30 @@ struct TeamCalendarView: View {
                                 dayAgenda(days[selectedDay] ?? [], holiday: holidays[selectedDay])
                             }
                         }
-                        .refreshable { await load(force: true) }
+                        .refreshable { await refresh() }
                     case .list:
                         agendaList(data)
-                            .refreshable { await load(force: true) }
+                            .refreshable { await refresh() }
                     }
                 }
             }
         }
         .brandBar()
         .navigationTitle("Calendar")
+        .onReceive(NotificationCenter.default.publisher(for: .hrmsForeground)) { _ in Task { await load(force: true) } }
+    }
+
+    /// "Synced 1:15 PM · Everyone" — the last successful load, like the Planner app.
+    private var syncCaption: String {
+        let who = mineOnly ? "Only me" : "Everyone"
+        guard let t = autoSync.lastSynced else { return who }
+        return "Synced \(t.formatted(date: .omitted, time: .shortened)) · \(who)"
+    }
+
+    /// Reload HRMS data and push it to the iPhone Calendar (when sync is on).
+    private func refresh() async {
+        await load(force: true)
+        await autoSync.runNow()
     }
 
     // MARK: - Month header: title, Today, filter, ‹ ›
@@ -88,10 +103,16 @@ struct TeamCalendarView: View {
                 Text(month.formatted(.dateTime.month(.wide).year()))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Theme.ink)
-                Text(mineOnly ? "Only my leave" : "Everyone's leave")
+                Text(syncCaption)
                     .font(.caption2).foregroundStyle(Theme.mist)
+                    .lineLimit(1)
             }
             Spacer()
+            Button { Task { await refresh() } } label: {
+                if autoSync.isSyncing { ProgressView().frame(width: 30, height: 32) }
+                else { Image(systemName: "arrow.clockwise").frame(width: 30, height: 32) }
+            }
+            .accessibilityLabel("Refresh")
             Button("Today") { goToToday() }
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 6)
@@ -469,6 +490,7 @@ struct TeamCalendarView: View {
             let data = try await HRMSAPI.shared.teamCalendar(year: year)
             state = .loaded(data)
             loadedYear = year
+            autoSync.noteLoaded()
         } catch {
             state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load the calendar.")
         }

@@ -147,6 +147,11 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - Xcode has no Apple ID signed in on this Mac: archive/export with `-allowProvisioningUpdates -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8 -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID`.
 - The APNs auth key for the server is `B8VV93SZCQ` (team GU9WTSTX9M); the server holds it, never this repo.
 
+## iPhone Calendar sync (since 1.15 build 28)
+- `Services/CalendarSync.swift`: pure `HRMSCalendarSync.items(...)` (HRMS → `HRMSCalendarItem`, keys `leave:<id>` / `timeoff:<id>` / `holiday:<yyyy-MM-dd>`) and `plan(...)` (create / update / delete, collapses same-marker duplicates) — unit-tested in `CalendarSyncTests`; `CalendarAutoSync` is the EventKit executor + scheduler (sign-in, scenePhase .active, after apply/approve via `kick()`, `EKEventStoreChanged` debounced, 2-min timer). Only events whose notes carry the marker line `HRMS id: …` are touched; the window is −60…+366 days; a failed HRMS fetch never deletes anything. Settings: `Views/CalendarSyncSettingsView.swift` (UserDefaults keys `hrms.calSync.*`). Unticking a calendar or turning sync off removes our copies from it.
+- `CalendarSyncEventKitTests` runs the real reconcile on a throwaway local calendar; grant access first: `xcrun simctl privacy <sim> grant calendar com.tertiaryinfotech.hrportal` (skips otherwise).
+- Data: `/api/mobile/team-calendar?year=` (isSelf entries, holidays, everyone for admins) + `/api/time-off` (own, APPROVED). No server change needed.
+
 ## Build & run
 
 Unit tests (`TertiaryHRMSiOSAppTests/`: leave-rule error decoding + trainer payloads):
