@@ -66,12 +66,15 @@ business rules locally; the server remains the single source of truth.
 | 👥 **Team** | Company directory (richer contact details for supervisory roles). Approvers tap a person for their **clock-in history** (every clock in/out, grouped by month), **MC history** and **leave history** — tapping the Days clocked / MC days / Leave days tiles opens each full history |
 | 🧾 **Payslips** | Personal payslips with a native **PDFKit** viewer for the authenticated PDF |
 | 💳 **Expenses** | Personal expense claims with status and approved totals, plus **submit a claim with a receipt photo** (camera or library) |
-| 📅 **Calendar** | A month grid of the **whole team's approved leave** — filter to *Only me*; tap a day for who's out. Colleagues' leave *type* stays private unless you're an approver |
+| 📅 **Calendar** | Planner-app layout: Month / List, Monday-first grid with adjacent-month days greyed, chips + "+N", today circled, every SG public holiday on a grey cell with its name, the selected day's agenda below; *Everyone / Only me*; refresh button + "Synced h:mm". Colleagues' leave *type* stays private unless you're an approver |
+| 📆 **iPhone Calendar sync** | One-way EventKit sync (like the Planner app) of your approved leave, MC and time off — optionally public holidays and, for admins, team leave — into the iPhone calendars you tick; runs at launch, on return, after applying/approving, on calendar changes and every 2 min; only touches events carrying its `HRMS id:` marker |
 | ⏱️ **Clock In / Out** | One-tap **clock in / out** with a live elapsed timer and a monthly daily check-in/out history with total hours — an open punch shows **hours so far** today, or **"No clock-out"** for an earlier day |
 | 🗂️ **Timesheet** (interns only) | Interns: their own days and hours per month. Approvers: one Timesheet screen — missing-punch and Off In Lieu approvals plus every intern's days worked + total hours per month, drilling into their daily history. Staff log weekend / PH work under **Off In Lieu** |
-| 🎓 **Trainer Management** (Trainer Admin) | Search with skill / certification suggestions (with counts) that become removable filter tokens; one Filters menu for ACLP / ACTA / DACE / DDDLP / Finance / IBF Fit and Trainers / Applicants; compact rows with the matching skill first and call / WhatsApp / email / copy; profiles with masked NRIC and collapsible sections — `GET /api/mobile/trainers` |
+| 📇 **Trainers** (everyone, More → Staff) | Trainer contact list for every staff member and intern: search, then email / call / WhatsApp — `GET /api/mobile/trainers/contacts` (no NRIC) |
+| 🎓 **Trainer Management** (Trainer Admin, More → Manage) | Search with skill / certification suggestions (with counts) that become removable filter tokens; one Filters menu for ACLP / ACTA / DACE / DDDLP / Finance / IBF Fit and Trainers / Applicants; compact rows with the matching skill first and call / WhatsApp / email / copy; profiles with masked NRIC and collapsible sections — `GET /api/mobile/trainers` |
 | 🩺 **Leave & MC Summary** (admin) | Every staff member's and intern's MC and leave for the month (approved vs pending, intern time-off hours), drilling into each person's requests and AL / MC balances — `GET /api/mobile/leave-summary` |
-| 🔔 **Notifications** | In-app bell with unread badge — leave/OT approvals & rejections, marked read on tap |
+| 🔔 **Notifications** | In-app bell with unread badge listing every alert, plus **push notifications** (APNs): interns get missed clock-in/out and timesheet reminders, admins get every new leave / MC / NPL, time-off and expense request; tapping opens the right screen (Approvals for admins) |
+| ☰ **More menu** | Applications (MC, Leave, Time Off, Expense Claims, Off In Lieu) · Staff (Calendar, Payslips, My Profile, Trainers) · Intern (Time In/Out) · Manage · Help |
 | 🙋 **Profile** | Your full employee record, with **self-service edit** and **change password** |
 
 **Excluded** — by product decision:
@@ -131,10 +134,7 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: v1.13 (build 19) live in the Singapore App Store; v1.14 (build 21 —
-rename to TIA HRMS, one light premium-blue theme, one-line approvals with reason sheet, time-off approvals,
-interns-only Timesheet, Trainer search with call/WhatsApp/email, No Pay Leave rules) resubmitted 2026-11-10,
-waiting for review:
+(ASC app `6759821144`). **Status: v1.14 (build 21) live in the Singapore App Store; v1.15 (build 28 — push notifications, iPhone Calendar sync, Planner-style calendar with all public holidays, More menu in Applications / Staff / Intern sections, trainer contacts for all staff, new premium-blue icon) submitted 2026-11-11, waiting for review:
 [apps.apple.com/sg/app/tertiary-hrms/id6759821144](https://apps.apple.com/sg/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 its bundled `asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for
 future builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
