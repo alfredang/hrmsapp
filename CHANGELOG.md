@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.16] — 2026-11-13 (build 30; build 29 lacked the summary and calendar parts)
+- Interns: new **Off Day** option in Request Time Off — a full day off with no times to pick. Once approved, no clock-in or clock-out is expected that day and no missed clock-in reminder is sent. Regular weekly off days (the days not ticked in the intern's Workdays) never needed one.
+- Time Off lists and Approvals show an Off Day as "Full day" instead of times and hours.
+- Leave Summary shows an Off Day as "Full day · Off Day"; iPhone Calendar sync adds an approved Off Day as an all-day "Off Day" event.
+
 ## [1.15] — 2026-11-11 (build 28 uploaded; build 25 was submitted to App Review first)
 - Push notifications (APNs): interns get missed clock-in / clock-out and timesheet reminders; admins get new leave, MC, time-off and expense-claim requests. The token is registered after sign-in (`POST /api/mobile/push-token`) and removed on sign-out; a tapped push opens the matching screen (Approvals, Clock In/Out, Leave, Expenses, Time Off, Timesheet). The Notifications list now shows every notification addressed to you, and tapping one opens its screen.
 - Trainers (More → My work): a read-only trainer contact list for every staff member and intern (search; tap for email, call and WhatsApp). Trainer Management stays under Manage for Trainer Admins.

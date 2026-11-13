@@ -219,12 +219,12 @@ struct LeaveSummaryDetailView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(AttendanceMonth.dayLabel(x.date)).font(.subheadline.weight(.semibold))
                                             .foregroundStyle(Theme.ink)
-                                        Text("\(x.startTime)–\(x.endTime) · \(x.reason)")
+                                        Text(x.isOffDay ? "Full day · Off Day" : "\(x.startTime)–\(x.endTime) · \(x.reason)")
                                             .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                                     }
                                     Spacer()
                                     VStack(alignment: .trailing, spacing: 6) {
-                                        Text("\(LeaveSummaryView.num(x.hours)) h").font(.subheadline.weight(.bold))
+                                        Text(x.isOffDay ? "Day" : "\(LeaveSummaryView.num(x.hours)) h").font(.subheadline.weight(.bold))
                                             .monospacedDigit().foregroundStyle(Theme.ink)
                                         StatusPill(status: x.status)
                                     }

@@ -96,6 +96,19 @@ final class CalendarSyncTests: XCTestCase {
         XCTAssertEqual(Set(items.map(\.key)), ["leave:1", "leave:2", "holiday:2026-11-08"])
     }
 
+    func testApprovedOffDayIsOneAllDayEvent() {
+        let off = TimeOffRequest(id: "o1", date: "2026-11-20T00:00:00.000Z", startTime: "00:00", endTime: "23:59",
+                                 hours: 0, reason: "OTHERS", reasonDetail: "Off Day (full day)", status: "APPROVED",
+                                 approvalComment: nil, rejectionReason: nil, createdAt: nil, offDay: true)
+        let items = HRMSCalendarSync.items(entries: [], holidays: [], timeOff: [off], options: CalendarSyncOptions(),
+                                           isAdmin: false, window: d(2026, 1, 1)...d(2027, 12, 31))
+        XCTAssertEqual(items.map(\.key), ["timeoff:o1"])
+        XCTAssertEqual(items[0].title, "Off Day")
+        XCTAssertTrue(items[0].allDay)
+        XCTAssertEqual(items[0].start, d(2026, 11, 20))
+        XCTAssertEqual(items[0].end, d(2026, 11, 20))
+    }
+
     func testTimeOffTitlesAndApprovedOnly() {
         XCTAssertEqual(HRMSCalendarSync.timeRange(HRMSCalendarSync.time("2026-11-11", "14:00")!,
                                                   HRMSCalendarSync.time("2026-11-11", "16:00")!), "2–4pm")

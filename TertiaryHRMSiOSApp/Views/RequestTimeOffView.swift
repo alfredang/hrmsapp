@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Request-time-off form (hourly). Posts to the existing /api/time-off
-/// endpoint; the server computes the hours and enforces the business rules.
+/// Request-time-off form (hourly, or a full-day intern Off Day). Posts to the
+/// existing /api/time-off endpoint; the server computes the hours and enforces the
+/// rules (an Off Day must be a scheduled workday and the only request that day).
 struct RequestTimeOffView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -23,6 +24,8 @@ struct RequestTimeOffView: View {
     private var startHM: String { RequestTimeOffView.hm.string(from: start) }
     private var endHM: String { RequestTimeOffView.hm.string(from: end) }
 
+    private var isOffDay: Bool { reason == "OFF_DAY" }
+
     private var previewHours: Double? {
         guard endHM > startHM,
               let s = RequestTimeOffView.hm.date(from: startHM),
@@ -41,27 +44,33 @@ struct RequestTimeOffView: View {
                             DatePicker("", selection: $date, displayedComponents: .date)
                                 .labelsHidden()
                         }
-                        field("From") {
-                            DatePicker("", selection: $start, displayedComponents: .hourAndMinute)
-                                .labelsHidden()
-                        }
-                        field("To") {
-                            DatePicker("", selection: $end, displayedComponents: .hourAndMinute)
-                                .labelsHidden()
-                        }
-
-                        if let h = previewHours {
-                            Text(String(format: "%.1f hour%@ of time off", h, h == 1 ? "" : "s"))
-                                .font(.caption).foregroundStyle(Theme.sky)
-                        }
-
                         field("Reason") {
                             Picker("", selection: $reason) {
+                                Text("Off Day").tag("OFF_DAY")
                                 Text("Exams").tag("EXAMS")
                                 Text("Emergency").tag("EMERGENCY")
                                 Text("Others").tag("OTHERS")
                             }
                             .pickerStyle(.segmented)
+                        }
+
+                        if isOffDay {
+                            Text("Full day. Once approved, you don't need to clock in or out that day. Your regular weekly off days are already excluded.")
+                                .font(.caption).foregroundStyle(Theme.sky)
+                        } else {
+                            field("From") {
+                                DatePicker("", selection: $start, displayedComponents: .hourAndMinute)
+                                    .labelsHidden()
+                            }
+                            field("To") {
+                                DatePicker("", selection: $end, displayedComponents: .hourAndMinute)
+                                    .labelsHidden()
+                            }
+
+                            if let h = previewHours {
+                                Text(String(format: "%.1f hour%@ of time off", h, h == 1 ? "" : "s"))
+                                    .font(.caption).foregroundStyle(Theme.sky)
+                            }
                         }
 
                         if reason == "OTHERS" {
@@ -93,7 +102,7 @@ struct RequestTimeOffView: View {
             }
             .alert("Request submitted", isPresented: $done) {
                 Button("Done") { dismiss() }
-            } message: { Text("Your time-off request was submitted for approval.") }
+            } message: { Text(isOffDay ? "Your Off Day request was submitted for approval." : "Your time-off request was submitted for approval.") }
         }
     }
 
@@ -120,7 +129,7 @@ struct RequestTimeOffView: View {
         error = nil
 
         // Client-side validation, mirroring the web form.
-        guard endHM > startHM else {
+        guard isOffDay || endHM > startHM else {
             error = "End time must be after start time."
             return
         }
@@ -133,7 +142,8 @@ struct RequestTimeOffView: View {
         submitting = true
         let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
         let dateStr = df.string(from: date)
-        let s = startHM, e = endHM
+        // An Off Day is a whole day; the server fixes its times (these are ignored).
+        let s = isOffDay ? "00:00" : startHM, e = isOffDay ? "23:59" : endHM
         let detailOut = reason == "OTHERS" ? trimmedDetail : nil
         Task {
             do {

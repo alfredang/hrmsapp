@@ -50,7 +50,7 @@ struct TimeOffView: View {
             Button("Cancel request", role: .destructive) { cancel(r) }
             Button("Keep request", role: .cancel) {}
         } message: { r in
-            Text("Cancel your time off on \(Fmt.date(r.date)) (\(TimeOffView.time12(r.startTime)) – \(TimeOffView.time12(r.endTime)))?")
+            Text("Cancel your time off on \(Fmt.date(r.date)) (\(r.timeText))?")
         }
     }
 
@@ -137,7 +137,7 @@ struct TimeOffView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(Fmt.date(r.date)).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
-                    Text("\(TimeOffView.time12(r.startTime)) – \(TimeOffView.time12(r.endTime))")
+                    Text(r.timeText)
                         .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                     Text(reasonText(r))
                         .font(.caption2).foregroundStyle(Theme.ink.opacity(0.55)).lineLimit(2)
@@ -145,7 +145,7 @@ struct TimeOffView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
                     StatusPill(status: r.status)
-                    Text(hoursText(r.hours)).font(.caption2).foregroundStyle(Theme.ink.opacity(0.7))
+                    Text(r.offDay ? "Off Day" : hoursText(r.hours)).font(.caption2).foregroundStyle(Theme.ink.opacity(0.7))
                 }
             }
             if let reason = r.rejectionReason, !reason.isEmpty {
@@ -176,10 +176,7 @@ struct TimeOffView: View {
         }
     }
 
-    private func reasonText(_ r: TimeOffRequest) -> String {
-        if let detail = r.reasonDetail, !detail.isEmpty { return "\(r.reasonLabel) — \(detail)" }
-        return r.reasonLabel
-    }
+    private func reasonText(_ r: TimeOffRequest) -> String { r.reasonText }
 
     private func hoursText(_ h: Double) -> String {
         let s = h.truncatingRemainder(dividingBy: 1) == 0

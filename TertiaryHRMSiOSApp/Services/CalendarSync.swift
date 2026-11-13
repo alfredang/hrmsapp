@@ -150,6 +150,13 @@ enum HRMSCalendarSync {
         }
         if options.ownTimeOff {
             for t in timeOff where t.status.uppercased() == "APPROVED" {
+                // An approved Off Day is a whole day: one all-day event, like leave.
+                if t.offDay {
+                    guard let d = day(t.date, calendar) else { continue }
+                    add(HRMSCalendarItem(key: "timeoff:\(t.id)", title: "Off Day",
+                                         notes: "\(t.reasonText)\nFrom TIA HRMS", start: d, end: d, allDay: true))
+                    continue
+                }
                 guard let s = time(t.date, t.startTime), let e = time(t.date, t.endTime) else { continue }
                 let reason = [t.reason.capitalized, t.reasonDetail].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " — ")
                 add(HRMSCalendarItem(key: "timeoff:\(t.id)", title: "Time off \(timeRange(s, e))",

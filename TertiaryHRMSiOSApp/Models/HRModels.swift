@@ -375,9 +375,11 @@ struct TimeOffRequest: Codable, Identifiable {
     let startTime: String
     let endTime: String
     let hours: Double
-    /// EXAMS | EMERGENCY | OTHERS
+    /// EXAMS | EMERGENCY | UNPAID_LEAVE | OTHERS (an Off Day arrives as OTHERS + `offDay`)
     let reason: String
     let reasonDetail: String?
+    /// Full-day intern Off Day (server ≥ 13 Nov 2026 sends `offDay: true`; older rows: false).
+    var offDay: Bool = false
     /// PENDING | APPROVED | REJECTED | CANCELLED
     let status: String
     let approvalComment: String?
@@ -388,7 +390,7 @@ struct TimeOffRequest: Codable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case id, date, startTime, endTime, hours, reason, reasonDetail, status,
-             approvalComment, rejectionReason, createdAt, employee
+             approvalComment, rejectionReason, createdAt, employee, offDay
     }
     private struct EmployeeRef: Codable { let name: String? }
     // `hours` arrives as a decimal string (e.g. "2.50") — decode leniently.
@@ -401,6 +403,7 @@ struct TimeOffRequest: Codable, Identifiable {
         hours = TimeOffRequest.flexNumber(c, .hours)
         reason = (try? c.decode(String.self, forKey: .reason)) ?? "OTHERS"
         reasonDetail = try? c.decodeIfPresent(String.self, forKey: .reasonDetail)
+        offDay = ((try? c.decodeIfPresent(Bool.self, forKey: .offDay)) ?? false) || reason.uppercased() == "OFF_DAY"
         status = (try? c.decode(String.self, forKey: .status)) ?? "PENDING"
         approvalComment = try? c.decodeIfPresent(String.self, forKey: .approvalComment)
         rejectionReason = try? c.decodeIfPresent(String.self, forKey: .rejectionReason)
@@ -418,6 +421,7 @@ struct TimeOffRequest: Codable, Identifiable {
         try c.encodeIfPresent(rejectionReason, forKey: .rejectionReason)
         try c.encodeIfPresent(createdAt, forKey: .createdAt)
         try c.encodeIfPresent(EmployeeRef(name: employeeName), forKey: .employee)
+        try c.encode(offDay, forKey: .offDay)
     }
     private static func flexNumber(_ c: KeyedDecodingContainer<CodingKeys>, _ k: CodingKeys) -> Double {
         if let d = try? c.decode(Double.self, forKey: k) { return d }
@@ -430,8 +434,9 @@ struct TimeOffRequest: Codable, Identifiable {
     init(id: String, date: String, startTime: String, endTime: String, hours: Double,
          reason: String, reasonDetail: String?, status: String,
          approvalComment: String?, rejectionReason: String?, createdAt: String?,
-         employeeName: String? = nil) {
+         employeeName: String? = nil, offDay: Bool = false) {
         self.employeeName = employeeName
+        self.offDay = offDay
         self.id = id; self.date = date; self.startTime = startTime; self.endTime = endTime
         self.hours = hours; self.reason = reason; self.reasonDetail = reasonDetail
         self.status = status; self.approvalComment = approvalComment
@@ -440,6 +445,7 @@ struct TimeOffRequest: Codable, Identifiable {
 
     /// Display label for the reason enum.
     var reasonLabel: String {
+        if offDay { return "Off Day" }
         switch reason.uppercased() {
         case "EXAMS": return "Exams"
         case "EMERGENCY": return "Emergency"
@@ -450,8 +456,15 @@ struct TimeOffRequest: Codable, Identifiable {
 
     /// "Exams — detail" (the full text shown in the record sheet).
     var reasonText: String {
+        // The server's Off Day detail already reads "Off Day (full day)[ — note]".
+        if offDay { return (reasonDetail?.isEmpty == false ? reasonDetail! : "Off Day (full day)") }
         if let d = reasonDetail, !d.isEmpty { return "\(reasonLabel) — \(d)" }
         return reasonLabel
+    }
+
+    /// "Full day" for an Off Day, else "2:00 PM – 4:30 PM".
+    var timeText: String {
+        offDay ? "Full day" : "\(TimeOffView.time12(startTime)) – \(TimeOffView.time12(endTime))"
     }
 }
 
@@ -643,6 +656,9 @@ struct LeaveSummaryTimeOff: Codable {
         let hours: Double
         let reason: String
         let status: String
+        /// Full-day intern Off Day (absent on older servers → false).
+        var offDay: Bool? = nil
+        var isOffDay: Bool { offDay ?? false }
         var id: String { "\(date)|\(startTime)" }
     }
 }

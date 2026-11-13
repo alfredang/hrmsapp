@@ -271,8 +271,8 @@ struct TimeOffTable: View {
             switch col.id {
             case "Status": StatusPill(status: r.status)
             case "Date": TableText(text: Fmt.shortDay(r.date))
-            case "Time": TableText(text: "\(TimeOffView.time12(r.startTime)) – \(TimeOffView.time12(r.endTime))")
-            case "Hours": TableText(text: Fmt.num(r.hours), bold: true)
+            case "Time": TableText(text: r.timeText)
+            case "Hours": TableText(text: r.offDay ? "Day" : Fmt.num(r.hours), bold: true)
             case "Applied": TableText(text: Fmt.shortDay(r.createdAt), secondary: true)
             default: TableText(text: r.reasonText, secondary: true)
             }
@@ -281,8 +281,8 @@ struct TimeOffTable: View {
 
     static func fields(_ r: TimeOffRequest) -> [RecordField] {
         [RecordField(label: "Date", value: Fmt.date(r.date)),
-         RecordField(label: "Time", value: "\(TimeOffView.time12(r.startTime)) – \(TimeOffView.time12(r.endTime))"),
-         RecordField(label: "Hours", value: Fmt.num(r.hours)),
+         RecordField(label: "Time", value: r.timeText),
+         RecordField(label: "Hours", value: r.offDay ? "Off Day (full day)" : Fmt.num(r.hours)),
          RecordField(label: "Applied", value: Fmt.date(r.createdAt))]
         + (r.rejectionReason.map { [RecordField(label: "Rejection reason", value: $0)] } ?? [])
     }

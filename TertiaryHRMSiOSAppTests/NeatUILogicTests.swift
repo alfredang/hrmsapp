@@ -63,6 +63,19 @@ final class NeatUILogicTests: XCTestCase {
         XCTAssertEqual(rows.first?.reasonText, "Exams — Final project")
     }
 
+    func testOffDayDecodesAsFullDay() throws {
+        // Server sends an Off Day as OTHERS + detail + offDay:true (older builds keep decoding).
+        let json = #"[{"id":"t2","date":"2026-11-20T00:00:00.000Z","startTime":"00:00","endTime":"23:59","hours":"0","reason":"OTHERS","reasonDetail":"Off Day (full day)","offDay":true,"status":"APPROVED","createdAt":"2026-11-13T02:00:00.000Z","employee":{"id":"e1","name":"Kenneth Wang","department":null}}]"#
+        let r = try XCTUnwrap(try JSONDecoder().decode([TimeOffRequest].self, from: Data(json.utf8)).first)
+        XCTAssertTrue(r.offDay)
+        XCTAssertEqual(r.reasonLabel, "Off Day")
+        XCTAssertEqual(r.reasonText, "Off Day (full day)")
+        XCTAssertEqual(r.timeText, "Full day")
+        // Rows without the flag stay hourly.
+        let old = #"[{"id":"t3","date":"2026-11-12T00:00:00.000Z","startTime":"14:00","endTime":"16:00","hours":2,"reason":"OTHERS","reasonDetail":"Dentist","status":"PENDING"}]"#
+        XCTAssertFalse(try XCTUnwrap(try JSONDecoder().decode([TimeOffRequest].self, from: Data(old.utf8)).first).offDay)
+    }
+
     func testCorrectionAndOffInLieuDecode() throws {
         let c = #"[{"id":"c1","employeeId":"e1","employeeName":"Amanda Halim","employeeCode":"I0002","date":"2026-11-06","kind":"CLOCK_OUT","requestedClockIn":null,"requestedClockOut":"2026-11-06T10:00:00.000Z","currentClockIn":null,"currentClockOut":null,"reason":"Forgot","status":"PENDING","rejectionReason":null,"createdAt":"2026-11-07T01:00:00.000Z"}]"#
         XCTAssertEqual(try JSONDecoder().decode([AttendanceCorrection].self, from: Data(c.utf8)).first?.kindLabel, "Missing clock-out")
