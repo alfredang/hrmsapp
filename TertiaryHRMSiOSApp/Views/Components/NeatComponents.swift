@@ -143,7 +143,7 @@ struct OneLineTable<Row: Identifiable, Cell: View>: View {
     }
 
     private func stripe(_ i: Int) -> Color {
-        i % 2 == 0 ? Color(hex: 0xF5F8FF) : Theme.card
+        i % 2 == 0 ? Theme.cardStripe : Theme.card
     }
 }
 

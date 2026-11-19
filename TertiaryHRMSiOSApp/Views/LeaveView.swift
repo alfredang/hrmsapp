@@ -61,7 +61,6 @@ struct LeaveView: View {
         }
         .sheet(item: $applySheet, onDismiss: { Task { await load() } }) { sheet in
             ApplyLeaveView(types: sheet.types, balances: sheet.balances, isIntern: auth.isIntern)
-                .preferredColorScheme(.light)
         }
     }
 

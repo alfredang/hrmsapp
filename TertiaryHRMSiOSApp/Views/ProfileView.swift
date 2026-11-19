@@ -32,6 +32,7 @@ struct ProfileView: View {
                                 detail("Joined", Fmt.date(e.startDate))
                                 detail("Status", e.status.capitalized, last: true)
                             }
+                            AppearanceCard()
                         }
                         .padding(20)
                     }

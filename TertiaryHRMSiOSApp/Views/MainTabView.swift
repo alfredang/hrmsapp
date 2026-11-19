@@ -44,13 +44,11 @@ struct MainTabView: View {
         .onAppear { openPendingLink() }   // cold start from a tapped push
         .sheet(item: $pushSheet) { route in
             NavigationStack { pushScreen(route) }
-                .preferredColorScheme(.light)
         }
         .fullScreenCover(isPresented: $showPreviewScreen) {
             if Self.previewOpen == "applyleave" {
                 ApplyLeaveView(types: PreviewData.leave.types, balances: PreviewData.leave.balances,
                                isIntern: auth.isIntern)
-                    .preferredColorScheme(.light)
             } else {
             NavigationStack {
                 switch Self.previewOpen {
@@ -76,7 +74,6 @@ struct MainTabView: View {
                 default: EmptyView()
                 }
             }
-            .preferredColorScheme(.light)
             }
         }
     }

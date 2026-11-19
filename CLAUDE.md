@@ -6,12 +6,19 @@ Guidance for Claude Code when working in this repository.
 
 **TIA HRMS — native iOS app** (Swift + SwiftUI, MVVM; home-screen name **TIA HRMS** since v1.14, formerly "Tertiary HRMS"). The App Store build of Tertiary
 Infotech Academy's HR Management System, **rebuilt fully native — no Capacitor, no WebView**.
-Deployment target **iOS 16**, **iPhone only**, **one light TIA premium-blue theme** (10 Nov 2026; BRAND.md in
-`../../tertiary/tia-hrms-brand/`): pale blue-white surface (`Theme.backdrop`), white cards, navy-950 #0D1638 text
-(`Theme.ink`), navy-grey secondary text (`Theme.mist`), royal-600 #2F5BE6 primary (`Theme.sky`/`premier`), gold-400
-#F5B83D only as a sparing accent (accreditation badges), darkened status colours (`Theme.success/warning/danger`).
-The navy→royal brand gradient (`Theme.brand`) is for the brand mark only. **No dark mode**: the root forces
-`.preferredColorScheme(.light)` — never add a dark/theme toggle or `.white` text on the light surface. On a royal fill (`Theme.accent`/`premier`: initials avatars, accent buttons) text is always `.white`, never navy (Alfred, 11 Nov 2026). App icon (since 1.15): saturated premium-blue master `../../tertiary/tia-hrms-brand/icon-1024.png` (generator `scripts/make_app_icon.swift`), shared with Android.
+Deployment target **iOS 16**, **iPhone only**. **Appearance (Alfred, 19 Nov 2026, v1.17; replaces the one-light-theme rule of 10 Nov)**:
+Light, Dark or System, chosen only in **My Profile → Appearance** (`Theme/Appearance.swift`: `Appearance`,
+`AppearanceStore`, `AppearanceCard`). Default System; `angch@` and `tansc@` start on Light
+(`Appearance.lightDefaultEmails`, applied after sign-in when nothing is saved). Saved per device in UserDefaults
+(`hrms_appearance`) and applied through `window.overrideUserInterfaceStyle`; never use `.preferredColorScheme`.
+Light is the TIA premium-blue look (BRAND.md in `../../tertiary/tia-hrms-brand/`): pale blue-white surface, white
+cards, navy text, royal-600 #2F5BE6 primary, gold-400 #F5B83D as a sparing accent. Dark matches the web app's
+dark: #030712 page, #111827 cards, #F9FAFB text. The semantic tokens in `Theme.swift` (`ink`, `mist`, `sky`,
+`surface`, `card`, `field`, `chipFill`/`chipInk`, `success`/`warning`/`danger`, `backdrop`) are dynamic colours
+(`Color(light:dark:)`), so screens need no per-appearance code: always use them, never a raw hex or `.white` text on
+the page surface. Brand tokens (`navy950`, `royal600`, `gold`) are fixed: use them for fills and for text on a fixed
+fill (white on royal, navy on gold). Check a new screen in both appearances (`-uiPreview -hrms_appearance dark`).
+App icon (since 1.15): saturated premium-blue master `../../tertiary/tia-hrms-brand/icon-1024.png` (generator `scripts/make_app_icon.swift`), shared with Android.
 **This app is the design reference the Android app mirrors 1:1** — follow Apple HIG and the
 `mobile-ios-design` skill for new screens.
 

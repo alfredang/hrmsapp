@@ -30,7 +30,6 @@ struct ExpensesView: View {
                     NavigationStack {
                         NewClaimView(categories: data.categories)
                     }
-                    .preferredColorScheme(.light)
                 }
             }
         }

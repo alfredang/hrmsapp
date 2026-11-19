@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.17] — 2026-11-19 (build 31; submitted for App Review, WAITING_FOR_REVIEW)
+- New **Appearance** setting in My Profile: Light, Dark or System. System follows the iPhone's setting and is the default; the choice is saved on the device. The accounts angch@ and tansc@ start on Light.
+- Dark appearance for every screen (near-black page, slate cards, near-white text), matching the web app's dark theme. Light is unchanged.
+- Clock in / out button text is white on its colour fill.
+
 ## [1.16] — 2026-11-13 (build 30; build 29 lacked the summary and calendar parts)
 - Interns: new **Off Day** option in Request Time Off — a full day off with no times to pick. Once approved, no clock-in or clock-out is expected that day and no missed clock-in reminder is sent. Regular weekly off days (the days not ticked in the intern's Workdays) never needed one.
 - Time Off lists and Approvals show an Off Day as "Full day" instead of times and hours.

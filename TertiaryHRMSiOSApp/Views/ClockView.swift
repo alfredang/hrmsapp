@@ -104,7 +104,7 @@ struct ClockView: View {
             }
             .frame(maxWidth: .infinity).frame(height: 64)
             .background(tint)
-            .foregroundStyle(Theme.ink)
+            .foregroundStyle(.white)
             .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
         }

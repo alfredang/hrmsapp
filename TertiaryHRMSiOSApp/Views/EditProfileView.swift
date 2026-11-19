@@ -86,7 +86,6 @@ struct EditProfileView: View {
                 }
             }
         }
-        .preferredColorScheme(.light)
     }
 
     private var dobField: some View {
@@ -205,7 +204,6 @@ struct ChangePasswordView: View {
                 Button("Done") { dismiss() }
             } message: { Text("Your password has been changed.") }
         }
-        .preferredColorScheme(.light)
     }
 
     private func save() {

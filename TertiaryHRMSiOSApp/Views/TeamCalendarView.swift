@@ -34,10 +34,10 @@ struct TeamCalendarView: View {
     private var cal: Calendar { Self.cal }
 
     static let youTint = Theme.premier
-    static let colleagueTint = Color(hex: 0xB45309)          // amber text, readable on the light fill
+    static let colleagueTint = Theme.warning          // amber text, readable on the light fill
     static let colleagueFill = Color(hex: 0xF5A524)
-    static let holidayRed = Color(hex: 0xC2271D)
-    static let holidayFill = Color(hex: 0xE9ECF2)            // light grey public-holiday cell
+    static let holidayRed = Theme.danger
+    static let holidayFill = Color(light: 0xE9ECF2, dark: 0x1F2937)            // light grey public-holiday cell
     private let cellHeight: CGFloat = 70
 
     init() {

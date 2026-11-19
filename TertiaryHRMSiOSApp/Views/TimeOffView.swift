@@ -44,7 +44,6 @@ struct TimeOffView: View {
         }
         .sheet(item: $requestSheet, onDismiss: { Task { await load() } }) { _ in
             RequestTimeOffView()
-                .preferredColorScheme(.light)
         }
         .alert("Cancel time off?", isPresented: $showCancelConfirm, presenting: cancelTarget) { r in
             Button("Cancel request", role: .destructive) { cancel(r) }

@@ -88,6 +88,7 @@ final class AuthViewModel: ObservableObject {
         }
         if let existing = try? await AuthService.shared.currentUser() {
             user = existing
+            AppearanceStore.shared.applyAccountDefault(email: existing.email)
             phase = .signedIn
             PushManager.shared.onSignedIn()
             CalendarAutoSync.shared.onSignedIn(isAdmin: isApprover)
@@ -202,6 +203,7 @@ final class AuthViewModel: ObservableObject {
 
     private func finishSignIn(_ u: SessionUser) {
         user = u
+        AppearanceStore.shared.applyAccountDefault(email: u.email)
         password = ""; otp = ""
         infoMessage = nil; errorMessage = nil
         phase = .signedIn

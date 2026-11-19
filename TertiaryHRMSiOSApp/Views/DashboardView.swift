@@ -59,7 +59,7 @@ struct DashboardView: View {
                 Text(s.role?.capitalized ?? "")
                     .font(.caption.weight(.semibold))
                     .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(Theme.mist100.opacity(0.55)).clipShape(Capsule()).foregroundStyle(Theme.navy800)
+                    .background(Theme.chipFill.opacity(0.55)).clipShape(Capsule()).foregroundStyle(Theme.chipInk)
             }
         }
     }

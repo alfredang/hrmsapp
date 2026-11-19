@@ -39,6 +39,24 @@ final class NeatUITests: XCTestCase {
         snap(app, "ui-trainers-filter-menu")
     }
 
+    /// My Profile → Appearance: the three choices exist and picking one selects it.
+    func testAppearanceCardSwitchesBetweenLightDarkAndSystem() {
+        let app = launch(["-uiPreviewScreen", "profile", "-hrms_appearance", "system"])
+        let dark = app.buttons["Dark"]
+        for _ in 0..<4 where !dark.isHittable { app.swipeUp() }
+        XCTAssertTrue(dark.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Light"].exists)
+        XCTAssertTrue(app.buttons["System"].isSelected)
+        dark.tap()
+        XCTAssertTrue(dark.isSelected)
+        snap(app, "ui-appearance-dark")
+        app.buttons["Light"].tap()
+        XCTAssertTrue(app.buttons["Light"].isSelected)
+        snap(app, "ui-appearance-light")
+        app.buttons["System"].tap()
+        XCTAssertTrue(app.buttons["System"].isSelected)
+    }
+
     func testTrainerRowContactMenu() {
         let app = launch(["-uiPreviewOpen", "trainers"])
         let contact = app.buttons["Contact TAN MEI LING"]

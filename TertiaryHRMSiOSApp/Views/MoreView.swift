@@ -104,7 +104,6 @@ struct MoreView: View {
         .sheet(item: $applySheet) { sheet in
             ApplyLeaveView(types: sheet.types, balances: sheet.balances, isIntern: auth.isIntern,
                            initialTypeCode: sheet.code)
-                .preferredColorScheme(.light)
         }
         .alert("Could not open the form", isPresented: Binding(get: { applyError != nil },
                                                                set: { if !$0 { applyError = nil } })) {

@@ -143,7 +143,7 @@ struct TrainersView: View {
                                 .font(.footnote.weight(.semibold))
                                 .padding(.horizontal, 10).frame(minHeight: 32)
                                 .foregroundStyle(Theme.sky)
-                                .background(Theme.mist100.opacity(0.55))
+                                .background(Theme.chipFill.opacity(0.55))
                                 .clipShape(Capsule())
                             }
                             .accessibilityLabel("Remove filter \(chip.title)")
@@ -595,8 +595,8 @@ struct TagPill: View {
         }
         .font(.caption.weight(.medium))
         .padding(.horizontal, 10).padding(.vertical, 5)
-        .foregroundStyle(Theme.navy800)
-        .background(Theme.mist100.opacity(0.45))
+        .foregroundStyle(Theme.chipInk)
+        .background(Theme.chipFill.opacity(0.45))
         .clipShape(Capsule())
     }
 }

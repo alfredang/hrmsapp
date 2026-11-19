@@ -91,7 +91,7 @@ business rules locally; the server remains the single source of truth.
   writes — apply-leave, claims, clock, approvals, profile — plus PDF download) over a shared cookie store.
 - **System frameworks only** — SwiftUI, Foundation/URLSession, PDFKit. No third-party dependencies.
 - **XcodeGen** project generation (`project.yml`); the `.xcodeproj` is gitignored.
-- iOS 16+, iPhone, portrait. Theme: **one light TIA premium-blue theme** (white cards on a pale blue surface, navy #0D1638 text, royal #2F5BE6 actions, gold #F5B83D only as a sparing accent). No dark mode (`.preferredColorScheme(.light)`), matching the web app.
+- iOS 16+, iPhone, portrait. **Appearance: Light, Dark or System** (My Profile → Appearance; default System, saved on the device). Light is the TIA premium-blue look (white cards on a pale blue surface, navy #0D1638 text, royal #2F5BE6 actions, gold #F5B83D as a sparing accent); Dark matches the web app's dark theme.
 
 ## Build
 

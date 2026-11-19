@@ -10,10 +10,11 @@ struct TertiaryHRMSApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(auth)
-                .preferredColorScheme(.light)   // one light premium-blue theme (no dark mode)
+                .onAppear { AppearanceStore.shared.apply() }   // Light / Dark / System (My Profile)
         }
         .onChange(of: scenePhase) { phase in
             if phase == .active {
+                AppearanceStore.shared.apply()
                 Task { await PushManager.shared.onForeground() }
                 NotificationCenter.default.post(name: .hrmsForeground, object: nil)   // screens reload
                 CalendarAutoSync.shared.kick()                                         // iPhone Calendar sync
