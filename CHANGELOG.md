@@ -1,6 +1,10 @@
 # Changelog
 
-## [1.17] — 2026-11-19 (build 31; submitted for App Review, WAITING_FOR_REVIEW)
+## [1.17] — 2026-11-20 (build 32 replaces build 31 in App Review; resubmitted, WAITING_FOR_REVIEW)
+- New **Analytics** screen for approvers (Home → Analytics, More → Manage → Analytics): the last 12 months of bank revenue and expenses, leave and MC per person, and headcount, the same data as the web Analytics page (`GET /api/mobile/analytics`). Filters: 3 / 6 / 12 months, All / Staff / Interns, a person, and leave type. Tap a category to leave it out of the totals, tap a person to see only their leave, tap a month for its figures. The tiles use the same filtered numbers as the charts.
+- Calendar (approvers): an **All / Staff / Interns** control shows whose leave appears. Public holidays always show. The control appears only when the server marks each leave entry with its group.
+- Notifications: the server now also sends a push when an expense claim is approved or rejected, and when a leave, MC or time-off decision is made from an emailed link. They open Expenses, Leave and Time Off (no app change was needed; covered by a test).
+- Build 31 (19 Nov) held the Appearance changes below and was withdrawn from review for this build.
 - New **Appearance** setting in My Profile: Light, Dark or System. System follows the iPhone's setting and is the default; the choice is saved on the device. The accounts angch@ and tansc@ start on Light.
 - Dark appearance for every screen (near-black page, slate cards, near-white text), matching the web app's dark theme. Light is unchanged.
 - Clock in / out button text is white on its colour fill.

@@ -71,6 +71,8 @@ struct MoreView: View {
                             if isAdmin {
                                 link("Approvals", "checkmark.circle.fill", Theme.success) { ApprovalsView() }
                                 divider
+                                link("Analytics", "chart.bar.xaxis", Theme.sky) { AnalyticsView() }
+                                divider
                                 link("Timesheet", "person.badge.clock.fill", .teal) { TimesheetAdminView() }
                                 divider
                                 link("Leave & MC", "cross.case.fill", .pink) { LeaveSummaryView() }

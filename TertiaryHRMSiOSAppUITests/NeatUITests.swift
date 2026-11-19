@@ -57,6 +57,45 @@ final class NeatUITests: XCTestCase {
         XCTAssertTrue(app.buttons["System"].isSelected)
     }
 
+    func testAnalyticsFiltersDriveTilesAndLists() {
+        let app = launch(["-uiPreviewOpen", "analytics"])
+        let headcount = app.descendants(matching: .any)["analytics.tile.Headcount"]
+        XCTAssertTrue(headcount.waitForExistence(timeout: 10))
+        XCTAssertTrue((headcount.value as? String ?? "").hasPrefix("23"), "preview: 14 staff + 9 interns")
+        snap(app, "analytics-all")
+
+        app.segmentedControls["analytics.who"].buttons["Interns"].tap()
+        XCTAssertTrue((headcount.value as? String ?? "").hasPrefix("9"))
+        XCTAssertTrue(app.buttons["analytics.reset"].exists)
+
+        // Hiding a category takes it out of the Expenses tile.
+        let expenses = app.descendants(matching: .any)["analytics.tile.Expenses"]
+        let before = expenses.value as? String ?? ""
+        let payroll = app.buttons["analytics.type.Payroll"]
+        for _ in 0..<6 where !payroll.isHittable { app.swipeUp(velocity: .slow) }
+        payroll.tap()
+        XCTAssertTrue((payroll.value as? String ?? "").hasSuffix("hidden"))
+        snap(app, "analytics-categories")
+        for i in 1...4 { app.swipeUp(velocity: .slow); snap(app, "analytics-scroll-\(i)") }
+        for _ in 0..<12 where !expenses.isHittable { app.swipeDown(velocity: .slow) }
+        XCTAssertNotEqual(expenses.value as? String ?? "", before)
+        snap(app, "analytics-interns-no-payroll")
+
+        app.buttons["analytics.reset"].tap()
+        XCTAssertTrue((headcount.value as? String ?? "").hasPrefix("23"))
+    }
+
+    func testCalendarStaffInternFilter() {
+        let app = launch(["-uiPreviewOpen", "calendar"])
+        let control = app.segmentedControls["calendar.group"]
+        XCTAssertTrue(control.waitForExistence(timeout: 10))
+        XCTAssertTrue(control.buttons["All 9"].exists)
+        control.buttons["Interns 4"].tap()
+        snap(app, "calendar-interns")
+        control.buttons["Staff 5"].tap()
+        XCTAssertTrue(control.buttons["Staff 5"].isSelected)
+    }
+
     func testTrainerRowContactMenu() {
         let app = launch(["-uiPreviewOpen", "trainers"])
         let contact = app.buttons["Contact TAN MEI LING"]

@@ -13,6 +13,8 @@ struct TeamCalendarView: View {
     @State private var loadedYear: Int?
     @AppStorage("teamCalendar.mode") private var modeRaw = Mode.month.rawValue
     @State private var mineOnly = false
+    /// Approvers: whose leave to show (the web calendar's All / Staff / Interns control).
+    @State private var group: TeamLeaveGroup = .all
     @State private var month: Date
     @State private var selectedDay: Date
     @ObservedObject private var autoSync = CalendarAutoSync.shared
@@ -57,6 +59,17 @@ struct TeamCalendarView: View {
                 .padding(.vertical, 8)
 
                 AsyncContent(state: $state, load: { await load() }) { data in
+                    if TeamLeaveGroup.isAvailable(data.entries) {
+                        Picker("Leave shown for", selection: $group) {
+                            ForEach(TeamLeaveGroup.allCases) { g in
+                                Text("\(g.title) \(g.filter(data.entries).count)").tag(g)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                        .accessibilityIdentifier("calendar.group")
+                    }
                     let days = index(data)
                     let holidays = holidayMap(data)
                     switch mode {
@@ -372,7 +385,7 @@ struct TeamCalendarView: View {
     private func agendaList(_ data: TeamCalendarResponse) -> some View {
         let today = cal.startOfDay(for: Date())
         var byDay: [Date: [TeamLeaveEntry]] = [:]
-        for e in (mineOnly ? data.entries.filter(\.isSelf) : data.entries) {
+        for e in visible(data) {
             guard let start = Self.calendarDay(e.startDate) else { continue }
             let end = Self.calendarDay(e.endDate) ?? start
             guard end >= today else { continue }
@@ -407,10 +420,17 @@ struct TeamCalendarView: View {
 
     // MARK: - Data shaping
 
+    /// Leave after the Everyone / Only me menu and the All / Staff / Interns filter.
+    /// Public holidays are separate and always show.
+    private func visible(_ data: TeamCalendarResponse) -> [TeamLeaveEntry] {
+        let mine = mineOnly ? data.entries.filter(\.isSelf) : data.entries
+        return TeamLeaveGroup.isAvailable(data.entries) ? group.filter(mine) : mine
+    }
+
     /// Each multi-day leave exploded into the days it covers, keyed by local start of day.
     private func index(_ data: TeamCalendarResponse) -> [Date: [TeamLeaveEntry]] {
         var map: [Date: [TeamLeaveEntry]] = [:]
-        let source = mineOnly ? data.entries.filter(\.isSelf) : data.entries
+        let source = visible(data)
         for e in source {
             guard let start = Self.calendarDay(e.startDate) else { continue }
             let last = Self.calendarDay(e.endDate) ?? start

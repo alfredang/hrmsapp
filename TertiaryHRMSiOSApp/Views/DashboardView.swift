@@ -22,6 +22,21 @@ struct DashboardView: View {
                                     StatTile(value: "\(s.pendingClaims)", label: "Pending claims", icon: "doc.badge.clock", tint: .orange)
                                 }
                             }
+                            NavigationLink(destination: AnalyticsView()) {
+                                Card(padding: 14) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "chart.bar.xaxis").font(.title3).foregroundStyle(Theme.sky)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Analytics").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                                            Text("Revenue, leave and headcount, last 12 months")
+                                                .font(.caption).foregroundStyle(Theme.mist).lineLimit(1).minimumScaleFactor(0.85)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.mist.opacity(0.6))
+                                    }
+                                }
+                            }
+                            .accessibilityIdentifier("home.analytics")
                         }
 
                         sectionTitle("Quick actions")

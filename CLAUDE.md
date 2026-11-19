@@ -148,6 +148,13 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
+## Analytics and the calendar group filter (1.17 build 32, 20 Nov 2026)
+- `Views/AnalyticsView.swift` (Swift Charts) + `Models/AnalyticsModels.swift`. Approvers only (ADMIN / HR / MANAGER): entry on Home (admin section) and More → Manage. Data: `GET /api/mobile/analytics` = the web's `AnalyticsData` (src/lib/analytics.ts). Decoding is defensive (missing lists become empty, `finance` may be null, unknown leave categories count as Leave).
+- `AnalyticsSlice(data, filter)` is the ONE place that filters and sums; tiles, charts and lists all read it, so they cannot disagree. Unit-tested in `AnalyticsTests`. Add a new figure there, never in the view.
+- Series colours are the web's validated slots: blue `#5B82F0`, teal `#22978B`, amber `#BF8420` (Revenue / Expenses = blue / amber; Leave / MC / NPL = blue / teal / amber; Staff / Interns = blue / teal). Text stays in `Theme.ink` / `Theme.mist`.
+- Calendar: `TeamLeaveEntry.group` ("staff" | "intern" | nil, approvers only) drives `TeamLeaveGroup`; the segmented control shows only when some entry has a group. Holidays are never filtered.
+- Preview: `-uiPreview -uiPreviewOpen analytics`; UI tests `testAnalyticsFiltersDriveTilesAndLists`, `testCalendarStaffInternFilter`.
+
 ## Push notifications (since 1.15)
 - `Services/PushManager.swift` + `AppDelegate` (`@UIApplicationDelegateAdaptor`): after sign-in it asks for alert/badge/sound, registers with APNs and POSTs the hex token to `/api/mobile/push-token` `{token, platform:"ios", environment: sandbox|production}` (DEBUG = sandbox); sign-out DELETEs it **before** the session cookie is cleared. A tapped push sets `pendingLink` (the payload's web `link`); `MainTabView` maps it through `PushRoute.from(link:isAdmin:isIntern:)` to a tab or a sheet. The in-app Notifications list routes the same way.
 - Entitlement `Support/TertiaryHRMSiOSApp.entitlements` uses `$(APS_ENVIRONMENT)` (Debug development / Release production, set per config in `project.yml`). Push is enabled on the App ID; the manual App Store profile **"HRMS App Store API"** was regenerated with push on 11 Nov 2026. If a capability is ever added again, regenerate that profile (ASC API `POST /v1/profiles`, IOS_APP_STORE, cert JU3U329V25) or export fails with "doesn't include the aps-environment entitlement".

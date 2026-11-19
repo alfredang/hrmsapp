@@ -162,37 +162,88 @@ enum PreviewData {
         entries: [
             TeamLeaveEntry(id: "tl1", employeeId: "E0001", employeeName: "Alfred Ang", department: "Management",
                            startDate: "2026-09-08T00:00:00Z", endDate: "2026-09-09T00:00:00Z",
-                           days: 2, halfDay: false, leaveType: "Annual Leave", isSelf: true),
+                           days: 2, halfDay: false, leaveType: "Annual Leave", isSelf: true, group: "staff"),
             TeamLeaveEntry(id: "tl2", employeeId: "E0002", employeeName: "Femina Jasmin", department: "Engineering",
                            startDate: "2026-09-10T00:00:00Z", endDate: "2026-09-10T00:00:00Z",
-                           days: 1, halfDay: false, leaveType: "Annual Leave", isSelf: false),
+                           days: 1, halfDay: false, leaveType: "Annual Leave", isSelf: false, group: "intern"),
             TeamLeaveEntry(id: "tl3", employeeId: "E0003", employeeName: "Amanda Halim", department: "Operations",
                            startDate: "2026-09-15T00:00:00Z", endDate: "2026-09-16T00:00:00Z",
-                           days: 1.5, halfDay: true, leaveType: "Annual Leave", isSelf: false),
+                           days: 1.5, halfDay: true, leaveType: "Annual Leave", isSelf: false, group: "intern"),
             TeamLeaveEntry(id: "tl4", employeeId: "E0004", employeeName: "Tan Yong Huat", department: "Training",
                            startDate: "2026-09-10T00:00:00Z", endDate: "2026-09-10T00:00:00Z",
-                           days: 1, halfDay: false, leaveType: "Medical Leave", isSelf: false),
+                           days: 1, halfDay: false, leaveType: "Medical Leave", isSelf: false, group: "staff"),
             TeamLeaveEntry(id: "tl5", employeeId: "E0001", employeeName: "Alfred Ang", department: "Management",
                            startDate: "2026-11-11T00:00:00Z", endDate: "2026-11-12T00:00:00Z",
-                           days: 2, halfDay: false, leaveType: "Annual Leave", isSelf: true),
+                           days: 2, halfDay: false, leaveType: "Annual Leave", isSelf: true, group: "staff"),
             TeamLeaveEntry(id: "tl6", employeeId: "E0002", employeeName: "Femina Jasmin", department: "Engineering",
                            startDate: "2026-11-11T00:00:00Z", endDate: "2026-11-11T00:00:00Z",
-                           days: 1, halfDay: false, leaveType: "Medical Leave", isSelf: false),
+                           days: 1, halfDay: false, leaveType: "Medical Leave", isSelf: false, group: "intern"),
             TeamLeaveEntry(id: "tl7", employeeId: "E0003", employeeName: "Amanda Halim", department: "Operations",
                            startDate: "2026-11-11T00:00:00Z", endDate: "2026-11-11T00:00:00Z",
-                           days: 0.5, halfDay: true, leaveType: "Annual Leave", isSelf: false),
+                           days: 0.5, halfDay: true, leaveType: "Annual Leave", isSelf: false, group: "intern"),
             TeamLeaveEntry(id: "tl8", employeeId: "E0004", employeeName: "Tan Yong Huat", department: "Training",
                            startDate: "2026-11-18T00:00:00Z", endDate: "2026-11-20T00:00:00Z",
-                           days: 3, halfDay: false, leaveType: "Annual Leave", isSelf: false),
+                           days: 3, halfDay: false, leaveType: "Annual Leave", isSelf: false, group: "staff"),
             TeamLeaveEntry(id: "tl9", employeeId: "E0005", employeeName: "Cheryl Lim", department: "Operations",
                            startDate: "2026-11-09T00:00:00Z", endDate: "2026-11-09T00:00:00Z",
-                           days: 1, halfDay: false, leaveType: nil, isSelf: false),
+                           days: 1, halfDay: false, leaveType: nil, isSelf: false, group: "staff"),
         ],
         holidays: [
             TeamHoliday(id: "h1", title: "Public Holiday", startDate: "2026-09-21T00:00:00Z", endDate: "2026-09-21T00:00:00Z"),
             TeamHoliday(id: "h2", title: "Deepavali", startDate: "2026-11-08T00:00:00Z", endDate: "2026-11-08T00:00:00Z"),
             TeamHoliday(id: "h3", title: "Christmas Day", startDate: "2026-12-25", endDate: "2026-12-25"),
         ])
+
+    // MARK: Analytics (approvers)
+    static let analytics: AnalyticsData = {
+        let labels = ["Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov"]
+        let months = labels.enumerated().map { i, l in
+            AnalyticsMonth(key: i == 0 ? "2025-12" : String(format: "2026-%02d", i), label: l, year: i == 0 ? 2025 : 2026)
+        }
+        let keys = months.map(\.key)
+        let income: [Double] = [0, 0, 0, 0, 0, 412_300, 455_800, 580_200, 522_400, 398_700, 610_500, 142_900]
+        let spend: [(String, [Double])] = [
+            ("Trainer Fee", [0, 0, 0, 0, 0, 181_000, 162_400, 96_300, 240_800, 205_100, 121_700, 78_200]),
+            ("Vendor Payment", [0, 0, 0, 0, 0, 96_500, 118_200, 41_900, 152_300, 88_400, 60_100, 31_800]),
+            ("Payroll", [0, 0, 0, 0, 0, 30_200, 30_400, 30_900, 31_200, 31_200, 31_600, 0]),
+            ("CPF", [0, 0, 0, 0, 0, 14_800, 14_900, 15_100, 15_300, 15_300, 15_500, 0]),
+            ("Subscription", [0, 0, 0, 0, 0, 4_200, 4_650, 4_900, 5_100, 4_800, 5_200, 2_300]),
+            ("Rental", [0, 0, 0, 0, 0, 2_900, 2_900, 2_900, 2_900, 2_900, 2_900, 0]),
+        ]
+        var finance: [AnalyticsFinanceRow] = []
+        for (i, k) in keys.enumerated() where income[i] > 0 {
+            finance.append(AnalyticsFinanceRow(month: k, type: "Income", revenue: income[i], expenses: 0))
+            for (name, v) in spend where v[i] > 0 {
+                finance.append(AnalyticsFinanceRow(month: k, type: name, revenue: 0, expenses: v[i]))
+            }
+        }
+        let people = [
+            AnalyticsPerson(id: "p1", name: "ANG SEE SIANG", code: "E0014", intern: false),
+            AnalyticsPerson(id: "p2", name: "JYOTI CHOPRA", code: "E0008", intern: false),
+            AnalyticsPerson(id: "p3", name: "MARCUS WOON ZHI XUAN", code: "E0011", intern: false),
+            AnalyticsPerson(id: "p4", name: "AMANDA HALIM", code: "I0003", intern: true),
+            AnalyticsPerson(id: "p5", name: "FEMINA JASMIN", code: "I0002", intern: true),
+            AnalyticsPerson(id: "p6", name: "EVAN PANG", code: "I0005", intern: true),
+            AnalyticsPerson(id: "p7", name: "CHERYL LIM", code: "E0005", intern: false, active: false),
+        ]
+        func row(_ m: Int, _ p: String, _ c: AnalyticsLeaveCategory, _ d: Double) -> AnalyticsLeaveRow {
+            AnalyticsLeaveRow(month: keys[m], personId: p, category: c, days: d)
+        }
+        let leave = [
+            row(5, "p2", .leave, 1), row(6, "p1", .leave, 1.5), row(6, "p5", .mc, 2), row(6, "p4", .leave, 1),
+            row(7, "p2", .leave, 3), row(7, "p3", .mc, 4), row(7, "p1", .npl, 2), row(8, "p5", .mc, 2),
+            row(8, "p6", .leave, 1), row(9, "p3", .leave, 4), row(9, "p4", .mc, 2), row(9, "p7", .leave, 1),
+            row(10, "p1", .mc, 6), row(10, "p4", .leave, 2), row(10, "p5", .mc, 4), row(10, "p2", .leave, 2),
+            row(11, "p4", .leave, 4), row(11, "p2", .leave, 2), row(11, "p3", .mc, 1), row(11, "p1", .npl, 1),
+        ]
+        let staff = [10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 14, 14]
+        let interns = [0, 1, 1, 5, 5, 7, 9, 7, 6, 6, 9, 9]
+        return AnalyticsData(
+            months: months, finance: finance,
+            financeRange: AnalyticsFinanceRange(from: "2026-04-30", to: "2026-11-16"),
+            leave: leave, people: people,
+            headcount: keys.enumerated().map { AnalyticsHeadcountRow(month: $1, staff: staff[$0], interns: interns[$0]) })
+    }()
 
     static let calendar = CalendarResponse(events: [
         CalendarEvent(id: "ev1", title: "Hari Raya Haji", startDate: "2026-06-06T09:00:00Z", endDate: "2026-06-06T09:00:00Z",

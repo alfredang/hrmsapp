@@ -193,6 +193,23 @@ struct TeamLeaveEntry: Codable, Identifiable {
     let halfDay: Bool
     let leaveType: String?
     let isSelf: Bool
+    /// Approvers only: whose leave it is ("staff" | "intern"), for the calendar's
+    /// All / Staff / Interns filter. Absent for everyone else and on older servers.
+    var group: String? = nil
+}
+
+/// The calendar's All / Staff / Interns filter (approvers). Works on the server's `group` tag.
+enum TeamLeaveGroup: String, CaseIterable, Identifiable {
+    case all, staff, intern
+    var id: String { rawValue }
+    var title: String { self == .all ? "All" : self == .staff ? "Staff" : "Interns" }
+
+    /// The filter is offered only when the server tagged the entries (approvers, new server).
+    static func isAvailable(_ entries: [TeamLeaveEntry]) -> Bool { entries.contains { $0.group != nil } }
+
+    func filter(_ entries: [TeamLeaveEntry]) -> [TeamLeaveEntry] {
+        self == .all ? entries : entries.filter { $0.group == rawValue }
+    }
 }
 
 struct TeamHoliday: Codable, Identifiable {

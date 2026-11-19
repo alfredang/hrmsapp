@@ -54,6 +54,9 @@ actor HRMSAPI {
     func calendar() async throws -> CalendarResponse  { isPreview ? PreviewData.calendar  : try await get("api/mobile/calendar") }
     func profile()  async throws -> ProfileResponse   { isPreview ? PreviewData.profile   : try await get("api/mobile/profile") }
 
+    /// Approvers: 12 months of revenue / expenses, leave per person and headcount (403 for others).
+    func analytics() async throws -> AnalyticsData { isPreview ? PreviewData.analytics : try await get("api/mobile/analytics") }
+
     /// Company-wide approved leave for the team calendar.
     func teamCalendar(year: Int) async throws -> TeamCalendarResponse {
         if isPreview { return PreviewData.teamCalendar }
