@@ -73,8 +73,10 @@ final class ParityBuild33Tests: XCTestCase {
 
     func testCalendarPreviewListsActivePeopleOnly() {
         let p = TeamCalendarPeople(PreviewData.teamCalendar)
-        XCTAssertEqual(p.groups[0].options.map(\.label), ["Alfred Ang (2)", "Jyoti Chopra", "Tan Yong Huat (2)"])
-        XCTAssertEqual(p.groups[1].options.map(\.label), ["Amanda Halim (2)", "Evan Pang", "Femina Jasmin (2)"])
+        // Since build 34 the counts include approved time off (as the web): Alfred 2 leave + 1
+        // time off, Evan 2 time off (an Off Day and an hourly one).
+        XCTAssertEqual(p.groups[0].options.map(\.label), ["Alfred Ang (3)", "Jyoti Chopra", "Tan Yong Huat (2)"])
+        XCTAssertEqual(p.groups[1].options.map(\.label), ["Amanda Halim (2)", "Evan Pang (2)", "Femina Jasmin (2)"])
         XCTAssertNil(p.option("E0005"), "Cheryl Lim has left")
     }
 

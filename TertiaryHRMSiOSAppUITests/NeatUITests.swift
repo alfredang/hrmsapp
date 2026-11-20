@@ -112,6 +112,34 @@ final class NeatUITests: XCTestCase {
         XCTAssertEqual(app.buttons["calendar.person"].value as? String, "Everyone")
     }
 
+    /// Calendar (build 34): category legend; picking a person shows their month totals and
+    /// shades their off days (Evan Pang works Mon–Thu and has an Off Day on 11 Nov).
+    func testCalendarColoursTimeOffAndMonthTotals() {
+        let app = launch(["-uiPreviewOpen", "calendar"])
+        XCTAssertTrue(app.buttons["calendar.person"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.otherElements["calendar.monthTotals"].exists, "no totals for Everyone")
+        snap(app, "calendar-colours-everyone")
+        app.buttons["calendar.person"].tap()
+        let evan = app.buttons["Evan Pang (2)"]
+        XCTAssertTrue(evan.waitForExistence(timeout: 5), "time off counts in the person list")
+        evan.tap()
+        XCTAssertTrue(app.otherElements["calendar.monthTotals"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Time Off 2 h + 1 off day"].exists || app.otherElements["calendar.total.TIME_OFF"].exists)
+        snap(app, "calendar-colours-person")
+    }
+
+    /// Home: Trainer Admin tiles; My Profile: the Work Schedule card.
+    func testHomeTrainerTilesAndProfileWorkSchedule() {
+        let app = launch([])
+        XCTAssertTrue(app.buttons["home.kpi.trainers"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons["home.kpi.aclp"].value as? String, "74")
+        snap(app, "home-trainer-tiles")
+        let profile = launch(["-uiPreviewOpen", "profile"])
+        XCTAssertTrue(profile.staticTexts["Work Schedule"].waitForExistence(timeout: 10))
+        XCTAssertTrue(profile.staticTexts["Mon, Tue, Wed, Thu, Fri"].exists)
+        snap(profile, "profile-work-schedule")
+    }
+
     /// Analytics: the workforce breakdown starts on Staff; Interns shows the ethnic-group note.
     func testAnalyticsWorkforceBreakdown() {
         let app = launch(["-uiPreviewOpen", "analytics"])

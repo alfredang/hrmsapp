@@ -11,7 +11,7 @@ import PhotosUI
 ///   Leave instead", resubmitting the same dates with the NPL type.
 /// - Interns have no paid MC: picking MC switches the form to No Pay Leave up front, reason
 ///   prefilled "Sick leave (MC)", certificate kept (mirrors the web form's `internSick`).
-/// - No Pay Leave is capped (prorated 21 days/yr): the cap and remaining days are shown.
+/// - No Pay Leave is capped (a flat 14 days a year): the cap and remaining days are shown.
 struct ApplyLeaveView: View {
     let types: [LeaveType]
     var balances: [LeaveBalance] = []
@@ -390,7 +390,7 @@ struct ApplyLeaveView: View {
                             .font(.caption).foregroundStyle(Theme.warning)
                     }
                 }
-                Text("No Pay Leave is capped at 21 days a year, prorated by the full months you have served.")
+                Text(LeaveRules.nplCapNote)
                     .font(.caption2).foregroundStyle(Theme.ink.opacity(0.55))
             }
             .padding(12)
@@ -402,7 +402,7 @@ struct ApplyLeaveView: View {
 
     private func nplFigures(_ npl: NplStatus, bookedLabel: String? = nil) -> some View {
         HStack(spacing: 0) {
-            figure("Cap to date", npl.cap, Theme.ink)
+            figure("Yearly cap", npl.cap, Theme.ink)
             if let bookedLabel {
                 figure(bookedLabel, npl.used, Theme.mist)
             } else {

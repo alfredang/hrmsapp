@@ -25,7 +25,15 @@ enum PreviewData {
         name: "Alfred Ang", role: "Administrator", isAdmin: true,
         alAvailable: 12.5, mcAvailable: 14, otRemaining: 8,
         expenseYtd: 1860.50, pendingLeaves: 3, pendingClaims: 2,
-        canManageTrainers: !ProcessInfo.processInfo.arguments.contains("-uiPreviewIntern")) }
+        canManageTrainers: !ProcessInfo.processInfo.arguments.contains("-uiPreviewIntern"),
+        leaveSummary: [
+            SummaryStat(label: "Paid leave taken", value: "5.5 days"),
+            SummaryStat(label: "Annual leave balance", value: "12.5 days"),
+            SummaryStat(label: "MC taken", value: "0 days"),
+            SummaryStat(label: "No-pay leave taken", value: "2 days", hint: "11 of 14 left"),
+        ],
+        trainerKpis: ProcessInfo.processInfo.arguments.contains("-uiPreviewIntern") ? nil
+            : TrainerKpis(total: 128, aclp: 74, nonAclp: 54)) }
 
     // MARK: Approvals
     static let approvals = ApprovalsResponse(
@@ -63,13 +71,13 @@ enum PreviewData {
                          earned: 12, autoDeducted: 0, proRated: nil, available: 8),
             LeaveBalance(code: "NPL", name: "No Pay Leave", paid: false,
                          entitlement: 0, carriedOver: 0, used: 2, pending: 1,
-                         earned: 0, autoDeducted: 0, proRated: 17.5, available: 14.5),
+                         earned: 0, autoDeducted: 0, proRated: 14, available: 11),
         ],
         types: [
             LeaveType(id: "lt-al", code: "AL", name: "Annual Leave", paid: true, defaultDays: 16),
             LeaveType(id: "lt-mc", code: "MC", name: "Medical Leave", paid: true, defaultDays: 14),
             LeaveType(id: "lt-cl", code: "CL", name: "Childcare Leave", paid: true, defaultDays: 6),
-            LeaveType(id: "lt-npl", code: "NPL", name: "No Pay Leave", paid: false, defaultDays: 21),
+            LeaveType(id: "lt-npl", code: "NPL", name: "No Pay Leave", paid: false, defaultDays: 14),
         ],
         requests: [
             LeaveRequest(id: "lr-1", leaveType: "Annual Leave", leaveCode: "AL",
@@ -171,46 +179,61 @@ enum PreviewData {
         entries: [
             TeamLeaveEntry(id: "tl1", employeeId: "E0001", employeeName: "Alfred Ang", department: "Management",
                            startDate: "2026-09-08T00:00:00Z", endDate: "2026-09-09T00:00:00Z",
-                           days: 2, halfDay: false, leaveType: "Annual Leave", isSelf: true, group: "staff"),
+                           days: 2, halfDay: false, leaveType: "Annual Leave", isSelf: true, group: "staff", category: "ANNUAL_LEAVE"),
             TeamLeaveEntry(id: "tl2", employeeId: "E0002", employeeName: "Femina Jasmin", department: "Engineering",
                            startDate: "2026-09-10T00:00:00Z", endDate: "2026-09-10T00:00:00Z",
-                           days: 1, halfDay: false, leaveType: "Annual Leave", isSelf: false, group: "intern"),
+                           days: 1, halfDay: false, leaveType: "Annual Leave", isSelf: false, group: "intern", category: "ANNUAL_LEAVE"),
             TeamLeaveEntry(id: "tl3", employeeId: "E0003", employeeName: "Amanda Halim", department: "Operations",
                            startDate: "2026-09-15T00:00:00Z", endDate: "2026-09-16T00:00:00Z",
-                           days: 1.5, halfDay: true, leaveType: "Annual Leave", isSelf: false, group: "intern"),
+                           days: 1.5, halfDay: true, leaveType: "Annual Leave", isSelf: false, group: "intern", category: "ANNUAL_LEAVE"),
             TeamLeaveEntry(id: "tl4", employeeId: "E0004", employeeName: "Tan Yong Huat", department: "Training",
                            startDate: "2026-09-10T00:00:00Z", endDate: "2026-09-10T00:00:00Z",
-                           days: 1, halfDay: false, leaveType: "Medical Leave", isSelf: false, group: "staff"),
+                           days: 1, halfDay: false, leaveType: "Medical Leave", isSelf: false, group: "staff", category: "MEDICAL_LEAVE"),
             TeamLeaveEntry(id: "tl5", employeeId: "E0001", employeeName: "Alfred Ang", department: "Management",
                            startDate: "2026-11-11T00:00:00Z", endDate: "2026-11-12T00:00:00Z",
-                           days: 2, halfDay: false, leaveType: "Annual Leave", isSelf: true, group: "staff"),
+                           days: 2, halfDay: false, leaveType: "Annual Leave", isSelf: true, group: "staff", category: "ANNUAL_LEAVE"),
             TeamLeaveEntry(id: "tl6", employeeId: "E0002", employeeName: "Femina Jasmin", department: "Engineering",
                            startDate: "2026-11-11T00:00:00Z", endDate: "2026-11-11T00:00:00Z",
-                           days: 1, halfDay: false, leaveType: "Medical Leave", isSelf: false, group: "intern"),
+                           days: 1, halfDay: false, leaveType: "Medical Leave", isSelf: false, group: "intern", category: "MEDICAL_LEAVE"),
             TeamLeaveEntry(id: "tl7", employeeId: "E0003", employeeName: "Amanda Halim", department: "Operations",
                            startDate: "2026-11-11T00:00:00Z", endDate: "2026-11-11T00:00:00Z",
-                           days: 0.5, halfDay: true, leaveType: "Annual Leave", isSelf: false, group: "intern"),
+                           days: 0.5, halfDay: true, leaveType: "Annual Leave", isSelf: false, group: "intern", category: "ANNUAL_LEAVE"),
             TeamLeaveEntry(id: "tl8", employeeId: "E0004", employeeName: "Tan Yong Huat", department: "Training",
                            startDate: "2026-11-18T00:00:00Z", endDate: "2026-11-20T00:00:00Z",
-                           days: 3, halfDay: false, leaveType: "Annual Leave", isSelf: false, group: "staff"),
+                           days: 3, halfDay: false, leaveType: "Annual Leave", isSelf: false, group: "staff", category: "ANNUAL_LEAVE"),
             TeamLeaveEntry(id: "tl9", employeeId: "E0005", employeeName: "Cheryl Lim", department: "Operations",
                            startDate: "2026-11-09T00:00:00Z", endDate: "2026-11-09T00:00:00Z",
                            days: 1, halfDay: false, leaveType: nil, isSelf: false, group: "staff"),
         ],
         holidays: [
-            TeamHoliday(id: "h1", title: "Public Holiday", startDate: "2026-09-21T00:00:00Z", endDate: "2026-09-21T00:00:00Z"),
-            TeamHoliday(id: "h2", title: "Deepavali", startDate: "2026-11-08T00:00:00Z", endDate: "2026-11-08T00:00:00Z"),
-            TeamHoliday(id: "h3", title: "Christmas Day", startDate: "2026-12-25", endDate: "2026-12-25"),
+            TeamHoliday(id: "h1", title: "🎉 Public Holiday", startDate: "2026-09-21T00:00:00Z", endDate: "2026-09-21T00:00:00Z"),
+            TeamHoliday(id: "h2", title: "🪔 Deepavali", startDate: "2026-11-08T00:00:00Z", endDate: "2026-11-08T00:00:00Z"),
+            TeamHoliday(id: "h3", title: "🎄 Christmas Day", startDate: "2026-12-25", endDate: "2026-12-25"),
         ],
         // Active people only: Cheryl Lim (E0005) has left, so her leave shows only under Everyone.
         people: [
-            TeamCalendarPerson(id: "E0001", name: "Alfred Ang", intern: false),
-            TeamCalendarPerson(id: "E0003", name: "Amanda Halim", intern: true),
-            TeamCalendarPerson(id: "I0005", name: "Evan Pang", intern: true),
-            TeamCalendarPerson(id: "E0002", name: "Femina Jasmin", intern: true),
-            TeamCalendarPerson(id: "E0008", name: "Jyoti Chopra", intern: false),
-            TeamCalendarPerson(id: "E0004", name: "Tan Yong Huat", intern: false),
-        ])
+            TeamCalendarPerson(id: "E0001", name: "Alfred Ang", intern: false, workdays: [1, 2, 3, 4, 5]),
+            TeamCalendarPerson(id: "E0003", name: "Amanda Halim", intern: true, workdays: [1, 2, 3, 4, 5]),
+            TeamCalendarPerson(id: "I0005", name: "Evan Pang", intern: true, workdays: [1, 2, 3, 4]),
+            TeamCalendarPerson(id: "E0002", name: "Femina Jasmin", intern: true, workdays: [1, 2, 3, 4, 5]),
+            TeamCalendarPerson(id: "E0008", name: "Jyoti Chopra", intern: false, workdays: [1, 2, 3, 4, 5]),
+            TeamCalendarPerson(id: "E0004", name: "Tan Yong Huat", intern: false, workdays: [1, 2, 3, 4, 5]),
+        ],
+        // Build 34: approved time off / Off Days, birthdays (approvers), the viewer's workdays.
+        timeOff: [
+            TeamTimeOffEntry(id: "to1", employeeId: "I0005", employeeName: "Evan Pang", date: "2026-11-11T00:00:00.000Z",
+                             startTime: "00:00", endTime: "00:00", hours: 0, offDay: true, isSelf: false, group: "intern"),
+            TeamTimeOffEntry(id: "to2", employeeId: "I0005", employeeName: "Evan Pang", date: "2026-11-17T00:00:00.000Z",
+                             startTime: "14:00", endTime: "16:00", hours: 2, offDay: false, isSelf: false, group: "intern"),
+            TeamTimeOffEntry(id: "to3", employeeId: "E0001", employeeName: "Alfred Ang", date: "2026-11-24T00:00:00.000Z",
+                             startTime: "10:00", endTime: "11:30", hours: 1.5, offDay: false, isSelf: true, group: "staff"),
+        ],
+        birthdays: [
+            TeamBirthday(id: "bd-E0008-2026", employeeId: "E0008", name: "Jyoti Chopra", date: "2026-11-26T04:00:00.000Z"),
+            TeamBirthday(id: "bd-E0004-2026", employeeId: "E0004", name: "Tan Yong Huat", date: "2026-09-03T04:00:00.000Z"),
+        ],
+        ownWorkdays: [1, 2, 3, 4, 5],
+        categories: CalendarCategory.fallback)
 
     // MARK: Analytics (approvers)
     static let analytics: AnalyticsData = {
@@ -305,7 +328,9 @@ enum PreviewData {
         employmentType: "Full-time", nationality: "Singaporean", gender: "Male",
         dateOfBirth: "1982-04-18T09:00:00Z", address: "1 Tampines Central, Singapore 529536",
         startDate: "2015-01-05T09:00:00Z", endDate: nil, status: "Active", avatarUrl: nil,
-        monthlyLeaveRate: 1.33, roles: ["ADMIN", "HR"], role: "ADMIN"))
+        monthlyLeaveRate: 1.33, roles: ["ADMIN", "HR"], role: "ADMIN",
+        workdays: [1, 2, 3, 4, 5], workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"], offDays: ["Sat", "Sun"],
+        officeHours: "9am to 6pm"))
 
     // MARK: Public holidays
     static func holidays(_ year: Int) -> [PublicHoliday] {
@@ -524,7 +549,7 @@ enum PreviewData {
     // MARK: Leave rules (preview: `-uiPreviewLeave al-excess` triggers the AL→NPL suggestion)
     static func applyLeaveError(leaveTypeId: String) -> LeaveSubmitError? {
         guard ProcessInfo.processInfo.arguments.contains("al-excess"), leaveTypeId == "lt-al" else { return nil }
-        let body = #"{"error":"This request is 15 day(s) but you only have 12.5 day(s) of annual leave available. Leave beyond your entitlement must be taken as No Pay Leave: shorten this request to 12.5 day(s) and apply for the remaining 2.5 day(s) as No Pay Leave (you have 14.5 No Pay Leave day(s) left this year).","code":"AL_EXCEEDS_BALANCE","alAvailable":12.5,"excessDays":2.5,"npl":{"cap":17.5,"used":2,"pending":1,"remaining":14.5},"suggestedLeaveTypeCode":"NPL"}"#
+        let body = #"{"error":"This request is 15 day(s) but you only have 12.5 day(s) of annual leave available. Leave beyond your entitlement must be taken as No Pay Leave: shorten this request to 12.5 day(s) and apply for the remaining 2.5 day(s) as No Pay Leave (you have 11 No Pay Leave day(s) left this year).","code":"AL_EXCEEDS_BALANCE","alAvailable":12.5,"excessDays":2.5,"npl":{"cap":14,"used":2,"pending":1,"remaining":11},"suggestedLeaveTypeCode":"NPL"}"#
         return LeaveSubmitError.parse(status: 400, data: Data(body.utf8))
     }
 

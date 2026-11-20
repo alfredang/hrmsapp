@@ -14,8 +14,82 @@ struct DashboardSummary: Codable {
     /// Holds TRAINER_ADMIN → show the Trainers directory. Optional so an older
     /// server (without the field) still decodes; treated as false.
     var canManageTrainers: Bool? = nil
+    /// The signed-in person's own leave tiles, the same summary as the web staff dashboard and
+    /// the decision email (build 34). Shown as given. nil on an older server or without an employee.
+    var leaveSummary: [SummaryStat]? = nil
+    /// Accountants (not admins) only: pending claims and this month's bank income / expenses.
+    var financeKpis: FinanceKpis? = nil
+    /// Trainer Admins only: trainer counts (all / ACLP / non-ACLP).
+    var trainerKpis: TrainerKpis? = nil
 
     var showsTrainers: Bool { canManageTrainers ?? false }
+
+    enum CodingKeys: String, CodingKey {
+        case name, role, isAdmin, alAvailable, mcAvailable, otRemaining, expenseYtd, pendingLeaves, pendingClaims,
+             canManageTrainers, leaveSummary, financeKpis, trainerKpis
+    }
+}
+
+extension DashboardSummary {
+    // Defined in an extension so the memberwise init stays. The build-34 fields are read with
+    // `try?`: a field this build cannot read hides its tiles instead of failing Home.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        role = try c.decodeIfPresent(String.self, forKey: .role)
+        isAdmin = try c.decode(Bool.self, forKey: .isAdmin)
+        alAvailable = try c.decodeIfPresent(Double.self, forKey: .alAvailable)
+        mcAvailable = try c.decodeIfPresent(Double.self, forKey: .mcAvailable)
+        otRemaining = try c.decodeIfPresent(Double.self, forKey: .otRemaining)
+        expenseYtd = try c.decode(Double.self, forKey: .expenseYtd)
+        pendingLeaves = try c.decode(Int.self, forKey: .pendingLeaves)
+        pendingClaims = try c.decode(Int.self, forKey: .pendingClaims)
+        canManageTrainers = try c.decodeIfPresent(Bool.self, forKey: .canManageTrainers)
+        leaveSummary = (try? c.decodeIfPresent([SummaryStat].self, forKey: .leaveSummary)) ?? nil
+        financeKpis = (try? c.decodeIfPresent(FinanceKpis.self, forKey: .financeKpis)) ?? nil
+        trainerKpis = (try? c.decodeIfPresent(TrainerKpis.self, forKey: .trainerKpis)) ?? nil
+    }
+}
+
+/// One leave tile of `summary.leaveSummary`: "Paid leave taken" / "3 days" / optional hint
+/// ("12 of 14 left").
+struct SummaryStat: Codable, Equatable, Identifiable {
+    let label: String
+    let value: String
+    var hint: String? = nil
+    var id: String { label }
+
+    init(label: String, value: String, hint: String? = nil) { self.label = label; self.value = value; self.hint = hint }
+
+    enum CodingKeys: String, CodingKey { case label, value, hint }
+    init(from d: Decoder) throws {
+        let c = try d.container(keyedBy: CodingKeys.self)
+        label = try c.decode(String.self, forKey: .label)
+        if let s = try? c.decode(String.self, forKey: .value) { value = s }
+        else if let n = try? c.decode(Double.self, forKey: .value) { value = Fmt.num(n) }
+        else { value = "-" }
+        hint = (try? c.decodeIfPresent(String.self, forKey: .hint)) ?? nil
+    }
+}
+
+/// `summary.financeKpis` (accountants): the web dashboard's FinanceKpiRow.
+struct FinanceKpis: Codable, Equatable {
+    let pendingClaims: Int
+    let pendingClaimsAmount: Double
+    let incomeMonth: Double
+    let incomeYtd: Double
+    let expensesMonth: Double
+    let expensesYtd: Double
+    /// "Nov" (Singapore time).
+    let monthLabel: String
+    let year: Int
+}
+
+/// `summary.trainerKpis` (Trainer Admins): the web dashboard's TrainerKpiRow.
+struct TrainerKpis: Codable, Equatable {
+    let total: Int
+    let aclp: Int
+    let nonAclp: Int
 }
 
 // MARK: - Leave  (/api/mobile/leave)
@@ -39,7 +113,7 @@ struct LeaveBalance: Codable, Identifiable {
     let proRated: Double?
     let available: Double
 
-    /// No Pay Leave: `proRated` is the prorated cap to date and `available` the days left.
+    /// No Pay Leave: `proRated` is the yearly cap (a flat 14 since 20 Nov 2026) and `available` the days left.
     var isNoPayLeave: Bool { code.uppercased() == LeaveRules.nplCode }
 }
 
@@ -200,12 +274,44 @@ struct TeamCalendarResponse: Codable {
     /// Approvers only: every active staff member and intern, with or without leave, for the
     /// calendar's person filter. nil for everyone else; absent on an older server.
     var people: [TeamCalendarPerson]? = nil
+    /// Build 34 (all optional, absent on an older server):
+    /// approved time off and Off Days — approvers: everyone's; others: their own.
+    var timeOff: [TeamTimeOffEntry]? = nil
+    /// Approvers only, else nil.
+    var birthdays: [TeamBirthday]? = nil
+    /// The viewer's own workdays (ISO 1 = Mon … 7 = Sun), or nil.
+    var ownWorkdays: [Int]? = nil
+    /// Colour + emoji legend (`CalendarLegendTable` falls back to the built-in table).
+    var categories: [CalendarCategoryInfo]? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case year, canSeeTypes, entries, holidays, people, timeOff, birthdays, ownWorkdays, categories
+    }
+}
+
+extension TeamCalendarResponse {
+    // In an extension so the memberwise init stays. The new fields are read with `try?`, so
+    // one this build cannot read is left out instead of failing the whole calendar.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        year = try c.decode(Int.self, forKey: .year)
+        canSeeTypes = try c.decode(Bool.self, forKey: .canSeeTypes)
+        entries = try c.decode([TeamLeaveEntry].self, forKey: .entries)
+        holidays = try c.decode([TeamHoliday].self, forKey: .holidays)
+        people = try c.decodeIfPresent([TeamCalendarPerson].self, forKey: .people)
+        timeOff = (try? c.decodeIfPresent([TeamTimeOffEntry].self, forKey: .timeOff)) ?? nil
+        birthdays = (try? c.decodeIfPresent([TeamBirthday].self, forKey: .birthdays)) ?? nil
+        ownWorkdays = (try? c.decodeIfPresent([Int].self, forKey: .ownWorkdays)) ?? nil
+        categories = (try? c.decodeIfPresent([CalendarCategoryInfo].self, forKey: .categories)) ?? nil
+    }
 }
 
 struct TeamCalendarPerson: Codable, Identifiable, Equatable {
     let id: String
     let name: String
     let intern: Bool
+    /// ISO weekdays (1 = Mon … 7 = Sun) for shading their off days; absent on an older server.
+    var workdays: [Int]? = nil
 }
 
 struct TeamLeaveEntry: Codable, Identifiable {
@@ -222,12 +328,16 @@ struct TeamLeaveEntry: Codable, Identifiable {
     /// Approvers only: whose leave it is ("staff" | "intern"). Absent for everyone else and on
     /// older servers. Groups the person filter when the server sends no roster.
     var group: String? = nil
+    /// ANNUAL_LEAVE | MEDICAL_LEAVE | NO_PAY_LEAVE | OTHER_LEAVE, or nil when the type is hidden
+    /// from the viewer (build 34). See `resolvedCategory`.
+    var category: String? = nil
 }
 
-/// The calendar's "Leave shown for" person filter (approvers): Everyone or one person.
+/// The calendar's "Leave & time off for" person filter (approvers): Everyone or one person.
 /// The list is the server's roster of active people (`people`), grouped Staff then Interns,
-/// each with their number of leave entries. On an older server (no roster) it is built from
-/// the leave entries instead; a viewer who is not an approver gets no filter.
+/// each with their number of leave and time-off entries (as the web). On an older server (no
+/// roster) it is built from the leave and time-off entries instead; a viewer who is not an
+/// approver gets no filter.
 struct TeamCalendarPeople: Equatable {
     struct Option: Identifiable, Equatable {
         let id: String
@@ -249,17 +359,22 @@ struct TeamCalendarPeople: Equatable {
 
     init(_ data: TeamCalendarResponse) {
         var counts: [String: Int] = [:]
+        let timeOff = data.timeOff ?? []
         for e in data.entries { counts[e.employeeId, default: 0] += 1 }
+        for t in timeOff { counts[t.employeeId, default: 0] += 1 }
 
         let roster: [TeamCalendarPerson]
         if let people = data.people {
             roster = people
-        } else if data.canSeeTypes || data.entries.contains(where: { $0.group != nil }) {
-            // Older server, approver: only the people who have leave are known.
+        } else if data.canSeeTypes || data.entries.contains(where: { $0.group != nil }) || timeOff.contains(where: { $0.group != nil }) {
+            // Older server, approver: only the people who have leave or time off are known.
             var seen = Set<String>()
             roster = data.entries.compactMap { e in
                 seen.insert(e.employeeId).inserted
                     ? TeamCalendarPerson(id: e.employeeId, name: e.employeeName, intern: e.group == "intern") : nil
+            } + timeOff.compactMap { t in
+                seen.insert(t.employeeId).inserted
+                    ? TeamCalendarPerson(id: t.employeeId, name: t.employeeName, intern: t.group == "intern") : nil
             }
         } else {
             roster = []
@@ -323,6 +438,33 @@ struct EmployeeProfile: Codable {
     let monthlyLeaveRate: Double?
     let roles: [String]
     let role: String
+    /// Work Schedule card (build 34; absent on an older server): ISO weekdays 1 = Mon … 7 = Sun,
+    /// their day names, the off days and the office hours ("9am to 6pm").
+    var workdays: [Int]? = nil
+    var workingDays: [String]? = nil
+    var offDays: [String]? = nil
+    var officeHours: String? = nil
+
+    /// The rows of My Profile → Work Schedule (the web WorkScheduleCard), or nil on a server that
+    /// sends no schedule. Day names come from the server, else from `workdays`.
+    var workSchedule: [(label: String, value: String, icon: String)]? {
+        guard workdays != nil || workingDays != nil || offDays != nil || officeHours != nil else { return nil }
+        let names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let days = workdays.flatMap { $0.isEmpty ? nil : $0 } ?? [1, 2, 3, 4, 5]
+        let working = workingDays ?? names.enumerated().filter { days.contains($0.offset + 1) }.map(\.element)
+        let off = offDays ?? names.enumerated().filter { !days.contains($0.offset + 1) }.map(\.element)
+        func text(_ s: String?) -> String {
+            guard let s, !s.isEmpty else { return "—" }
+            return s
+        }
+        return [
+            ("Title", text(position), "briefcase"),
+            ("Department", text(department), "building.2"),
+            ("Working hours", text(officeHours ?? "9am to 6pm"), "clock"),
+            ("Working days", working.isEmpty ? "None" : working.joined(separator: ", "), "calendar.badge.checkmark"),
+            ("Off days", off.isEmpty ? "None" : off.joined(separator: ", "), "calendar.badge.minus"),
+        ]
+    }
 }
 
 // MARK: - Public holidays  (/api/public-holidays?year= — public, no auth)

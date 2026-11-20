@@ -25,6 +25,7 @@ struct ProfileView: View {
                                 detail("Department", e.department ?? "—")
                                 detail("Employment", e.employmentType.capitalized)
                             }
+                            if let rows = e.workSchedule { workScheduleCard(rows) }
                             Card {
                                 detail("Nationality", e.nationality)
                                 detail("Gender", e.gender.capitalized)
@@ -75,6 +76,29 @@ struct ProfileView: View {
                 .padding(.horizontal, 12).padding(.vertical, 5)
                 .background(Theme.ink.opacity(0.16)).clipShape(Capsule()).foregroundStyle(Theme.ink)
         }
+    }
+
+    /// Work Schedule (the web My Profile card, 20 Nov 2026): title, department, working hours,
+    /// working days and off days, from `/api/mobile/profile`.
+    private func workScheduleCard(_ rows: [(label: String, value: String, icon: String)]) -> some View {
+        Card {
+            Text("Work Schedule").font(.headline).foregroundStyle(Theme.ink).padding(.bottom, 4)
+            ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
+                VStack(spacing: 0) {
+                    HStack(spacing: 10) {
+                        Image(systemName: r.icon).font(.subheadline).foregroundStyle(Theme.sky).frame(width: 22)
+                        Text(r.label).font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
+                        Spacer()
+                        Text(r.value).font(.subheadline.weight(.medium)).foregroundStyle(Theme.ink)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    .padding(.vertical, 11)
+                    .accessibilityElement(children: .combine)
+                    if i < rows.count - 1 { Rectangle().fill(Theme.ink.opacity(0.08)).frame(height: 1) }
+                }
+            }
+        }
+        .accessibilityIdentifier("profile.workSchedule")
     }
 
     private func detail(_ label: String, _ value: String, last: Bool = false) -> some View {

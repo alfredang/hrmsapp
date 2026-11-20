@@ -44,16 +44,44 @@ struct DashboardView: View {
                             .accessibilityIdentifier("home.analytics")
                         }
 
+                        // Accountants: claims waiting, then this month's bank income and expenses (web FinanceKpiRow).
+                        if let f = s.financeKpis {
+                            sectionTitle("Finance")
+                            financeCard(f)
+                        }
+
+                        // Trainer Admins: the same three counts as the Trainers screen tiles (web TrainerKpiRow).
+                        if let t = s.trainerKpis {
+                            sectionTitle("Trainers")
+                            HStack(spacing: 10) {
+                                kpi("Trainers", t.total, "person.text.rectangle.fill", Theme.sky, id: "trainers") { TrainersView(aclp: .all) }
+                                kpi("ACLP trainers", t.aclp, "checkmark.seal.fill", Theme.sky, id: "aclp") { TrainersView(aclp: .aclp) }
+                                kpi("Non-ACLP trainers", t.nonAclp, "person.crop.circle", Theme.sky, id: "nonaclp") { TrainersView(aclp: .non) }
+                            }
+                        }
+
                         sectionTitle("Quick actions")
                         HStack(spacing: 12) {
                             quickAction("Clock in / out", "clock.badge.checkmark.fill", Theme.gold600) { ClockView() }
                             quickAction("Snap a claim", "camera.fill", .orange) { NewClaimView() }
                         }
 
-                        sectionTitle("My balances")
-                        HStack(spacing: 12) {
-                            StatTile(value: fmt(s.alAvailable), label: "Annual leave", icon: "sun.max.fill", tint: Theme.sky)
-                            StatTile(value: fmt(s.mcAvailable), label: "Medical leave", icon: "cross.case.fill", tint: .pink)
+                        if !s.isAdmin, let stats = s.leaveSummary, !stats.isEmpty {
+                            // Staff / interns: the server's leave tiles (same as the web dashboard and the
+                            // decision email), shown as given.
+                            sectionTitle("My leave")
+                            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                                ForEach(Array(stats.enumerated()), id: \.offset) { i, stat in
+                                    leaveTile(stat, index: i)
+                                }
+                            }
+                            sectionTitle("My balances")
+                        } else {
+                            sectionTitle("My balances")
+                            HStack(spacing: 12) {
+                                StatTile(value: fmt(s.alAvailable), label: "Annual leave", icon: "sun.max.fill", tint: Theme.sky)
+                                StatTile(value: fmt(s.mcAvailable), label: "Medical leave", icon: "cross.case.fill", tint: .pink)
+                            }
                         }
                         HStack(spacing: 12) {
                             StatTile(value: fmt(s.otRemaining), label: "OT leave", icon: "clock.arrow.circlepath", tint: .teal)
@@ -113,6 +141,71 @@ struct DashboardView: View {
         .accessibilityValue("\(value)")
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("home.kpi.\(id)")
+    }
+
+    /// Icon and colour of each leave tile by its position (the web StatsCards order: paid leave
+    /// taken, annual leave balance, MC taken, no-pay leave taken).
+    private static let leaveTileStyle: [(icon: String, tint: Color)] = [
+        ("calendar.badge.checkmark", Theme.success), ("calendar", Theme.sky),
+        ("stethoscope", Theme.danger), ("calendar.badge.minus", Theme.warning),
+    ]
+
+    private func leaveTile(_ stat: SummaryStat, index: Int) -> some View {
+        let style = Self.leaveTileStyle[index % Self.leaveTileStyle.count]
+        // Interns have no paid MC: their sick leave is No Pay Leave.
+        let hint = stat.hint ?? (auth.isIntern && stat.label == "MC taken" ? "Sick leave is No Pay Leave" : nil)
+        return NavigationLink(destination: LeaveView()) {
+            Card(padding: 14) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Image(systemName: style.icon).foregroundStyle(style.tint).frame(height: 20)
+                    Text(stat.value).font(.title3.weight(.bold)).monospacedDigit().foregroundStyle(Theme.ink)
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                    Text(stat.label).font(.caption).foregroundStyle(Theme.mist).lineLimit(1).minimumScaleFactor(0.8)
+                    if let hint {
+                        Text(hint).font(.caption2).foregroundStyle(Theme.mist).lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(stat.label)
+        .accessibilityValue([stat.value, hint].compactMap { $0 }.joined(separator: ", "))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("home.leave.\(index)")
+    }
+
+    /// Accountants: pending claims, then this month's income and expenses with the year so far.
+    private func financeCard(_ f: FinanceKpis) -> some View {
+        let rows: [(id: String, icon: String, tint: Color, label: String, value: String, sub: String)] = [
+            ("pending", "doc.text.fill", f.pendingClaims > 0 ? Theme.gold600 : Theme.sky, "Pending expense claims",
+             "\(f.pendingClaims)",
+             f.pendingClaims > 0 ? "\(Fmt.money(f.pendingClaimsAmount)) waiting for approval" : "Nothing waiting"),
+            ("income", "arrow.up.right", Theme.success, "Income, \(f.monthLabel)", Fmt.money(f.incomeMonth),
+             "\(Fmt.money(f.incomeYtd)) in \(String(f.year)) so far"),
+            ("expenses", "arrow.down.right", Theme.danger, "Expenses, \(f.monthLabel)", Fmt.money(f.expensesMonth),
+             "\(Fmt.money(f.expensesYtd)) in \(String(f.year)) so far"),
+        ]
+        return Card(padding: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
+                if i > 0 { Divider().padding(.leading, 52) }
+                HStack(spacing: 12) {
+                    Image(systemName: r.icon).foregroundStyle(r.tint).frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(r.label).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink).lineLimit(1)
+                        Text(r.sub).font(.caption).foregroundStyle(Theme.mist).lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                    Spacer(minLength: 8)
+                    Text(r.value).font(.headline).monospacedDigit().foregroundStyle(Theme.ink)
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 12)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(r.label)
+                .accessibilityValue("\(r.value), \(r.sub)")
+                .accessibilityIdentifier("home.finance.\(r.id)")
+            }
+        }
     }
 
     private func sectionTitle(_ t: String) -> some View {

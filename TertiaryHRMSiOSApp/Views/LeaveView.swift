@@ -87,8 +87,8 @@ struct LeaveView: View {
         }
     }
 
-    /// No Pay Leave: the server sends the prorated cap as `proRated` and what is left
-    /// of it as `available` (21 days a year, prorated by months served).
+    /// No Pay Leave: the server sends the cap as `proRated` and what is left of it as
+    /// `available` (a flat 14 days a year since 20 Nov 2026, no longer prorated).
     private func nplCard(_ b: LeaveBalance) -> some View {
         let cap = b.proRated ?? b.entitlement
         return Card {
@@ -112,12 +112,12 @@ struct LeaveView: View {
             HStack(spacing: 16) {
                 // The balance row's used/pending can be stale; the server derives
                 // `available` from the requests themselves, so booked = cap − remaining.
-                miniStat("Cap to date", cap)
+                miniStat("Yearly cap", cap)
                 miniStat("Booked", max(0, cap - b.available))
                 miniStat("Remaining", b.available)
             }
             .padding(.top, 8)
-            Text("No Pay Leave is capped at 21 days a year, prorated by the full months you have served.")
+            Text(LeaveRules.nplCapNote)
                 .font(.caption2).foregroundStyle(Theme.ink.opacity(0.55))
                 .padding(.top, 4)
         }

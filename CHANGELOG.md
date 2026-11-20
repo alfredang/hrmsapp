@@ -1,6 +1,21 @@
 # Changelog
 
 ## [1.18] — 2026-11-20 (build 33; 1.17 build 32 was approved and released the same day)
+### Build 34: calendar colours, time off and off days, Work Schedule, role tiles (replaces build 33 in App Review)
+**What's New (user-facing):**
+> The Calendar is now colour-coded, like the HRMS website: annual leave 🏖️, medical leave 🤒, no-pay leave 💸, other leave 📋 and time off ⏰ each have their own colour, and public holidays carry an emoji. Your approved time off and Off Days now show on the calendar, and your off days are shaded. Managers also see everyone's birthdays 🎂, and when they pick a person they see that person's leave and time-off totals for the month. My Profile has a new Work Schedule card with your working hours, working days and off days. Home shows your leave summary, the same figures as the approval emails. No Pay Leave is now a flat 14 days a year.
+
+- Calendar: each leave chip and card takes its category colour (`entries[].category`, legend `categories` of `GET /api/mobile/team-calendar`, with the web table built in as a fallback) and the category emoji in front. A colleague's leave whose type is hidden keeps the neutral amber with no emoji. Holiday titles arrive with their emoji. The legend lists the categories shown, "Colleague" for hidden types and "Off day" when shading is on.
+- Calendar: approved time off and Off Days (`timeOff`): "Time off 2:00 PM – 4:00 PM" or an all-day "Off Day", with the person's name for approvers. They follow Everyone / Only me and the person filter; the person list counts leave and time off (as the web), now labelled "Leave & time off for".
+- Calendar (approvers): birthdays (`birthdays`) as "🎂 NAME birthday"; a picked person shows only theirs; Only me hides them.
+- Calendar: off days shaded in the holiday grey when one schedule applies: the staff / intern viewer's `ownWorkdays`, or the person an approver picked (`people[].workdays`; Mon–Fri when empty); approved full-day Off Days too. Nothing is shaded on Everyone.
+- Calendar (approvers, person picked): month totals: Annual / Medical / No Pay Leave in days, Other Leave when above 0, Time Off in hours plus off days. A port of the web `personMonthSummary` (leave across a month end split by working days, public holidays excluded).
+- My Profile: **Work Schedule** card (title, department, working hours, working days, off days) from the new `/api/mobile/profile` fields; hidden on a server without them.
+- Home: staff and interns see the server's `leaveSummary` tiles (paid leave taken, annual leave balance, MC taken, no-pay leave taken, with hints) instead of the locally computed AL / MC tiles; accountants get Pending expense claims, Income and Expenses for the month (`financeKpis`); Trainer Admins get Trainers / ACLP / Non-ACLP tiles (`trainerKpis`) that open the Trainers screen on that choice. Existing tiles stay when the fields are absent.
+- No Pay Leave: the text now says a flat 14 days a year (was "21 days, prorated"); "Cap to date" became "Yearly cap". The figures still come from the server.
+- iPhone Calendar sync: holiday events are keyed by date, so the new emoji titles update the existing events in place (unit-tested); birthdays are not synced.
+- Every new field is optional and read leniently: an older server, or one unreadable new field, hides only that feature.
+
 ### Build 33: parity with the web changes of 20 Nov
 - Calendar (approvers): **Leave shown for** now picks Everyone or one person, replacing All / Staff / Interns. The list is every active staff member and intern, grouped Staff then Interns, each with their number of leave entries; people who have left are not listed (their leave still shows under Everyone). Public holidays always show. Data: the new `people` field of `GET /api/mobile/team-calendar`; on a server without it the list is built from the leave entries.
 - Analytics: new **Workforce breakdown** at the end of the screen. Three donuts (gender, age group, ethnic group) of active people with counts and percentages, and a Staff / Interns / All control (Staff first). A note says when ethnic group is not recorded. Data: the new `breakdown` field of `GET /api/mobile/analytics`; the section is hidden without it.

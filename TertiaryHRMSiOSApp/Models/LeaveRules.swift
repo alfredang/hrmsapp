@@ -4,6 +4,13 @@ import Foundation
 /// The server is authoritative — these only shape the form and interpret its error codes.
 enum LeaveRules {
     static let nplCode = "NPL"
+    /// No Pay Leave cap (Alfred, 20 Nov 2026): a flat 14 days a year for staff and interns, not
+    /// prorated — all of it is available from the first day. The figures shown come from the
+    /// server; this is only for the explanatory text.
+    static let nplAnnualCapDays = 14
+    static var nplCapNote: String {
+        "No Pay Leave is capped at \(nplAnnualCapDays) days a year, available in full from the start of the year."
+    }
     /// Medical leave codes (server `MEDICAL_LEAVE_CODES`).
     static let medicalCodes: Set<String> = ["MC", "SL", "MEDICAL"]
     /// Reason prefix the web form uses when an intern's sick leave goes in as NPL.
@@ -35,7 +42,7 @@ enum LeaveRules {
     }
 }
 
-/// No Pay Leave cap status: 21 days/year prorated by months served.
+/// No Pay Leave cap status: a flat 14 days a year (not prorated since 20 Nov 2026).
 struct NplStatus: Codable, Equatable {
     let cap: Double
     let used: Double
@@ -49,7 +56,7 @@ enum LeaveSubmitError: LocalizedError, Equatable {
     case alExceedsBalance(message: String, alAvailable: Double?, excessDays: Double?, npl: NplStatus?)
     /// Interns have no paid MC → their sick leave must be No Pay Leave.
     case internMcNotPaid(message: String)
-    /// No Pay Leave beyond the prorated yearly cap.
+    /// No Pay Leave beyond the yearly cap (14 days).
     case nplCapExceeded(message: String, npl: NplStatus?, requested: Double?)
     case unauthorized
     case other(message: String, status: Int)

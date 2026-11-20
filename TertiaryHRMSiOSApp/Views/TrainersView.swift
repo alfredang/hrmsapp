@@ -22,7 +22,10 @@ struct TrainersView: View {
     @State private var accreditations: Set<TrainerAccreditation> = []
     @State private var status: TrainerFilter.Status = .trainers
     /// ACLP / Non-ACLP / All; the screen opens on ACLP trainers (Alfred, 20 Nov 2026).
-    @State private var aclp: TrainerAclpFilter = .aclp
+    @State private var aclp: TrainerAclpFilter
+
+    /// `aclp`: the choice it opens on (Home's trainer tiles open their own).
+    init(aclp: TrainerAclpFilter = .aclp) { _aclp = State(initialValue: aclp) }
 
     var body: some View {
         GradientScreen {

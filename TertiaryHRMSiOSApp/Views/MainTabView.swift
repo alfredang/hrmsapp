@@ -68,6 +68,7 @@ struct MainTabView: View {
                 case "payslips": PayslipsView()
                 case "expenses": ExpensesView()
                 case "more": MoreView()
+                case "profile": ProfileView()
                 case "trainers": TrainersView()
                 case "trainercontacts": TrainerContactsView()
                 case "trainer": TrainerProfileView(trainerId: PreviewData.trainerList[0].id,

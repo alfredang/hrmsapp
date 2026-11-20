@@ -97,7 +97,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   `INTERN_MC_NOT_PAID`, `NPL_CAP_EXCEEDED`. Interns (`roles` exactly `["INTERN"]`) picking MC are
   switched to No Pay Leave up front with reason "Sick leave (MC)" and the MC photo kept (mirrors the
   web form's `internSick`). The Leave tab shows the **No Pay Leave** card from the NPL balance row
-  (`proRated` = prorated 21-day cap, `available` = remaining).
+  (`proRated` = the cap, a flat 14 days a year since 20 Nov 2026, `available` = remaining).
 - **Trainer Management** (Trainer Admins only, More → Manage) — `TrainersView` loads the whole list once
   (`GET /api/mobile/trainers`) and filters on the device with `TrainerDirectory` (mirrors the web
   `filterTrainers` / `topTags`): three KPI tiles and an ACLP / Non-ACLP / All control (opens on ACLP, A–Z by name), `.searchable` with skill / certification suggestions + counts that become
@@ -147,6 +147,15 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Accounting module** entirely (bank-statement import, transaction dedupe, reconciliation, income/expense tracking) — finance/back-office only, not part of the mobile employee experience.
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
+
+## Web parity of 20 Nov 2026, second round (1.18 build 34)
+All new fields optional and decoded leniently (`try?` in `DashboardSummary` / `TeamCalendarResponse` `init(from:)`). Pure logic in `Models/TeamCalendarModels.swift`, tested in `ParityBuild34Tests`.
+- Calendar colours: `CalendarLegendTable(data.categories)` (server legend, falls back to `CalendarCategory.fallback` = web calendar-categories.ts). `TeamLeaveEntry.resolvedCategory` (server `category`, else derived from `leaveType` on an older server; nil = hidden type → neutral amber). `TeamCalendarItem.build` makes chips / cards for leave, `timeOff` and `birthdays` after `TeamCalendarVisible` (Only me, person filter).
+- Off-day shading: `OffDayShading.make` (staff: `ownWorkdays`; approver: picked person's `people[].workdays`, or own on Only me; none on Everyone; empty list = Mon–Fri; plus full-day Off Days).
+- Month totals: `CalendarMonthSummary.personMonthSummary` is an exact port of the web `src/lib/calendar-summary.ts` (month is 1-based here). Keep the two in step.
+- Profile: `EmployeeProfile.workSchedule` → Work Schedule card. Home: `leaveSummary` (staff / interns), `financeKpis` (accountants), `trainerKpis` (Trainer Admins; `TrainersView(aclp:)`).
+- No Pay Leave is a flat 14 days a year (`LeaveRules.nplAnnualCapDays`, `nplCapNote`); never prorate it in text.
+- UI tests: `testCalendarColoursTimeOffAndMonthTotals`, `testHomeTrainerTilesAndProfileWorkSchedule` (`-uiPreviewOpen profile`).
 
 ## Web parity of 20 Nov 2026 (1.18 build 33)
 Every field below is optional in the decoder; a control whose data is absent is hidden (the app can reach users before the server). Logic is unit-tested in `ParityBuild33Tests`.
