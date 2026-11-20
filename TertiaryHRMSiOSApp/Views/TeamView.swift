@@ -1,17 +1,34 @@
 import SwiftUI
 
 /// Team tab — the company directory. Approvers can tap a person for their
-/// clock-in, MC and leave history (`EmployeeRecordsView`).
+/// clock-in, MC and leave history (`EmployeeRecordsView`), and see staff and interns as two
+/// lists (`EmployeeGroup`, like the web's Staff Management / Intern Management) when the
+/// server flags interns; otherwise it stays one list.
 struct TeamView: View {
     @State private var state: LoadState<EmployeesResponse> = .idle
     @State private var query = ""
+    @State private var group: EmployeeGroup
+
+    init(group: EmployeeGroup = .staff) { _group = State(initialValue: group) }
 
     var body: some View {
         GradientScreen {
             AsyncContent(state: $state, load: load) { data in
+                let found = filtered(data.employees)
+                let split = data.isAdmin && EmployeeGroup.isAvailable(data.employees)
+                let shown = split ? group.filter(found) : found
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        ForEach(filtered(data.employees)) { e in
+                        if split {
+                            Picker("List", selection: $group) {
+                                ForEach(EmployeeGroup.allCases) { g in
+                                    Text("\(g.title) \(g.filter(found).count)").tag(g)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .accessibilityIdentifier("team.group")
+                        }
+                        ForEach(shown) { e in
                             // Approvers drill into a person's clock-in, MC and leave history.
                             if data.isAdmin {
                                 NavigationLink { EmployeeRecordsView(employee: e) } label: { row(e, isAdmin: true) }
@@ -20,8 +37,9 @@ struct TeamView: View {
                                 row(e, isAdmin: false)
                             }
                         }
-                        if filtered(data.employees).isEmpty {
-                            EmptyHint(icon: "person.2", text: "No colleagues found.")
+                        if shown.isEmpty {
+                            EmptyHint(icon: "person.2", text: !split ? "No colleagues found."
+                                      : group == .staff ? "No staff found." : "No interns found.")
                         }
                     }
                     .padding(20)

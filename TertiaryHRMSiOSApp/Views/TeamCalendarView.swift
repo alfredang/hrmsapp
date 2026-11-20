@@ -6,15 +6,17 @@ import SwiftUI
 ///    filled premium-blue circle on a tinted cell; public holidays are light grey and named.
 ///    Tap a day to select it; its leave and holiday are listed as cards below the grid.
 ///  * **List** — upcoming leave and holidays grouped by day.
-/// Everyone / Only me sits in the filter menu next to the month chevrons. A colleague's leave
-/// *type* is only present when the server chose to disclose it (your own, or an approver).
+/// Everyone / Only me sits in the filter menu next to the month chevrons. Approvers also get
+/// "Leave shown for": Everyone or one active person (`TeamCalendarPeople`); holidays always show.
+/// A colleague's leave *type* is only present when the server chose to disclose it (your own,
+/// or an approver).
 struct TeamCalendarView: View {
     @State private var state: LoadState<TeamCalendarResponse> = .idle
     @State private var loadedYear: Int?
     @AppStorage("teamCalendar.mode") private var modeRaw = Mode.month.rawValue
     @State private var mineOnly = false
-    /// Approvers: whose leave to show (the web calendar's All / Staff / Interns control).
-    @State private var group: TeamLeaveGroup = .all
+    /// Approvers: the one person whose leave is shown (the web calendar's "Leave shown for"); nil = everyone.
+    @State private var personId: String?
     @State private var month: Date
     @State private var selectedDay: Date
     @ObservedObject private var autoSync = CalendarAutoSync.shared
@@ -59,32 +61,24 @@ struct TeamCalendarView: View {
                 .padding(.vertical, 8)
 
                 AsyncContent(state: $state, load: { await load() }) { data in
-                    if TeamLeaveGroup.isAvailable(data.entries) {
-                        Picker("Leave shown for", selection: $group) {
-                            ForEach(TeamLeaveGroup.allCases) { g in
-                                Text("\(g.title) \(g.filter(data.entries).count)").tag(g)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 8)
-                        .accessibilityIdentifier("calendar.group")
-                    }
-                    let days = index(data)
+                    let people = TeamCalendarPeople(data)
+                    let person = people.option(personId)
+                    if people.isAvailable { personFilter(people, person) }
+                    let days = index(data, people)
                     let holidays = holidayMap(data)
                     switch mode {
                     case .month:
                         ScrollView {
                             VStack(spacing: 0) {
-                                monthHeader
+                                monthHeader(person)
                                 monthGrid(days, holidays)
                                 legend
-                                dayAgenda(days[selectedDay] ?? [], holiday: holidays[selectedDay])
+                                dayAgenda(days[selectedDay] ?? [], holiday: holidays[selectedDay], person: person)
                             }
                         }
                         .refreshable { await refresh() }
                     case .list:
-                        agendaList(data)
+                        agendaList(data, people)
                             .refreshable { await refresh() }
                     }
                 }
@@ -95,9 +89,61 @@ struct TeamCalendarView: View {
         .onReceive(NotificationCenter.default.publisher(for: .hrmsForeground)) { _ in Task { await load(force: true) } }
     }
 
+    // MARK: - Leave shown for (approvers)
+
+    /// "Leave shown for [Everyone ⌄]": every active staff member and intern, grouped, with
+    /// their number of leave entries. Picking a person turns "Only me" off.
+    private func personFilter(_ people: TeamCalendarPeople, _ person: TeamCalendarPeople.Option?) -> some View {
+        HStack(spacing: 8) {
+            Text("Leave shown for").font(.footnote).foregroundStyle(Theme.mist)
+                .lineLimit(1).layoutPriority(1)
+            Menu {
+                // Buttons, not a Picker: a Picker inside a Menu drops the Staff / Interns headers.
+                Button { personId = nil } label: {
+                    if person == nil { Label("Everyone", systemImage: "checkmark") } else { Text("Everyone") }
+                }
+                ForEach(people.groups) { g in
+                    Section(g.title) {
+                        ForEach(g.options) { o in
+                            Button { personId = o.id; mineOnly = false } label: {
+                                if person?.id == o.id { Label(o.label, systemImage: "checkmark") } else { Text(o.label) }
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: person == nil ? "person.2" : "person.crop.circle")
+                    Text(person?.name ?? "Everyone").lineLimit(1).truncationMode(.tail)
+                    Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
+                }
+                .font(.subheadline)
+                .foregroundStyle(Theme.ink)
+                .padding(.horizontal, 12).frame(height: 36)
+                .background(Theme.field)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Theme.fieldBorder, lineWidth: 1))
+            }
+            .accessibilityLabel("Leave shown for")
+            .accessibilityValue(person?.name ?? "Everyone")
+            .accessibilityIdentifier("calendar.person")
+            if person != nil {
+                Button { personId = nil } label: {
+                    Image(systemName: "xmark.circle.fill").font(.body)
+                        .foregroundStyle(Theme.mist).frame(width: 36, height: 36)
+                }
+                .accessibilityLabel("Show everyone")
+                .accessibilityIdentifier("calendar.person.clear")
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+    }
+
     /// "Synced 1:15 PM · Everyone" — the last successful load, like the Planner app.
-    private var syncCaption: String {
-        let who = mineOnly ? "Only me" : "Everyone"
+    private func syncCaption(_ person: TeamCalendarPeople.Option?) -> String {
+        let who = mineOnly ? "Only me" : person?.name ?? "Everyone"
         guard let t = autoSync.lastSynced else { return who }
         return "Synced \(t.formatted(date: .omitted, time: .shortened)) · \(who)"
     }
@@ -110,13 +156,13 @@ struct TeamCalendarView: View {
 
     // MARK: - Month header: title, Today, filter, ‹ ›
 
-    private var monthHeader: some View {
+    private func monthHeader(_ person: TeamCalendarPeople.Option?) -> some View {
         HStack(spacing: 4) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(month.formatted(.dateTime.month(.wide).year()))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Theme.ink)
-                Text(syncCaption)
+                Text(syncCaption(person))
                     .font(.caption2).foregroundStyle(Theme.mist)
                     .lineLimit(1)
             }
@@ -130,7 +176,8 @@ struct TeamCalendarView: View {
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 6)
             Menu {
-                Picker("Show", selection: $mineOnly) {
+                Picker("Show", selection: Binding(get: { mineOnly },
+                                                  set: { mineOnly = $0; if $0 { personId = nil } })) {
                     Label("Everyone", systemImage: "person.2").tag(false)
                     Label("Only me", systemImage: "person").tag(true)
                 }
@@ -326,7 +373,7 @@ struct TeamCalendarView: View {
 
     // MARK: - Selected-day agenda
 
-    private func dayAgenda(_ entries: [TeamLeaveEntry], holiday: String?) -> some View {
+    private func dayAgenda(_ entries: [TeamLeaveEntry], holiday: String?, person: TeamCalendarPeople.Option?) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(dayTitle(selectedDay))
                 .font(.footnote.weight(.semibold))
@@ -335,7 +382,8 @@ struct TeamCalendarView: View {
             if let holiday { holidayCard(holiday) }
             if entries.isEmpty && holiday == nil {
                 Card {
-                    Label(mineOnly ? "You are not on leave." : "Nobody is on leave.", systemImage: "calendar")
+                    Label(mineOnly ? "You are not on leave."
+                          : person.map { "\($0.name) is not on leave." } ?? "Nobody is on leave.", systemImage: "calendar")
                         .font(.subheadline).foregroundStyle(Theme.mist)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -382,10 +430,10 @@ struct TeamCalendarView: View {
 
     /// Upcoming leave and holidays grouped by day. A multi-day leave is listed once, on its
     /// first day from today (its card shows the full date range).
-    private func agendaList(_ data: TeamCalendarResponse) -> some View {
+    private func agendaList(_ data: TeamCalendarResponse, _ people: TeamCalendarPeople) -> some View {
         let today = cal.startOfDay(for: Date())
         var byDay: [Date: [TeamLeaveEntry]] = [:]
-        for e in visible(data) {
+        for e in visible(data, people) {
             guard let start = Self.calendarDay(e.startDate) else { continue }
             let end = Self.calendarDay(e.endDate) ?? start
             guard end >= today else { continue }
@@ -420,17 +468,17 @@ struct TeamCalendarView: View {
 
     // MARK: - Data shaping
 
-    /// Leave after the Everyone / Only me menu and the All / Staff / Interns filter.
+    /// Leave after the Everyone / Only me menu and the person filter.
     /// Public holidays are separate and always show.
-    private func visible(_ data: TeamCalendarResponse) -> [TeamLeaveEntry] {
+    private func visible(_ data: TeamCalendarResponse, _ people: TeamCalendarPeople) -> [TeamLeaveEntry] {
         let mine = mineOnly ? data.entries.filter(\.isSelf) : data.entries
-        return TeamLeaveGroup.isAvailable(data.entries) ? group.filter(mine) : mine
+        return people.filter(mine, personId: personId)
     }
 
     /// Each multi-day leave exploded into the days it covers, keyed by local start of day.
-    private func index(_ data: TeamCalendarResponse) -> [Date: [TeamLeaveEntry]] {
+    private func index(_ data: TeamCalendarResponse, _ people: TeamCalendarPeople) -> [Date: [TeamLeaveEntry]] {
         var map: [Date: [TeamLeaveEntry]] = [:]
-        let source = visible(data)
+        let source = visible(data, people)
         for e in source {
             guard let start = Self.calendarDay(e.startDate) else { continue }
             let last = Self.calendarDay(e.endDate) ?? start

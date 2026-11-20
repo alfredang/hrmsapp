@@ -114,32 +114,6 @@ final class AnalyticsTests: XCTestCase {
         XCTAssertTrue(d.leave.allSatisfy { ids.contains($0.personId) })
     }
 
-    // MARK: Team calendar: All / Staff / Interns
-
-    func testTeamCalendarGroupDecodesAndFilters() throws {
-        let body = #"""
-        {"year":2026,"canSeeTypes":true,"holidays":[],"entries":[
-          {"id":"a","employeeId":"e1","employeeName":"A","department":null,"startDate":"2026-11-02","endDate":"2026-11-02","days":1,"halfDay":false,"leaveType":"Annual Leave","isSelf":false,"group":"staff"},
-          {"id":"b","employeeId":"e2","employeeName":"B","department":null,"startDate":"2026-11-03","endDate":"2026-11-03","days":1,"halfDay":false,"leaveType":"Medical Leave","isSelf":false,"group":"intern"},
-          {"id":"c","employeeId":"e3","employeeName":"C","department":null,"startDate":"2026-11-04","endDate":"2026-11-04","days":1,"halfDay":false,"leaveType":null,"isSelf":true,"group":null}]}
-        """#
-        let r = try JSONDecoder().decode(TeamCalendarResponse.self, from: Data(body.utf8))
-        XCTAssertTrue(TeamLeaveGroup.isAvailable(r.entries))
-        XCTAssertEqual(TeamLeaveGroup.all.filter(r.entries).count, 3)
-        XCTAssertEqual(TeamLeaveGroup.staff.filter(r.entries).map(\.id), ["a"])
-        XCTAssertEqual(TeamLeaveGroup.intern.filter(r.entries).map(\.id), ["b"])
-    }
-
-    func testTeamCalendarFromAnOlderServerHasNoFilter() throws {
-        let body = #"""
-        {"year":2026,"canSeeTypes":false,"holidays":[],"entries":[
-          {"id":"a","employeeId":"e1","employeeName":"A","department":null,"startDate":"2026-11-02","endDate":"2026-11-02","days":1,"halfDay":false,"leaveType":null,"isSelf":false}]}
-        """#
-        let r = try JSONDecoder().decode(TeamCalendarResponse.self, from: Data(body.utf8))
-        XCTAssertNil(r.entries[0].group)
-        XCTAssertFalse(TeamLeaveGroup.isAvailable(r.entries))
-    }
-
     // MARK: Push links for the decisions the server now notifies
 
     func testDecisionLinksOpenTheRightScreen() {

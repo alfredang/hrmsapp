@@ -94,22 +94,31 @@ enum PreviewData {
     static let employees = EmployeesResponse(isAdmin: true, employees: [
         Employee(id: "e1", employeeId: "E0001", name: "Alfred Ang", position: "Managing Director",
                  department: "Management", avatarUrl: nil, email: "alfred.ang@tertiaryinfotech.com",
-                 phone: "+65 9123 4567", employmentType: "Full-time", startDate: "2015-01-05T09:00:00Z"),
+                 phone: "+65 9123 4567", employmentType: "Full-time", startDate: "2015-01-05T09:00:00Z", intern: false),
         Employee(id: "e2", employeeId: "E0014", name: "Jasmine Lee", position: "HR Manager",
                  department: "Human Resources", avatarUrl: nil, email: "jasmine.lee@tertiaryinfotech.com",
-                 phone: "+65 9234 5678", employmentType: "Full-time", startDate: "2018-03-12T09:00:00Z"),
+                 phone: "+65 9234 5678", employmentType: "Full-time", startDate: "2018-03-12T09:00:00Z", intern: false),
         Employee(id: "e3", employeeId: "E0027", name: "Daniel Tan", position: "Senior Trainer",
                  department: "Training", avatarUrl: nil, email: "daniel.tan@tertiaryinfotech.com",
-                 phone: "+65 9345 6789", employmentType: "Full-time", startDate: "2019-07-01T09:00:00Z"),
+                 phone: "+65 9345 6789", employmentType: "Full-time", startDate: "2019-07-01T09:00:00Z", intern: false),
         Employee(id: "e4", employeeId: "E0033", name: "Priya Nair", position: "Course Consultant",
                  department: "Sales", avatarUrl: nil, email: "priya.nair@tertiaryinfotech.com",
-                 phone: "+65 9456 7890", employmentType: "Full-time", startDate: "2021-09-20T09:00:00Z"),
+                 phone: "+65 9456 7890", employmentType: "Full-time", startDate: "2021-09-20T09:00:00Z", intern: false),
         Employee(id: "e5", employeeId: "E0041", name: "Marcus Wong", position: "Software Engineer",
                  department: "Technology", avatarUrl: nil, email: "marcus.wong@tertiaryinfotech.com",
-                 phone: "+65 9567 8901", employmentType: "Full-time", startDate: "2022-11-02T09:00:00Z"),
+                 phone: "+65 9567 8901", employmentType: "Full-time", startDate: "2022-11-02T09:00:00Z", intern: false),
         Employee(id: "e6", employeeId: "E0048", name: "Siti Rahman", position: "Finance Executive",
                  department: "Finance", avatarUrl: nil, email: "siti.rahman@tertiaryinfotech.com",
-                 phone: "+65 9678 9012", employmentType: "Full-time", startDate: "2023-02-15T09:00:00Z"),
+                 phone: "+65 9678 9012", employmentType: "Full-time", startDate: "2023-02-15T09:00:00Z", intern: false),
+        Employee(id: "e7", employeeId: "I0002", name: "Amanda Halim", position: "Intern (NYP)",
+                 department: "Software Development", avatarUrl: nil, email: "amanda.halim@tertiaryinfotech.com",
+                 phone: "+65 9789 0123", employmentType: "Intern", startDate: "2026-09-01T09:00:00Z", intern: true),
+        Employee(id: "e8", employeeId: "I0011", name: "Rachel Chua", position: "Intern (SP)",
+                 department: "Marketing", avatarUrl: nil, email: "rachel.chua@tertiaryinfotech.com",
+                 phone: "+65 9890 1234", employmentType: "Intern", startDate: "2026-09-14T09:00:00Z", intern: true),
+        Employee(id: "e9", employeeId: "I0012", name: "Kenneth Wang", position: "Intern (SP)",
+                 department: "Software Development", avatarUrl: nil, email: "kenneth.wang@tertiaryinfotech.com",
+                 phone: "+65 9901 2345", employmentType: "Intern", startDate: "2026-10-05T09:00:00Z", intern: true),
     ])
 
     // MARK: Expenses
@@ -192,6 +201,15 @@ enum PreviewData {
             TeamHoliday(id: "h1", title: "Public Holiday", startDate: "2026-09-21T00:00:00Z", endDate: "2026-09-21T00:00:00Z"),
             TeamHoliday(id: "h2", title: "Deepavali", startDate: "2026-11-08T00:00:00Z", endDate: "2026-11-08T00:00:00Z"),
             TeamHoliday(id: "h3", title: "Christmas Day", startDate: "2026-12-25", endDate: "2026-12-25"),
+        ],
+        // Active people only: Cheryl Lim (E0005) has left, so her leave shows only under Everyone.
+        people: [
+            TeamCalendarPerson(id: "E0001", name: "Alfred Ang", intern: false),
+            TeamCalendarPerson(id: "E0003", name: "Amanda Halim", intern: true),
+            TeamCalendarPerson(id: "I0005", name: "Evan Pang", intern: true),
+            TeamCalendarPerson(id: "E0002", name: "Femina Jasmin", intern: true),
+            TeamCalendarPerson(id: "E0008", name: "Jyoti Chopra", intern: false),
+            TeamCalendarPerson(id: "E0004", name: "Tan Yong Huat", intern: false),
         ])
 
     // MARK: Analytics (approvers)
@@ -236,13 +254,34 @@ enum PreviewData {
             row(10, "p1", .mc, 6), row(10, "p4", .leave, 2), row(10, "p5", .mc, 4), row(10, "p2", .leave, 2),
             row(11, "p4", .leave, 4), row(11, "p2", .leave, 2), row(11, "p3", .mc, 1), row(11, "p1", .npl, 1),
         ]
+        // 14 active staff and 9 active interns, as in the latest headcount month. No intern has an
+        // ethnic group on record, so the Interns view shows the "not recorded" note.
+        func person(_ intern: Bool, _ g: String, _ age: String, _ eth: String) -> AnalyticsBreakdownPerson {
+            AnalyticsBreakdownPerson(intern: intern, gender: g, ageGroup: age, ethnicGroup: eth)
+        }
+        let nr = WorkforceBreakdown.notRecorded
+        let workforce: [AnalyticsBreakdownPerson] = [
+            person(false, "Male", "45–54", "Chinese"), person(false, "Female", "55 and over", "Chinese"),
+            person(false, "Male", "35–44", "Chinese"), person(false, "Female", "25–34", "Indian"),
+            person(false, "Male", "25–34", "Chinese"), person(false, "Female", "35–44", "Malay"),
+            person(false, "Female", "25–34", "Chinese"), person(false, "Male", "35–44", "Indian"),
+            person(false, "Female", "45–54", "Chinese"), person(false, "Male", "25–34", "Eurasian"),
+            person(false, "Female", "Under 25", "Malay"), person(false, "Male", "35–44", "Others"),
+            person(false, "Female", "25–34", nr), person(false, "Male", "55 and over", nr),
+            person(true, "Female", "Under 25", nr), person(true, "Male", "Under 25", nr),
+            person(true, "Female", "Under 25", nr), person(true, "Male", "Under 25", nr),
+            person(true, "Male", "Under 25", nr), person(true, "Female", "Under 25", nr),
+            person(true, "Male", "25–34", nr), person(true, "Female", "Under 25", nr),
+            person(true, "Male", nr, nr),
+        ]
         let staff = [10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 14, 14]
         let interns = [0, 1, 1, 5, 5, 7, 9, 7, 6, 6, 9, 9]
         return AnalyticsData(
             months: months, finance: finance,
             financeRange: AnalyticsFinanceRange(from: "2026-04-30", to: "2026-11-16"),
             leave: leave, people: people,
-            headcount: keys.enumerated().map { AnalyticsHeadcountRow(month: $1, staff: staff[$0], interns: interns[$0]) })
+            headcount: keys.enumerated().map { AnalyticsHeadcountRow(month: $1, staff: staff[$0], interns: interns[$0]) },
+            breakdown: workforce)
     }()
 
     static let calendar = CalendarResponse(events: [

@@ -5,9 +5,15 @@ import Charts
 /// the last 12 months of bank revenue and expenses, leave and MC per person, and headcount.
 /// One filter card drives every tile, chart and list (`AnalyticsSlice`). Lists double as
 /// slicers: tap a category to leave it out, tap a person to show only their leave.
+/// The workforce breakdown at the end (gender, age group, ethnic group of active people) has
+/// its own Staff / Interns / All control, as on the web.
 struct AnalyticsView: View {
     @State private var state: LoadState<AnalyticsData> = .idle
     @State private var filter = AnalyticsFilter()
+    /// Workforce breakdown only (default Staff, like the web).
+    @State private var breakdownWho: AnalyticsWho = .staff
+    /// The legend row tapped in a donut ("<chart>|<label>"); its count and share show in the middle.
+    @State private var breakdownFocus: String?
 
     // Series colours: the web's validated slots (readable on the light and the dark card).
     static let blue = Color(hex: 0x5B82F0)
@@ -34,6 +40,7 @@ struct AnalyticsView: View {
                         leave(s)
                         people(s)
                         headcount(s)
+                        if let people = data.breakdown { breakdown(WorkforceBreakdown(people, who: breakdownWho)) }
                     }
                     .padding(16)
                 }
@@ -340,6 +347,81 @@ struct AnalyticsView: View {
         }
     }
 
+    // MARK: - Workforce breakdown
+
+    private func breakdown(_ b: WorkforceBreakdown) -> some View {
+        Card {
+            VStack(alignment: .leading, spacing: 12) {
+                heading("Workforce breakdown", "\(b.count) active \(b.noun), by gender, age group and ethnic group")
+                Picker("Who", selection: Binding(get: { breakdownWho },
+                                                 set: { breakdownWho = $0; breakdownFocus = nil })) {
+                    ForEach([AnalyticsWho.staff, .interns, .all]) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("analytics.breakdown.who")
+                ForEach(Array(b.charts.enumerated()), id: \.element.id) { i, chart in
+                    if i > 0 { Divider().opacity(0.5) }
+                    donutRow(chart, noun: b.noun)
+                }
+                if let note = b.ethnicNote {
+                    Text(note).font(.caption).foregroundStyle(Theme.mist)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("analytics.breakdown.note")
+                }
+            }
+        }
+    }
+
+    /// One donut with its legend: label, count and share. Tap a legend row to read it in the middle.
+    private func donutRow(_ chart: WorkforceBreakdown.Chart, noun: String) -> some View {
+        let focus = chart.slices.first { breakdownFocus == "\(chart.title)|\($0.label)" }
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(chart.title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+            if chart.total == 0 {
+                empty("No \(noun) to show.")
+            } else {
+                HStack(alignment: .center, spacing: 16) {
+                    ZStack {
+                        AnalyticsDonut(slices: chart.slices, focus: focus?.label)
+                        VStack(spacing: 0) {
+                            Text("\(focus?.count ?? chart.total)").font(.title3.weight(.semibold)).monospacedDigit()
+                                .foregroundStyle(Theme.ink)
+                            Text(focus.map(chart.percent) ?? noun).font(.caption2).foregroundStyle(Theme.mist)
+                        }
+                    }
+                    .frame(width: 104, height: 104)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(chart.title): " + chart.slices.map { "\($0.label) \($0.count)" }.joined(separator: ", "))
+                    VStack(spacing: 0) {
+                        ForEach(chart.slices) { s in
+                            let key = "\(chart.title)|\(s.label)"
+                            Button { breakdownFocus = breakdownFocus == key ? nil : key } label: {
+                                HStack(spacing: 8) {
+                                    RoundedRectangle(cornerRadius: 2).fill(AnalyticsDonut.color(s)).frame(width: 10, height: 10)
+                                    Text(s.label).foregroundStyle(Theme.ink).lineLimit(1)
+                                    Spacer(minLength: 4)
+                                    Text("\(s.count)").monospacedDigit().foregroundStyle(Theme.ink)
+                                    Text(chart.percent(s)).monospacedDigit().foregroundStyle(Theme.mist)
+                                        .frame(width: 40, alignment: .trailing)
+                                }
+                                .font(.footnote)
+                                .padding(.horizontal, 6)
+                                .frame(minHeight: 30)
+                                .background(breakdownFocus == key ? Theme.chipFill.opacity(0.5) : .clear)
+                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(s.label)
+                            .accessibilityValue("\(s.count), \(chart.percent(s))")
+                            .accessibilityIdentifier("analytics.breakdown.\(chart.title).\(s.label)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Small pieces
 
     private func heading(_ title: String, _ sub: String) -> some View {
@@ -487,6 +569,46 @@ struct AnalyticsBarChart: View {
         }
         .onChange(of: rows.map(\.month.key)) { keys in
             if let selected, !keys.contains(selected) { self.selected = nil }
+        }
+    }
+}
+
+/// A ring split by share, starting at 12 o'clock. Drawn by hand (Swift Charts' SectorMark
+/// needs iOS 17). A small gap in the card colour separates neighbouring slices.
+struct AnalyticsDonut: View {
+    let slices: [WorkforceBreakdown.Slice]
+    /// Label of the slice to keep at full strength; the others dim.
+    var focus: String? = nil
+
+    /// "Not recorded" (no slot colour) is neutral grey in both appearances.
+    static let grey = Color(light: 0x9CA3AF, dark: 0x6B7280)
+    static func color(_ s: WorkforceBreakdown.Slice) -> Color { s.colorHex.map { Color(hex: $0) } ?? grey }
+
+    var body: some View {
+        let total = Double(slices.reduce(0) { $0 + $1.count })
+        let gap = slices.count > 1 ? 0.004 : 0
+        return GeometryReader { geo in
+            let width = min(geo.size.width, geo.size.height) * 0.17
+            ZStack {
+                ForEach(Array(arcs(total).enumerated()), id: \.offset) { _, a in
+                    Circle()
+                        .trim(from: min(a.from + gap, a.to), to: max(a.to - gap, a.from))
+                        .stroke(Self.color(a.slice), style: StrokeStyle(lineWidth: width, lineCap: .butt))
+                        .opacity(focus == nil || focus == a.slice.label ? 1 : 0.35)
+                }
+            }
+            .rotationEffect(.degrees(-90))
+            .padding(width / 2)
+        }
+    }
+
+    private func arcs(_ total: Double) -> [(slice: WorkforceBreakdown.Slice, from: Double, to: Double)] {
+        guard total > 0 else { return [] }
+        var at = 0.0
+        return slices.map { s in
+            let from = at
+            at += Double(s.count) / total
+            return (s, from, at)
         }
     }
 }

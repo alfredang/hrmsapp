@@ -338,6 +338,36 @@ enum TrainerAccreditation: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
+/// The directory's ACLP / Non-ACLP / All control (web: `AclpFilter`). The screen opens on ACLP.
+/// Non-ACLP = no ACLP among the trainer's training certificates.
+enum TrainerAclpFilter: String, CaseIterable, Identifiable {
+    case aclp, non, all
+    var id: String { rawValue }
+    var title: String { self == .aclp ? "ACLP" : self == .non ? "Non-ACLP" : "All" }
+
+    func includes(_ t: TrainerListItem) -> Bool {
+        self == .all || TrainerAccreditation.aclp.matches(t) == (self == .aclp)
+    }
+    /// Trainers (not applicants) under this choice: the number on the control and its tile.
+    func count(_ s: TrainerStats) -> Int { self == .aclp ? s.aclp : self == .non ? s.nonAclp : s.total }
+}
+
+/// The KPI tiles above the trainer directory (web: the `stats` block of trainer-directory.tsx).
+/// Counted from the whole, unfiltered list; applicants (status Applicant / Contacted) are left out.
+struct TrainerStats: Equatable {
+    let total: Int
+    let aclp: Int
+    let applicants: Int
+    var nonAclp: Int { total - aclp }
+
+    init(_ all: [TrainerListItem]) {
+        let pool = all.filter { !TrainerDirectory.isApplicant($0) }
+        total = pool.count
+        applicants = all.count - pool.count
+        aclp = pool.filter { TrainerAccreditation.aclp.matches($0) }.count
+    }
+}
+
 enum TrainerDirectory {
     /// Lower-case, collapse whitespace (same idea as the web `norm`).
     static func norm(_ s: String) -> String {
@@ -368,14 +398,18 @@ enum TrainerDirectory {
     }
 
     static func filter(_ list: [TrainerListItem], query: String, tags: [String],
-                       accreditations: Set<TrainerAccreditation>, status: TrainerFilter.Status) -> [TrainerListItem] {
+                       accreditations: Set<TrainerAccreditation>, status: TrainerFilter.Status,
+                       aclp: TrainerAclpFilter = .all) -> [TrainerListItem] {
+        // Always A–Z by name (the web's default sort).
         list.filter { t in
             if status == .trainers && isApplicant(t) { return false }
             if status == .applicants && !isApplicant(t) { return false }
+            if !aclp.includes(t) { return false }
             if !accreditations.allSatisfy({ $0.matches(t) }) { return false }
             if !tags.allSatisfy({ hasTag(t, $0) }) { return false }
             return matches(t, query: query)
         }
+        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     /// Skills and certifications across the list with trainer counts, most common first.

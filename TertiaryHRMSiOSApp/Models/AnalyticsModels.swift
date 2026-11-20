@@ -116,6 +116,29 @@ struct AnalyticsFinanceRange: Decodable, Equatable {
     let to: String
 }
 
+/// One active person reduced to the three attributes the workforce donuts need (no name, no
+/// date of birth). A missing attribute reads as "Not recorded".
+struct AnalyticsBreakdownPerson: Decodable, Equatable {
+    let intern: Bool
+    let gender: String
+    let ageGroup: String
+    let ethnicGroup: String
+
+    init(intern: Bool, gender: String, ageGroup: String, ethnicGroup: String) {
+        self.intern = intern; self.gender = gender; self.ageGroup = ageGroup; self.ethnicGroup = ethnicGroup
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func text(_ k: CodingKeys) -> String {
+            let v = ((try? c.decode(String.self, forKey: k)) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return v.isEmpty ? WorkforceBreakdown.notRecorded : v
+        }
+        intern = (try? c.decode(Bool.self, forKey: .intern)) ?? false
+        gender = text(.gender); ageGroup = text(.ageGroup); ethnicGroup = text(.ethnicGroup)
+    }
+    private enum CodingKeys: String, CodingKey { case intern, gender, ageGroup, ethnicGroup }
+}
+
 struct AnalyticsData: Decodable {
     let months: [AnalyticsMonth]
     /// nil when the server withholds accounting data from this viewer.
@@ -124,11 +147,15 @@ struct AnalyticsData: Decodable {
     let leave: [AnalyticsLeaveRow]
     let people: [AnalyticsPerson]
     let headcount: [AnalyticsHeadcountRow]
+    /// One row per active person, for the workforce breakdown. nil when the server could not
+    /// load it or does not send it yet (older server): the section is then hidden.
+    let breakdown: [AnalyticsBreakdownPerson]?
 
     init(months: [AnalyticsMonth], finance: [AnalyticsFinanceRow]?, financeRange: AnalyticsFinanceRange?,
-         leave: [AnalyticsLeaveRow], people: [AnalyticsPerson], headcount: [AnalyticsHeadcountRow]) {
+         leave: [AnalyticsLeaveRow], people: [AnalyticsPerson], headcount: [AnalyticsHeadcountRow],
+         breakdown: [AnalyticsBreakdownPerson]? = nil) {
         self.months = months; self.finance = finance; self.financeRange = financeRange
-        self.leave = leave; self.people = people; self.headcount = headcount
+        self.leave = leave; self.people = people; self.headcount = headcount; self.breakdown = breakdown
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -138,8 +165,94 @@ struct AnalyticsData: Decodable {
         leave = (try? c.decodeIfPresent([AnalyticsLeaveRow].self, forKey: .leave)) ?? []
         people = (try? c.decodeIfPresent([AnalyticsPerson].self, forKey: .people)) ?? []
         headcount = (try? c.decodeIfPresent([AnalyticsHeadcountRow].self, forKey: .headcount)) ?? []
+        breakdown = try? c.decodeIfPresent([AnalyticsBreakdownPerson].self, forKey: .breakdown)
     }
-    private enum CodingKeys: String, CodingKey { case months, finance, financeRange, leave, people, headcount }
+    private enum CodingKeys: String, CodingKey { case months, finance, financeRange, leave, people, headcount, breakdown }
+
+    /// Active staff and interns now, for the Home tiles: from the breakdown (one row per active
+    /// person), else the latest headcount month. nil when the server sent neither.
+    var activeCounts: (staff: Int, interns: Int)? {
+        if let b = breakdown {
+            let interns = b.filter(\.intern).count
+            return (b.count - interns, interns)
+        }
+        return headcount.last.map { ($0.staff, $0.interns) }
+    }
+}
+
+// MARK: - Workforce breakdown (gender, age group, ethnic group)
+
+/// The three donuts of the web's Workforce breakdown, counted on the device for one
+/// Staff / Interns / All choice. Categories keep a fixed order, empty ones are dropped, and
+/// "Not recorded" is always last in neutral grey (`colorHex == nil`).
+struct WorkforceBreakdown {
+    static let notRecorded = "Not recorded"
+    static let genders = ["Male", "Female", "Other"]
+    static let ageGroups = ["Under 25", "25–34", "35–44", "45–54", "55 and over"]
+    static let ethnicGroups = ["Chinese", "Malay", "Indian", "Eurasian", "Others"]
+    /// Categorical slots and the ordered age ramp, validated on the light and the dark card (web).
+    static let slots: [UInt32] = [0x5B82F0, 0x22978B, 0xBF8420, 0x8E5FD0, 0xD9627A]
+    static let ageRamp: [UInt32] = [0xA9BEF7, 0x7F9DF3, 0x5B82F0, 0x3D63D6, 0x2A47A8]
+
+    struct Slice: Identifiable, Equatable {
+        let label: String
+        let count: Int
+        /// nil = neutral grey ("Not recorded").
+        let colorHex: UInt32?
+        var id: String { label }
+    }
+    struct Chart: Identifiable, Equatable {
+        let title: String
+        let slices: [Slice]
+        var id: String { title }
+        var total: Int { slices.reduce(0) { $0 + $1.count } }
+        /// "43%" — whole percent of this chart's total.
+        func percent(_ s: Slice) -> String {
+            total > 0 ? "\(Int((Double(s.count) / Double(total) * 100).rounded()))%" : "0%"
+        }
+    }
+
+    let who: AnalyticsWho
+    /// People counted after the Staff / Interns / All choice.
+    let count: Int
+    let charts: [Chart]
+    /// People in `count` whose ethnic group is not recorded.
+    let ethnicMissing: Int
+
+    /// "staff" | "interns" | "people"
+    var noun: String { who == .staff ? "staff" : who == .interns ? "interns" : "people" }
+    /// Shown under the charts when some (or all) of the people have no ethnic group on record.
+    var ethnicNote: String? {
+        guard ethnicMissing > 0 else { return nil }
+        let whom = ethnicMissing == count ? "any of the \(count) \(noun)" : "\(ethnicMissing) of \(count) \(noun)"
+        return "Ethnic group is not recorded for \(whom). Set it on each person's page in Staff Management on the web."
+    }
+
+    init(_ people: [AnalyticsBreakdownPerson], who: AnalyticsWho) {
+        self.who = who
+        let shown = people.filter { who.includes(intern: $0.intern) }
+        count = shown.count
+        ethnicMissing = shown.filter { $0.ethnicGroup == Self.notRecorded }.count
+        charts = [
+            Chart(title: "Gender", slices: Self.count(shown.map(\.gender), order: Self.genders, colors: Self.slots)),
+            Chart(title: "Age group", slices: Self.count(shown.map(\.ageGroup), order: Self.ageGroups, colors: Self.ageRamp)),
+            Chart(title: "Ethnic group", slices: Self.count(shown.map(\.ethnicGroup), order: Self.ethnicGroups, colors: Self.slots)),
+        ]
+    }
+
+    /// People per label in the given order, then any label the app does not know (a newer
+    /// server), then "Not recorded"; empty slices are dropped.
+    static func count(_ values: [String], order: [String], colors: [UInt32]) -> [Slice] {
+        var counts: [String: Int] = [:]
+        for v in values { counts[v, default: 0] += 1 }
+        let extra = counts.keys.filter { !order.contains($0) && $0 != notRecorded }.sorted()
+        var out: [Slice] = []
+        for (i, label) in (order + extra).enumerated() {
+            if let n = counts[label], n > 0 { out.append(Slice(label: label, count: n, colorHex: colors[i % colors.count])) }
+        }
+        if let n = counts[notRecorded], n > 0 { out.append(Slice(label: notRecorded, count: n, colorHex: nil)) }
+        return out
+    }
 }
 
 // MARK: - Filters and the filtered view of the data

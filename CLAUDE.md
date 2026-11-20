@@ -84,7 +84,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Login frontend** — TIA premium-blue email + password, email-OTP, and **Google sign-in**; session
   persists across launches.
 - **Dashboard** — leave balances (AL / MC / OT), expenses YTD, quick actions, and (for
-  approvers — role ADMIN/HR/MANAGER, i.e. `summary.isAdmin`) the **actionable approvals queue**.
+  approvers — role ADMIN/HR/MANAGER, i.e. `summary.isAdmin`) three KPI tiles: Full-time staff, Interns, Pending approvals (→ `ApprovalsView`).
   Carries the notifications **bell with unread badge** (`brandBar(bell:)`).
 - **Leave** — balances, full request history, and **apply for leave** with a **live working-days
   preview** (weekends + SG public holidays auto-excluded, computed client-side in
@@ -100,7 +100,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   (`proRated` = prorated 21-day cap, `available` = remaining).
 - **Trainer Management** (Trainer Admins only, More → Manage) — `TrainersView` loads the whole list once
   (`GET /api/mobile/trainers`) and filters on the device with `TrainerDirectory` (mirrors the web
-  `filterTrainers` / `topTags`): `.searchable` with skill / certification suggestions + counts that become
+  `filterTrainers` / `topTags`): three KPI tiles and an ACLP / Non-ACLP / All control (opens on ACLP, A–Z by name), `.searchable` with skill / certification suggestions + counts that become
   removable tokens, one Filters menu (ACLP/ACTA/DACE/DDDLP/Finance/IBF Fit, Trainers/Applicants), compact rows
   (name, badges, matching skill first) with a contact menu (call / WhatsApp `wa.me/65XXXXXXXX` for 8-digit SG
   numbers / email / copy — `ContactLinks`). `TrainerProfileView` over `GET /api/mobile/trainers/{id}` (NRIC masked
@@ -114,7 +114,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   order name, status, type, dates, days, applied, reason) — a tap opens `RecordSheet` with the full reason
   and Approve / Reject. Time Off has a Mine / Team switch for approvers; Leave & MC has People / Requests. Gated by
   `summary.isAdmin`; **enforced server-side** (403 for staff/interns), not just hidden in the UI.
-- **Team** — company directory (richer contact fields for supervisory roles). Approvers tap a
+- **Team** — company directory (richer contact fields for supervisory roles); approvers see Staff / Interns as two lists. Approvers tap a
   person for `EmployeeRecordsView` (`GET /api/mobile/employees/{id}/records`, approver-or-self):
   clock-in history (→ full clock in/out list by month), MC history (codes MC/SL) and leave history.
 - **Payslips** — list of personal payslips with a native **PDFKit** viewer for the authenticated payslip PDF.
@@ -136,7 +136,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   (raw array), mark-read `POST /api/notifications/{id}/read`; filtered to staff-relevant types
   (LEAVE_/OT_/WOODS_SQUARE_ APPROVED/REJECTED/DECLINED, INFO). `NotificationStore` keeps the badge in sync.
 - **Calendar** — a **month grid of the whole team's approved leave** (`GET /api/mobile/team-calendar`),
-  with an Everyone / Only me filter and a per-day detail sheet. A colleague's leave **type** is masked
+  with an Everyone / Only me filter, a "Leave shown for" person filter for approvers and a per-day detail sheet. A colleague's leave **type** is masked
   server-side unless the viewer is the person themselves or an approver — medical leave would otherwise
   disclose health information company-wide. Only APPROVED leave is returned.
 - **Profile** — full employee record, with **self-service Edit** (`PATCH /api/employees/{id}`,
@@ -148,12 +148,21 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
-## Analytics and the calendar group filter (1.17 build 32, 20 Nov 2026)
+## Web parity of 20 Nov 2026 (1.17 build 33)
+Every field below is optional in the decoder; a control whose data is absent is hidden (the app can reach users before the server). Logic is unit-tested in `ParityBuild33Tests`.
+- **Calendar person filter** (replaces All / Staff / Interns): `TeamCalendarResponse.people` (`[{id,name,intern}]`, approvers only) → `TeamCalendarPeople` (HRModels.swift) builds the Staff / Interns groups with leave counts and filters by `employeeId`. No `people` → built from the entries when the viewer is an approver (`canSeeTypes` or a `group` tag), else no filter. The menu is Buttons in Sections (a Picker inside a Menu drops the section headers). Picking a person turns "Only me" off and vice versa.
+- **Workforce breakdown**: `AnalyticsData.breakdown` (`[{intern,gender,ageGroup,ethnicGroup}]`) → `WorkforceBreakdown(people, who:)` (AnalyticsModels.swift): fixed category orders, "Not recorded" last in grey, categorical slots `#5B82F0 #22978B #BF8420 #8E5FD0 #D9627A`, age ramp `#A9BEF7 #7F9DF3 #5B82F0 #3D63D6 #2A47A8`. `AnalyticsDonut` is drawn by hand (SectorMark needs iOS 17). Its Staff / Interns / All control is separate from the screen's filter card and starts on Staff.
+- **Trainer tiles + ACLP control**: `TrainerStats(all)` counts the unfiltered list without applicants; `TrainerAclpFilter` (ACLP / Non-ACLP / All, default ACLP) is a parameter of `TrainerDirectory.filter`, which also sorts A–Z by name. A tile calls `clearAll(show)`.
+- **Team lists**: `Employee.intern` (approvers only) → `EmployeeGroup`; `TeamView(group:)` so Home can open either list.
+- **Home tiles**: Full-time staff / Interns / Pending approvals. Counts from `AnalyticsData.activeCounts` (breakdown, else the latest headcount month), loaded after the summary; pending = `pendingLeaves + pendingClaims` (the summary endpoint has no time-off or punch counts, so it can be lower than the web tile).
+- UI tests: `testCalendarPersonFilter`, `testAnalyticsWorkforceBreakdown`, `testTrainerAclpFilterAndKpiTiles`, `testTeamStaffInternListsAndHomeTiles`. `TEST_RUNNER_UITEST_APPEARANCE=dark|light` runs the UI tests in that appearance.
+
+## Analytics (1.17 build 32, 20 Nov 2026)
 - `Views/AnalyticsView.swift` (Swift Charts) + `Models/AnalyticsModels.swift`. Approvers only (ADMIN / HR / MANAGER): entry on Home (admin section) and More → Manage. Data: `GET /api/mobile/analytics` = the web's `AnalyticsData` (src/lib/analytics.ts). Decoding is defensive (missing lists become empty, `finance` may be null, unknown leave categories count as Leave).
 - `AnalyticsSlice(data, filter)` is the ONE place that filters and sums; tiles, charts and lists all read it, so they cannot disagree. Unit-tested in `AnalyticsTests`. Add a new figure there, never in the view.
 - Series colours are the web's validated slots: blue `#5B82F0`, teal `#22978B`, amber `#BF8420` (Revenue / Expenses = blue / amber; Leave / MC / NPL = blue / teal / amber; Staff / Interns = blue / teal). Text stays in `Theme.ink` / `Theme.mist`.
-- Calendar: `TeamLeaveEntry.group` ("staff" | "intern" | nil, approvers only) drives `TeamLeaveGroup`; the segmented control shows only when some entry has a group. Holidays are never filtered.
-- Preview: `-uiPreview -uiPreviewOpen analytics`; UI tests `testAnalyticsFiltersDriveTilesAndLists`, `testCalendarStaffInternFilter`.
+- Calendar: `TeamLeaveEntry.group` ("staff" | "intern" | nil, approvers only) now only groups the person filter on a server without `people` (see above). Holidays are never filtered.
+- Preview: `-uiPreview -uiPreviewOpen analytics`; UI test `testAnalyticsFiltersDriveTilesAndLists`.
 
 ## Push notifications (since 1.15)
 - `Services/PushManager.swift` + `AppDelegate` (`@UIApplicationDelegateAdaptor`): after sign-in it asks for alert/badge/sound, registers with APNs and POSTs the hex token to `/api/mobile/push-token` `{token, platform:"ios", environment: sandbox|production}` (DEBUG = sandbox); sign-out DELETEs it **before** the session cookie is cleared. A tapped push sets `pendingLink` (the payload's web `link`); `MainTabView` maps it through `PushRoute.from(link:isAdmin:isIntern:)` to a tab or a sheet. The in-app Notifications list routes the same way.

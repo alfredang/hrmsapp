@@ -4,6 +4,10 @@ import SwiftUI
 /// trainer by skill or certification fast and reach them in one tap.
 /// - `.searchable` with suggestions of skills / certifications (with trainer counts); a
 ///   picked suggestion becomes a removable filter token.
+/// - Three KPI tiles on top (`TrainerStats`): Total, ACLP and Non-ACLP trainers, counted from
+///   the whole list without applicants, and an ACLP / Non-ACLP / All control with the same
+///   counts (`TrainerAclpFilter`). The screen opens on ACLP, sorted A–Z by name; a tile sets
+///   the same choice and clears the other filters.
 /// - Accreditation (ACLP / ACTA / DACE / DDDLP / Finance / IBF Fit) and Trainers /
 ///   Applicants live in one filter menu, not a wall of chips.
 /// - Compact rows: name, accreditation badges, the matching skill first; call / WhatsApp /
@@ -17,6 +21,8 @@ struct TrainersView: View {
     @State private var tokens: [TrainerTag] = []
     @State private var accreditations: Set<TrainerAccreditation> = []
     @State private var status: TrainerFilter.Status = .trainers
+    /// ACLP / Non-ACLP / All; the screen opens on ACLP trainers (Alfred, 20 Nov 2026).
+    @State private var aclp: TrainerAclpFilter = .aclp
 
     var body: some View {
         GradientScreen {
@@ -24,10 +30,12 @@ struct TrainersView: View {
                 let shown = filtered(all)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
+                        kpiTiles(TrainerStats(all))
                         summaryBar(shown: shown.count, total: all.count)
                         if shown.isEmpty {
                             EmptyHint(icon: "person.crop.circle.badge.questionmark",
-                                      text: "No trainers match. Remove a filter or try another skill.")
+                                      text: aclp == .all ? "No trainers match. Remove a filter or try another skill."
+                                      : "No \(aclp.title) trainers match. Try All, remove a filter or try another skill.")
                         } else {
                             LazyVStack(spacing: 0) {
                                 ForEach(Array(shown.enumerated()), id: \.element.id) { i, t in
@@ -83,6 +91,49 @@ struct TrainersView: View {
     // MARK: Filter menu
 
     private var activeFilterCount: Int { accreditations.count + (status == .trainers ? 0 : 1) }
+
+    // MARK: KPI tiles + ACLP / Non-ACLP / All
+
+    /// Three tiles (Total, ACLP, Non-ACLP) over the same choice as a segmented control with
+    /// counts. A tile also clears the other filters; the control only switches the list.
+    private func kpiTiles(_ s: TrainerStats) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                kpiTile("Total trainers", s.total, .all)
+                kpiTile("ACLP trainers", s.aclp, .aclp)
+                kpiTile("Non-ACLP trainers", s.nonAclp, .non)
+            }
+            Text("\(s.applicants) \(s.applicants == 1 ? "applicant" : "applicants") not counted")
+                .font(.caption2).foregroundStyle(Theme.mist)
+            Picker("Show", selection: $aclp) {
+                ForEach(TrainerAclpFilter.allCases) { f in Text("\(f.title) \(f.count(s))").tag(f) }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("trainers.aclp")
+        }
+    }
+
+    private func kpiTile(_ label: String, _ value: Int, _ show: TrainerAclpFilter) -> some View {
+        let selected = aclp == show
+        return Button { clearAll(show) } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label).font(.caption).foregroundStyle(Theme.mist).lineLimit(1).minimumScaleFactor(0.7)
+                Text("\(value)").font(.title2.weight(.bold)).monospacedDigit().foregroundStyle(Theme.ink)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(selected ? Theme.sky : Theme.cardBorder, lineWidth: selected ? 1.5 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue("\(value)")
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityIdentifier("trainers.kpi.\(show.rawValue)")
+    }
 
     private var filterMenu: some View {
         Menu {
@@ -166,8 +217,9 @@ struct TrainersView: View {
         return out
     }
 
-    private func clearAll() {
-        tokens = []; accreditations = []; status = .trainers; query = ""
+    /// Back to the opening state (ACLP trainers), or to the given tile's list.
+    private func clearAll(_ show: TrainerAclpFilter = .aclp) {
+        tokens = []; accreditations = []; status = .trainers; query = ""; aclp = show
     }
 
     // MARK: Data
@@ -177,7 +229,7 @@ struct TrainersView: View {
 
     private func filtered(_ all: [TrainerListItem]) -> [TrainerListItem] {
         TrainerDirectory.filter(all, query: query, tags: tokens.map(\.tag),
-                                accreditations: accreditations, status: status)
+                                accreditations: accreditations, status: status, aclp: aclp)
     }
 
     private func load() async {

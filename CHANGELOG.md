@@ -1,6 +1,15 @@
 # Changelog
 
-## [1.17] — 2026-11-20 (build 32 replaces build 31 in App Review; resubmitted, WAITING_FOR_REVIEW)
+## [1.17] — 2026-11-20 (build 33, not uploaded yet; build 32 is the one in App Review)
+### Build 33: parity with the web changes of 20 Nov
+- Calendar (approvers): **Leave shown for** now picks Everyone or one person, replacing All / Staff / Interns. The list is every active staff member and intern, grouped Staff then Interns, each with their number of leave entries; people who have left are not listed (their leave still shows under Everyone). Public holidays always show. Data: the new `people` field of `GET /api/mobile/team-calendar`; on a server without it the list is built from the leave entries.
+- Analytics: new **Workforce breakdown** at the end of the screen. Three donuts (gender, age group, ethnic group) of active people with counts and percentages, and a Staff / Interns / All control (Staff first). A note says when ethnic group is not recorded. Data: the new `breakdown` field of `GET /api/mobile/analytics`; the section is hidden without it.
+- Trainer Management: three tiles on top (Total, ACLP and Non-ACLP trainers; applicants are not counted) and an **ACLP / Non-ACLP / All** control with the same counts. The screen opens on ACLP trainers, sorted A to Z by name. A tile sets the same choice and clears the other filters; the active one is outlined.
+- Team (approvers): staff and interns are two lists with a **Staff / Interns** control and counts (Staff first). Data: the new `intern` field of `GET /api/mobile/employees`; without it the single list stays.
+- Home (approvers): the two pending tiles became three, as on the web dashboard: **Full-time staff**, **Interns** and **Pending approvals** (leave, MC and claims). Staff and Interns open those lists; the counts come from Analytics and the two tiles are left out if it cannot be loaded.
+- Every new server field is optional in the app, so this build also works against a server that does not send them yet.
+
+### Build 32 (replaced build 31 in App Review; resubmitted, WAITING_FOR_REVIEW)
 - New **Analytics** screen for approvers (Home → Analytics, More → Manage → Analytics): the last 12 months of bank revenue and expenses, leave and MC per person, and headcount, the same data as the web Analytics page (`GET /api/mobile/analytics`). Filters: 3 / 6 / 12 months, All / Staff / Interns, a person, and leave type. Tap a category to leave it out of the totals, tap a person to see only their leave, tap a month for its figures. The tiles use the same filtered numbers as the charts.
 - Calendar (approvers): an **All / Staff / Interns** control shows whose leave appears. Public holidays always show. The control appears only when the server marks each leave entry with its group.
 - Notifications: the server now also sends a push when an expense claim is approved or rejected, and when a leave, MC or time-off decision is made from an emailed link. They open Expenses, Leave and Time Off (no app change was needed; covered by a test).

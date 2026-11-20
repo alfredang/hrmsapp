@@ -115,6 +115,23 @@ struct Employee: Codable, Identifiable {
     let phone: String?
     let employmentType: String?
     let startDate: String?
+    /// Approvers only: true for an intern. nil for everyone else and on an older server.
+    var intern: Bool? = nil
+}
+
+/// The Team tab's Staff / Interns lists (approvers). Works on the server's `intern` flag.
+enum EmployeeGroup: String, CaseIterable, Identifiable {
+    case staff, interns
+    var id: String { rawValue }
+    var title: String { self == .staff ? "Staff" : "Interns" }
+
+    /// Two lists are offered only when the server flagged at least one person (approvers, new server).
+    static func isAvailable(_ list: [Employee]) -> Bool { list.contains { $0.intern != nil } }
+
+    /// A person without the flag counts as staff.
+    func filter(_ list: [Employee]) -> [Employee] {
+        list.filter { ($0.intern ?? false) == (self == .interns) }
+    }
 }
 
 // MARK: - Expenses  (/api/mobile/expenses)
@@ -180,6 +197,15 @@ struct TeamCalendarResponse: Codable {
     let canSeeTypes: Bool
     let entries: [TeamLeaveEntry]
     let holidays: [TeamHoliday]
+    /// Approvers only: every active staff member and intern, with or without leave, for the
+    /// calendar's person filter. nil for everyone else; absent on an older server.
+    var people: [TeamCalendarPerson]? = nil
+}
+
+struct TeamCalendarPerson: Codable, Identifiable, Equatable {
+    let id: String
+    let name: String
+    let intern: Bool
 }
 
 struct TeamLeaveEntry: Codable, Identifiable {
@@ -193,22 +219,64 @@ struct TeamLeaveEntry: Codable, Identifiable {
     let halfDay: Bool
     let leaveType: String?
     let isSelf: Bool
-    /// Approvers only: whose leave it is ("staff" | "intern"), for the calendar's
-    /// All / Staff / Interns filter. Absent for everyone else and on older servers.
+    /// Approvers only: whose leave it is ("staff" | "intern"). Absent for everyone else and on
+    /// older servers. Groups the person filter when the server sends no roster.
     var group: String? = nil
 }
 
-/// The calendar's All / Staff / Interns filter (approvers). Works on the server's `group` tag.
-enum TeamLeaveGroup: String, CaseIterable, Identifiable {
-    case all, staff, intern
-    var id: String { rawValue }
-    var title: String { self == .all ? "All" : self == .staff ? "Staff" : "Interns" }
+/// The calendar's "Leave shown for" person filter (approvers): Everyone or one person.
+/// The list is the server's roster of active people (`people`), grouped Staff then Interns,
+/// each with their number of leave entries. On an older server (no roster) it is built from
+/// the leave entries instead; a viewer who is not an approver gets no filter.
+struct TeamCalendarPeople: Equatable {
+    struct Option: Identifiable, Equatable {
+        let id: String
+        let name: String
+        let count: Int
+        /// "ANG SEE SIANG (3)"; no count for a person without leave.
+        var label: String { count > 0 ? "\(name) (\(count))" : name }
+    }
+    struct Group: Identifiable, Equatable {
+        let title: String
+        let options: [Option]
+        var id: String { title }
+    }
 
-    /// The filter is offered only when the server tagged the entries (approvers, new server).
-    static func isAvailable(_ entries: [TeamLeaveEntry]) -> Bool { entries.contains { $0.group != nil } }
+    let groups: [Group]
+    var all: [Option] { groups.flatMap(\.options) }
+    var isAvailable: Bool { !all.isEmpty }
+    func option(_ id: String?) -> Option? { id.flatMap { id in all.first { $0.id == id } } }
 
-    func filter(_ entries: [TeamLeaveEntry]) -> [TeamLeaveEntry] {
-        self == .all ? entries : entries.filter { $0.group == rawValue }
+    init(_ data: TeamCalendarResponse) {
+        var counts: [String: Int] = [:]
+        for e in data.entries { counts[e.employeeId, default: 0] += 1 }
+
+        let roster: [TeamCalendarPerson]
+        if let people = data.people {
+            roster = people
+        } else if data.canSeeTypes || data.entries.contains(where: { $0.group != nil }) {
+            // Older server, approver: only the people who have leave are known.
+            var seen = Set<String>()
+            roster = data.entries.compactMap { e in
+                seen.insert(e.employeeId).inserted
+                    ? TeamCalendarPerson(id: e.employeeId, name: e.employeeName, intern: e.group == "intern") : nil
+            }
+        } else {
+            roster = []
+        }
+        func section(_ title: String, intern: Bool) -> Group? {
+            let rows = roster.filter { $0.intern == intern }
+                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                .map { Option(id: $0.id, name: $0.name, count: counts[$0.id] ?? 0) }
+            return rows.isEmpty ? nil : Group(title: title, options: rows)
+        }
+        groups = [section("Staff", intern: false), section("Interns", intern: true)].compactMap { $0 }
+    }
+
+    /// Leave of one person, or everything when nobody (or someone not in the list) is picked.
+    func filter(_ entries: [TeamLeaveEntry], personId: String?) -> [TeamLeaveEntry] {
+        guard let p = option(personId) else { return entries }
+        return entries.filter { $0.employeeId == p.id }
     }
 }
 

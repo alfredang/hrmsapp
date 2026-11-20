@@ -4,6 +4,9 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject private var auth: AuthViewModel
     @State private var state: LoadState<DashboardSummary> = .idle
+    /// Approvers: active staff and interns for the Home tiles (from Analytics). nil until
+    /// loaded, or when the server cannot give them: the two tiles are then left out.
+    @State private var headcount: (staff: Int, interns: Int)?
 
     var body: some View {
         GradientScreen {
@@ -13,14 +16,16 @@ struct DashboardView: View {
                         greeting(s)
 
                         if s.isAdmin {
-                            sectionTitle("Approvals queue")
-                            HStack(spacing: 12) {
-                                NavigationLink(destination: ApprovalsView()) {
-                                    StatTile(value: "\(s.pendingLeaves)", label: "Pending leave", icon: "calendar.badge.exclamationmark", tint: Theme.gold600)
+                            // The web dashboard's three KPI tiles: staff, interns, pending approvals.
+                            sectionTitle("Overview")
+                            HStack(spacing: 10) {
+                                if let h = headcount {
+                                    kpi("Full-time staff", h.staff, "person.2.fill", Theme.sky, id: "staff") { TeamView(group: .staff) }
+                                    kpi("Interns", h.interns, "graduationcap.fill", Theme.sky, id: "interns") { TeamView(group: .interns) }
                                 }
-                                NavigationLink(destination: ApprovalsView()) {
-                                    StatTile(value: "\(s.pendingClaims)", label: "Pending claims", icon: "doc.badge.clock", tint: .orange)
-                                }
+                                let pending = s.pendingLeaves + s.pendingClaims
+                                kpi("Pending approvals", pending, "tray.full.fill",
+                                    pending > 0 ? Theme.gold600 : Theme.sky, id: "pending") { ApprovalsView() }
                             }
                             NavigationLink(destination: AnalyticsView()) {
                                 Card(padding: 14) {
@@ -91,6 +96,25 @@ struct DashboardView: View {
         }
     }
 
+    /// One admin KPI tile; a tap opens its list.
+    private func kpi<D: View>(_ label: String, _ value: Int, _ icon: String, _ tint: Color, id: String,
+                              @ViewBuilder _ dest: () -> D) -> some View {
+        NavigationLink(destination: dest()) {
+            Card(padding: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Image(systemName: icon).foregroundStyle(tint).frame(height: 22)
+                    Text("\(value)").font(.title2.weight(.bold)).monospacedDigit().foregroundStyle(Theme.ink)
+                    Text(label).font(.caption).foregroundStyle(Theme.mist).lineLimit(1).minimumScaleFactor(0.7)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue("\(value)")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("home.kpi.\(id)")
+    }
+
     private func sectionTitle(_ t: String) -> some View {
         Text(t).font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
     }
@@ -106,6 +130,8 @@ struct DashboardView: View {
             let s = try await HRMSAPI.shared.summary()
             auth.canManageTrainers = s.showsTrainers
             state = .loaded(s)
+            // Staff and intern counts come with Analytics (approvers only); a failure only hides the tiles.
+            if s.isAdmin, let counts = try? await HRMSAPI.shared.analytics().activeCounts { headcount = counts }
         }
         catch { state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load.") }
     }
