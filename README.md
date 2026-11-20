@@ -135,7 +135,7 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: v1.17 (build 32 — Light / Dark / System appearance, Analytics for approvers) is the released version; v1.18 (build 33 — calendar person filter, workforce breakdown, trainer tiles and ACLP filter, Staff / Interns lists, three Home tiles) was submitted for review on 2026-11-20:
+(ASC app `6759821144`). **Status: v1.17 (build 32 — Light / Dark / System appearance, Analytics for approvers) is the released version; v1.18 (build 34 — calendar person filter, workforce breakdown, trainer tiles and ACLP filter, Staff / Interns lists, three Home tiles; plus calendar colours and emoji, time off and Off Days, birthdays, off-day shading and month totals, Work Schedule card, Home leave summary / finance / trainer tiles, No Pay Leave 14 days) was submitted for review on 2026-11-20, replacing build 33:
 [apps.apple.com/sg/app/tertiary-hrms/id6759821144](https://apps.apple.com/sg/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 its bundled `asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for
 future builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
