@@ -22,6 +22,16 @@ enum LeaveRules {
         return roles[0].uppercased() == "INTERN"
     }
 
+    /// Who must clock in and out every workday (server `mustClockIn` in `src/lib/attendance-policy.ts`,
+    /// Alfred, 20 Nov 2026): interns (roles exactly ["INTERN"]) and accountants (ACCOUNTANT without
+    /// ADMIN / HR / MANAGER). They get the missed clock-in reminders and the Timesheet.
+    static func mustClockIn(roles: [String]?) -> Bool {
+        guard let roles, !roles.isEmpty else { return false }
+        let upper = roles.map { $0.uppercased() }
+        if upper.count == 1 && upper[0] == "INTERN" { return true }
+        return upper.contains("ACCOUNTANT") && !upper.contains { ["ADMIN", "HR", "MANAGER"].contains($0) }
+    }
+
     static func isMedical(_ type: LeaveType?) -> Bool {
         guard let type else { return false }
         return medicalCodes.contains(type.code.uppercased())

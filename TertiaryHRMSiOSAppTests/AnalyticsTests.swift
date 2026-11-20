@@ -117,10 +117,22 @@ final class AnalyticsTests: XCTestCase {
     // MARK: Push links for the decisions the server now notifies
 
     func testDecisionLinksOpenTheRightScreen() {
-        XCTAssertEqual(PushRoute.from(link: "/expenses", isAdmin: false, isIntern: false), .expenses)
-        XCTAssertEqual(PushRoute.from(link: "/expenses", isAdmin: true, isIntern: false), .expenses)
-        XCTAssertEqual(PushRoute.from(link: "/leave", isAdmin: false, isIntern: true), .tab(1))
-        XCTAssertEqual(PushRoute.from(link: "/time-off", isAdmin: false, isIntern: true), .timeOff)
-        XCTAssertEqual(PushRoute.from(link: "/approvals", isAdmin: true, isIntern: false), .approvals)
+        XCTAssertEqual(PushRoute.from(link: "/expenses", isAdmin: false, mustClockIn: false), .expenses)
+        XCTAssertEqual(PushRoute.from(link: "/expenses", isAdmin: true, mustClockIn: false), .expenses)
+        XCTAssertEqual(PushRoute.from(link: "/leave", isAdmin: false, mustClockIn: true), .tab(1))
+        XCTAssertEqual(PushRoute.from(link: "/time-off", isAdmin: false, mustClockIn: true), .timeOff)
+        XCTAssertEqual(PushRoute.from(link: "/approvals", isAdmin: true, mustClockIn: false), .approvals)
+    }
+
+    /// Interns and accountants who must clock in open their own Timesheet; "/attendance" is the
+    /// clock for everyone (missed clock-in reminders).
+    func testTimesheetAndAttendanceLinks() {
+        XCTAssertEqual(PushRoute.from(link: "/timesheet", isAdmin: false, mustClockIn: true), .myTimesheet)
+        XCTAssertEqual(PushRoute.from(link: "/timesheet", isAdmin: true, mustClockIn: false), .adminTimesheet)
+        XCTAssertEqual(PushRoute.from(link: "/timesheet", isAdmin: false, mustClockIn: false), .notifications)
+        XCTAssertEqual(PushRoute.from(link: "/timesheet/overview", isAdmin: true, mustClockIn: false), .adminTimesheet)
+        for (admin, clock) in [(false, true), (true, false), (false, false)] {
+            XCTAssertEqual(PushRoute.from(link: "/attendance", isAdmin: admin, mustClockIn: clock), .clock)
+        }
     }
 }

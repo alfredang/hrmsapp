@@ -69,7 +69,7 @@ struct NotificationsView: View {
             Task { await store.markRead(n.id) }
             // Open the related screen (approvals, clock, leave…) when the link maps to one.
             let isAdmin = ["ADMIN", "HR", "MANAGER"].contains(auth.user?.primaryRole.uppercased() ?? "")
-            if PushRoute.from(link: n.link, isAdmin: isAdmin, isIntern: auth.isIntern) != .notifications {
+            if PushRoute.from(link: n.link, isAdmin: isAdmin, mustClockIn: auth.mustClockIn) != .notifications {
                 PushManager.shared.pendingLink = n.link
             }
         } label: {

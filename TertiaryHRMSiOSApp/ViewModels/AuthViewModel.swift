@@ -1,6 +1,17 @@
 import Foundation
 import SwiftUI
 
+/// The More tab's "View As" choice for Trainer Admins (web view mode "trainer", 20 Nov 2026).
+/// "My view" is the normal app; "Trainer Admin" shows only Home (trainer tiles), Trainers,
+/// Calendar and More. Saved per device; only takes effect while `canManageTrainers` is true.
+enum ViewAs: String, CaseIterable, Identifiable {
+    case mine
+    case trainerAdmin = "trainer"
+    var id: String { rawValue }
+    var title: String { self == .mine ? "My view" : "Trainer Admin" }
+    static let storageKey = "hrms_view_as"
+}
+
 /// The single source of truth the views observe. Owns the auth flow state machine,
 /// drives `AuthService`, and persists the optionally-remembered login email.
 @MainActor
@@ -29,13 +40,30 @@ final class AuthViewModel: ObservableObject {
     /// UI gate only; the trainer endpoints enforce it server-side (403).
     @Published var canManageTrainers = false
 
+    /// More → View As (Trainer Admins only). Persisted in UserDefaults `hrms_view_as`.
+    @Published var viewAs: ViewAs = ViewAs(rawValue: UserDefaults.standard.string(forKey: ViewAs.storageKey) ?? "") ?? .mine {
+        didSet { UserDefaults.standard.set(viewAs.rawValue, forKey: ViewAs.storageKey) }
+    }
+
+    /// The Trainer Admin view is on: chosen in View As and the user still holds TRAINER_ADMIN.
+    var isTrainerView: Bool { canManageTrainers && viewAs == .trainerAdmin }
+
+    /// Apply the server's `canManageTrainers`; losing it falls back to "My view".
+    func applyTrainerCapability(_ can: Bool) {
+        canManageTrainers = can
+        if !can && viewAs != .mine { viewAs = .mine }
+    }
+
     /// Interns (roles exactly ["INTERN"]) have no paid MC — sick leave goes in as No Pay Leave.
     var isIntern: Bool { LeaveRules.isIntern(roles: user?.roles) }
+
+    /// Interns and accountants (without an approver role) clock in and out and keep a Timesheet.
+    var mustClockIn: Bool { LeaveRules.mustClockIn(roles: user?.roles) }
 
     /// Refresh the summary-driven capabilities (cheap; called when the More menu appears).
     func refreshCapabilities() async {
         guard phase == .signedIn, let s = try? await HRMSAPI.shared.summary() else { return }
-        canManageTrainers = s.showsTrainers
+        applyTrainerCapability(s.showsTrainers)
     }
 
     @Published var rememberEmail: Bool = UserDefaults.standard.bool(forKey: Keys.rememberFlag) {
@@ -71,6 +99,9 @@ final class AuthViewModel: ObservableObject {
                                    roles: ["ADMIN", "HR", "TRAINER_ADMIN"], employeeId: "E0001")
             }
             canManageTrainers = !args.contains("-uiPreviewIntern")
+            // `-uiPreviewViewAs trainer` opens the Trainer Admin view; otherwise always My view.
+            if let i = args.firstIndex(of: "-uiPreviewViewAs"), i + 1 < args.count,
+               let v = ViewAs(rawValue: args[i + 1]) { viewAs = v } else { viewAs = .mine }
             phase = .signedIn
             return
         }
@@ -191,6 +222,7 @@ final class AuthViewModel: ObservableObject {
         await AuthService.shared.signOut()
         user = nil
         canManageTrainers = false
+        viewAs = .mine
         password = ""; otp = ""
         step = .email
         phase = .signedOut

@@ -1,10 +1,14 @@
 import SwiftUI
 
-/// More tab (Alfred, 11 Nov 2026): Applications (MC, Leave, Time Off, Expense Claims, Off In Lieu
-/// or the intern Timesheet), Staff (Calendar, Payslips, My Profile, Trainers), Intern (Time In/Out —
-/// interns and admins only), Manage (approvers / Trainer Admins) and Help, then sign out.
-/// Timesheets are intern-only: interns see "Timesheet", other staff see "Off In Lieu", and
-/// approvers get the one admin "Timesheet" (intern hours + missing punches + Off In Lieu).
+/// More tab (Alfred, 11 Nov 2026; 20 Nov 2026): Applications (MC, Leave, Time Off, Expense Claims,
+/// Off In Lieu and/or the Timesheet), Staff (Calendar, Payslips, My Profile, Trainers), Attendance
+/// (Time In/Out — interns, accountants who must clock in, and approvers), Manage (approvers: Approvals,
+/// Analytics, Timesheet, Leave & MC; Trainer Admins: Trainer Admin) and Help, then sign out.
+/// Interns see "Timesheet"; accountants who must clock in (`auth.mustClockIn`) see "Timesheet" and
+/// "Off In Lieu"; other staff see "Off In Lieu"; approvers get the one admin "Timesheet"
+/// (intern hours + missing punches + Off In Lieu).
+/// Trainer Admins get a View As control on top (My view / Trainer Admin). In the Trainer Admin
+/// view More is only My Stuff (My Profile, Calendar), People (Trainer Admin) and Help.
 struct MoreView: View {
     @EnvironmentObject private var auth: AuthViewModel
     @State private var signingOut = false
@@ -34,6 +38,19 @@ struct MoreView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     header
 
+                    if auth.canManageTrainers { viewAsControl }
+
+                    if auth.isTrainerView {
+                        group("My Stuff") {
+                            link("My Profile", "person.crop.circle.fill", Theme.azure) { ProfileView() }
+                            divider
+                            link("Calendar", "calendar", Theme.sky) { CalendarListView() }
+                        }
+                        group("People") {
+                            link("Trainer Admin", "person.text.rectangle.fill", Theme.gold600) { TrainersView() }
+                        }
+                    } else {
+
                     group("Applications") {
                         action("MC", "cross.case.fill", .pink) { await openApply("MC") }
                         divider
@@ -45,6 +62,10 @@ struct MoreView: View {
                         divider
                         if auth.isIntern {
                             link("Timesheet", "tablecells", .teal) { MyTimesheetView() }
+                        } else if auth.mustClockIn {
+                            link("Timesheet", "tablecells", .teal) { MyTimesheetView() }
+                            divider
+                            link("Off In Lieu", "calendar.badge.plus", .teal) { WeeklyTimesheetView() }
                         } else {
                             link("Off In Lieu", "calendar.badge.plus", .teal) { WeeklyTimesheetView() }
                         }
@@ -60,8 +81,8 @@ struct MoreView: View {
                         link("Trainers", "person.crop.rectangle.stack.fill", Theme.gold600) { TrainerContactsView() }
                     }
 
-                    if isInternUser || isAdmin {
-                        group("Intern") {
+                    if isInternUser || auth.mustClockIn || isAdmin {
+                        group("Attendance") {
                             link("Time In/Out", "clock.badge.checkmark.fill", Theme.gold600) { ClockView() }
                         }
                     }
@@ -79,9 +100,11 @@ struct MoreView: View {
                             }
                             if isAdmin && auth.canManageTrainers { divider }
                             if auth.canManageTrainers {
-                                link("Trainer Management", "person.text.rectangle.fill", Theme.gold600) { TrainersView() }
+                                link("Trainer Admin", "person.text.rectangle.fill", Theme.gold600) { TrainersView() }
                             }
                         }
+                    }
+
                     }
 
                     group("Help") {
@@ -111,6 +134,23 @@ struct MoreView: View {
                                                                set: { if !$0 { applyError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(applyError ?? "") }
+    }
+
+    /// View As (Trainer Admins only): "My view" is the normal app, "Trainer Admin" the trainer view.
+    private var viewAsControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("VIEW AS")
+                .font(.caption.weight(.semibold)).foregroundStyle(Theme.mist)
+                .padding(.leading, 6)
+                .accessibilityAddTraits(.isHeader)
+            Card(padding: 10) {
+                Picker("View as", selection: $auth.viewAs) {
+                    ForEach(ViewAs.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("more.viewAs")
+            }
+        }
     }
 
     private var header: some View {

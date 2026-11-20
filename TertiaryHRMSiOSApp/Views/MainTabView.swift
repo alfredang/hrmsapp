@@ -30,16 +30,27 @@ struct MainTabView: View {
         TabView(selection: $tab) {
             NavigationStack { DashboardView() }
                 .tabItem { Label("Home", systemImage: "house.fill") }.tag(0)
-            NavigationStack { LeaveView() }
-                .tabItem { Label("Leave", systemImage: "calendar.badge.clock") }.tag(1)
+            // Trainer Admin view (More → View As): Home, Trainers, Calendar, More; no Leave / Team.
+            if auth.isTrainerView {
+                NavigationStack { TrainersView() }
+                    .tabItem { Label("Trainers", systemImage: "person.text.rectangle.fill") }.tag(Self.trainersTab)
+            } else {
+                NavigationStack { LeaveView() }
+                    .tabItem { Label("Leave", systemImage: "calendar.badge.clock") }.tag(1)
+            }
             NavigationStack { TeamCalendarView() }
                 .tabItem { Label("Calendar", systemImage: "calendar") }.tag(2)
-            NavigationStack { TeamView() }
-                .tabItem { Label("Team", systemImage: "person.2.fill") }.tag(3)
+            if !auth.isTrainerView {
+                NavigationStack { TeamView() }
+                    .tabItem { Label("Team", systemImage: "person.2.fill") }.tag(3)
+            }
             NavigationStack { MoreView() }
                 .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }.tag(4)
         }
         .tint(Theme.sky)
+        // Switching View As lands on the directory (the web opens /trainers) or back on Home.
+        .onChange(of: auth.viewAs) { v in tab = v == .trainerAdmin && auth.canManageTrainers ? Self.trainersTab : 0 }
+        .onChange(of: auth.isTrainerView) { on in if !on && tab == Self.trainersTab { tab = 0 } }
         .onChange(of: push.pendingLink) { _ in openPendingLink() }
         .onAppear { openPendingLink() }   // cold start from a tapped push
         .sheet(item: $pushSheet) { route in
@@ -81,12 +92,16 @@ struct MainTabView: View {
     }
 
     private var isAdmin: Bool { ["ADMIN", "HR", "MANAGER"].contains(auth.user?.primaryRole.uppercased() ?? "") }
+    /// Tag of the Trainers tab, shown only in the Trainer Admin view.
+    static let trainersTab = 5
 
     /// Route a tapped push (its web `link`) to a tab or a sheet, then clear it.
     private func openPendingLink() {
         guard let link = push.pendingLink else { return }
         push.pendingLink = nil
-        switch PushRoute.from(link: link, isAdmin: isAdmin, isIntern: auth.isIntern) {
+        switch PushRoute.from(link: link, isAdmin: isAdmin, mustClockIn: auth.mustClockIn) {
+        case .tab(let i) where auth.isTrainerView && (i == 1 || i == 3):
+            pushSheet = .tab(i)   // Leave / Team are hidden in the Trainer Admin view: open as a sheet
         case .tab(let i): pushSheet = nil; tab = i
         case let route: pushSheet = route
         }
@@ -100,6 +115,8 @@ struct MainTabView: View {
         case .timeOff: TimeOffView()
         case .adminTimesheet: TimesheetAdminView()
         case .myTimesheet: MyTimesheetView()
+        case .tab(1): LeaveView()
+        case .tab(3): TeamView()
         case .notifications, .tab: NotificationsView()
         }
     }

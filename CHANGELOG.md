@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.19] — 2026-11-20 (build 35; 1.18 build 34 was in App Review, so this is the next version)
+Status (21 Nov 2026, 00:20 SGT): build 35 uploaded and VALID in App Store Connect. 1.18 build 34 is IN_REVIEW, so the 1.19 version cannot be created yet (ASC 409 "cannot create a new version of the App in the current state"); the in-review submission was not cancelled. Once 1.18 leaves review: create version 1.19, set What's New, then `submit_for_review.py --version 1.19 --build 35`.
+
+**What's New (user-facing):**
+> Accountants now clock in and out like interns: Time In/Out is in More under the new Attendance heading, the Timesheet sits next to Off In Lieu, and a missed clock-in reminder opens the clock. Trainer Management is now called Trainer Admin, as on the HRMS website. Trainer Admins can switch More > View As to a new Trainer Admin view that shows only the trainer counts, the trainer directory, the calendar and their profile.
+
+- New `LeaveRules.mustClockIn(roles:)` / `auth.mustClockIn`, the client mirror of the server rule (interns, and accountants without ADMIN / HR / MANAGER).
+- More: the "Intern" group is now **Attendance** and also shows for accountants who must clock in. Those accountants get **Timesheet** (their days and hours) and keep **Off In Lieu**; interns keep Timesheet only; everyone else is unchanged.
+- Push and in-app notification links: "/timesheet" opens the user's own Timesheet for anyone who must clock in (was interns only); "/attendance" still opens the clock for everyone.
+- "Trainer Management" renamed **Trainer Admin** (More → Manage link, Home section title), matching the web app.
+- **Trainer Admin view** (web View As "trainer", 20 Nov 2026), for `canManageTrainers` holders only: a **View As** control (My view / Trainer Admin) at the top of More, saved on the device (`hrms_view_as`), reset to My view on sign-out and when the TRAINER_ADMIN capability is lost. In the Trainer Admin view the tabs are Home, Trainers, Calendar and More (Leave and Team hidden); Home is the "Trainer Admin" heading, the three trainer tiles and "Open trainer directory"; More is View As, My Stuff (My Profile, Calendar), People (Trainer Admin), Help and Sign out. Switching to it opens the Trainers tab; switching back opens Home. Push links work in either view (Leave / Team links open as a sheet while those tabs are hidden). Checked in light and dark.
+- No API change; unit tests for the rule, the timesheet / attendance links and the View As fallback; UI test `testTrainerAdminViewAs`.
+
 ## [1.18] — 2026-11-20 (build 33; 1.17 build 32 was approved and released the same day)
 ### Build 34: calendar colours, time off and off days, Work Schedule, role tiles (replaces build 33 in App Review)
 **What's New (user-facing):**

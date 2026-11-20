@@ -61,6 +61,38 @@ final class LeaveRulesTests: XCTestCase {
         XCTAssertFalse(LeaveRules.isIntern(roles: []))
     }
 
+    /// Mirrors the server's `mustClockIn` (src/lib/attendance-policy.ts, 20 Nov 2026).
+    func testMustClockInInternsAndAccountantsWithoutApproverRole() {
+        XCTAssertTrue(LeaveRules.mustClockIn(roles: ["INTERN"]))
+        XCTAssertTrue(LeaveRules.mustClockIn(roles: ["ACCOUNTANT"]))
+        XCTAssertTrue(LeaveRules.mustClockIn(roles: ["STAFF", "ACCOUNTANT"]))
+        XCTAssertTrue(LeaveRules.mustClockIn(roles: ["accountant"]), "case-insensitive")
+        XCTAssertTrue(LeaveRules.mustClockIn(roles: ["ACCOUNTANT", "TRAINER_ADMIN"]))
+        XCTAssertFalse(LeaveRules.mustClockIn(roles: ["ADMIN", "ACCOUNTANT"]))
+        XCTAssertFalse(LeaveRules.mustClockIn(roles: ["HR", "ACCOUNTANT"]))
+        XCTAssertFalse(LeaveRules.mustClockIn(roles: ["MANAGER", "ACCOUNTANT"]))
+        XCTAssertFalse(LeaveRules.mustClockIn(roles: ["ADMIN", "INTERN"]))
+        XCTAssertFalse(LeaveRules.mustClockIn(roles: ["STAFF"]))
+        XCTAssertFalse(LeaveRules.mustClockIn(roles: ["STAFF", "TRAINER_ADMIN"]))
+        XCTAssertFalse(LeaveRules.mustClockIn(roles: nil))
+        XCTAssertFalse(LeaveRules.mustClockIn(roles: []))
+    }
+
+    /// View As: the Trainer Admin view needs TRAINER_ADMIN; losing it falls back to My view.
+    @MainActor func testViewAsFallsBackWhenTrainerAdminIsLost() {
+        let saved = UserDefaults.standard.string(forKey: ViewAs.storageKey)
+        defer { UserDefaults.standard.set(saved, forKey: ViewAs.storageKey) }
+        let auth = AuthViewModel()
+        auth.applyTrainerCapability(true)
+        auth.viewAs = .trainerAdmin
+        XCTAssertTrue(auth.isTrainerView)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: ViewAs.storageKey), "trainer")
+        auth.applyTrainerCapability(false)
+        XCTAssertFalse(auth.isTrainerView)
+        XCTAssertEqual(auth.viewAs, .mine)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: ViewAs.storageKey), "mine")
+    }
+
     func testInternSickReasonMatchesWebFormat() {
         XCTAssertEqual(LeaveRules.internSickReason(""), "Sick leave (MC)")
         XCTAssertEqual(LeaveRules.internSickReason("Sick leave (MC)"), "Sick leave (MC)")

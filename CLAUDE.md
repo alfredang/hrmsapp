@@ -98,7 +98,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   switched to No Pay Leave up front with reason "Sick leave (MC)" and the MC photo kept (mirrors the
   web form's `internSick`). The Leave tab shows the **No Pay Leave** card from the NPL balance row
   (`proRated` = the cap, a flat 14 days a year since 20 Nov 2026, `available` = remaining).
-- **Trainer Management** (Trainer Admins only, More → Manage) — `TrainersView` loads the whole list once
+- **Trainer Admin** (Trainer Admins only, More → Manage; renamed from "Trainer Management" in 1.19 to match the web) — `TrainersView` loads the whole list once
   (`GET /api/mobile/trainers`) and filters on the device with `TrainerDirectory` (mirrors the web
   `filterTrainers` / `topTags`): three KPI tiles and an ACLP / Non-ACLP / All control (opens on ACLP, A–Z by name), `.searchable` with skill / certification suggestions + counts that become
   removable tokens, one Filters menu (ACLP/ACTA/DACE/DDDLP/Finance/IBF Fit, Trainers/Applicants), compact rows
@@ -130,7 +130,8 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   (`GET /api/attendance/corrections?scope=all&status=PENDING`, approve/reject `POST /api/attendance/corrections/{id}`),
   Off In Lieu entries (`GET/POST /api/timesheet/admin`) and every intern's days + hours for a month
   (`/api/mobile/attendance/summary?month=`), tap an intern → `InternAttendanceDetailView`. The separate
-  "Intern Attendance" screen is gone. Interns see `MyTimesheetView`; other staff see **Off In Lieu**
+  "Intern Attendance" screen is gone. Interns see `MyTimesheetView`; accountants who must clock in
+  (`auth.mustClockIn`) see `MyTimesheetView` **and** Off In Lieu; other staff see **Off In Lieu**
   (`WeeklyTimesheetView`, weekend / PH hours) and no Timesheet.
 - **Notifications** — in-app list + nav-bar bell with unread badge. `GET /api/notifications`
   (raw array), mark-read `POST /api/notifications/{id}/read`; filtered to staff-relevant types
@@ -147,6 +148,13 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Accounting module** entirely (bank-statement import, transaction dedupe, reconciliation, income/expense tracking) — finance/back-office only, not part of the mobile employee experience.
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
+
+## Accountants clock in; Trainer Admin rename (1.19 build 35, 20 Nov 2026)
+- `LeaveRules.mustClockIn(roles:)` mirrors the server's `mustClockIn` (web `src/lib/attendance-policy.ts`): roles exactly `["INTERN"]`, or ACCOUNTANT without ADMIN / HR / MANAGER (case-insensitive here). Exposed as `auth.mustClockIn`; keep the two in step. Unit test `testMustClockInInternsAndAccountantsWithoutApproverRole`.
+- More: the clock group is titled **Attendance** (was "Intern") and shows for interns, `mustClockIn` and approvers. Applications: interns Timesheet only; `mustClockIn` accountants Timesheet + Off In Lieu; everyone else Off In Lieu.
+- `PushRoute.from(link:isAdmin:mustClockIn:)`: "/timesheet" opens `MyTimesheetView` for anyone who must clock in; "/attendance" opens `ClockView` for everyone (missed clock-in reminders). Test `testTimesheetAndAttendanceLinks`. `/api/attendance/missed` `isIntern` already means "must clock in" server-side.
+- "Trainer Management" is **Trainer Admin** everywhere (More → Manage link, Home section title). Tile labels unchanged.
+- **Trainer Admin view** (web View As "trainer", commit 1a394c4): `ViewAs` (`.mine` / `.trainerAdmin`, UserDefaults `hrms_view_as`) on `AuthViewModel`; `auth.isTrainerView` = chosen AND `canManageTrainers`. Always set the capability through `auth.applyTrainerCapability(_:)` (falls back to My view when lost); sign-out resets to My view. `MainTabView`: Home / Trainers (tag `trainersTab` = 5) / Calendar / More; switching View As selects Trainers or Home; push `.tab(1|3)` opens Leave / Team as a sheet while hidden. `DashboardView.trainerAdminHome` (trainer tiles + Open trainer directory only). `MoreView`: View As segmented control on top for Trainer Admins; in the trainer view only My Stuff, People (Trainer Admin), Help. Preview `-uiPreviewViewAs trainer`; UI test `testTrainerAdminViewAs`, unit test `testViewAsFallsBackWhenTrainerAdminIsLost`.
 
 ## Web parity of 20 Nov 2026, second round (1.18 build 34)
 All new fields optional and decoded leniently (`try?` in `DashboardSummary` / `TeamCalendarResponse` `init(from:)`). Pure logic in `Models/TeamCalendarModels.swift`, tested in `ParityBuild34Tests`.

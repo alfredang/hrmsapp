@@ -11,6 +11,7 @@ struct DashboardView: View {
     var body: some View {
         GradientScreen {
             AsyncContent(state: $state, load: load) { s in
+                if auth.isTrainerView { trainerAdminHome(s) } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         greeting(s)
@@ -52,7 +53,7 @@ struct DashboardView: View {
 
                         // Trainer Admins: the same three counts as the Trainers screen tiles (web TrainerKpiRow).
                         if let t = s.trainerKpis {
-                            sectionTitle("Trainers")
+                            sectionTitle("Trainer Admin")
                             HStack(spacing: 10) {
                                 kpi("Trainers", t.total, "person.text.rectangle.fill", Theme.sky, id: "trainers") { TrainersView(aclp: .all) }
                                 kpi("ACLP trainers", t.aclp, "checkmark.seal.fill", Theme.sky, id: "aclp") { TrainersView(aclp: .aclp) }
@@ -91,11 +92,51 @@ struct DashboardView: View {
                     .padding(20)
                 }
                 .refreshable { await load() }
+                }
             }
         }
         .brandBar(bell: true)
         .task { await NotificationStore.shared.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: .hrmsForeground)) { _ in Task { await load() } }
+    }
+
+    /// Home in the Trainer Admin view (web dashboard in view mode "trainer"): the trainer KPI row
+    /// only, plus a way into the directory. No leave, finance, admin or quick-action sections.
+    private func trainerAdminHome(_ s: DashboardSummary) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Card {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Trainer Admin").font(.title.weight(.bold)).foregroundStyle(Theme.ink)
+                            .accessibilityAddTraits(.isHeader)
+                            .accessibilityIdentifier("home.trainerAdmin.title")
+                        Text(s.name ?? auth.user?.displayName ?? "")
+                            .font(.subheadline).foregroundStyle(Theme.mist)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if let t = s.trainerKpis {
+                    HStack(spacing: 10) {
+                        kpi("Trainers", t.total, "person.text.rectangle.fill", Theme.sky, id: "trainers") { TrainersView(aclp: .all) }
+                        kpi("ACLP trainers", t.aclp, "checkmark.seal.fill", Theme.sky, id: "aclp") { TrainersView(aclp: .aclp) }
+                        kpi("Non-ACLP trainers", t.nonAclp, "person.crop.circle", Theme.sky, id: "nonaclp") { TrainersView(aclp: .non) }
+                    }
+                }
+                NavigationLink(destination: TrainersView()) {
+                    Card(padding: 14) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "person.text.rectangle.fill").font(.title3).foregroundStyle(Theme.sky)
+                            Text("Open trainer directory").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.mist.opacity(0.6))
+                        }
+                    }
+                }
+                .accessibilityIdentifier("home.trainerAdmin.directory")
+            }
+            .padding(20)
+        }
+        .refreshable { await load() }
     }
 
     private func greeting(_ s: DashboardSummary) -> some View {
@@ -221,7 +262,7 @@ struct DashboardView: View {
         state = .loading
         do {
             let s = try await HRMSAPI.shared.summary()
-            auth.canManageTrainers = s.showsTrainers
+            auth.applyTrainerCapability(s.showsTrainers)
             state = .loaded(s)
             // Staff and intern counts come with Analytics (approvers only); a failure only hides the tiles.
             if s.isAdmin, let counts = try? await HRMSAPI.shared.analytics().activeCounts { headcount = counts }

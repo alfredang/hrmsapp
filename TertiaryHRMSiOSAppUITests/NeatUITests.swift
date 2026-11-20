@@ -44,6 +44,51 @@ final class NeatUITests: XCTestCase {
         snap(app, "ui-trainers-filter-menu")
     }
 
+    /// Trainer Admin view (More → View As, web view mode "trainer"): tabs Home / Trainers / Calendar /
+    /// More, Home = the trainer tiles only, More without Applications; switching back returns to Home.
+    func testTrainerAdminViewAs() {
+        let app = launch(["-uiPreviewViewAs", "trainer"])
+        let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(app.staticTexts["home.trainerAdmin.title"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons["home.kpi.aclp"].value as? String, "74")
+        XCTAssertTrue(app.buttons["home.kpi.trainers"].exists)
+        XCTAssertTrue(app.buttons["home.kpi.nonaclp"].exists)
+        XCTAssertTrue(app.buttons["home.trainerAdmin.directory"].exists)
+        XCTAssertFalse(app.buttons["home.kpi.pending"].exists, "no admin tiles")
+        XCTAssertFalse(app.staticTexts["Quick actions"].exists, "no quick actions")
+        XCTAssertTrue(tabs.buttons["Trainers"].exists)
+        XCTAssertFalse(tabs.buttons["Leave"].exists)
+        XCTAssertFalse(tabs.buttons["Team"].exists)
+        snap(app, "trainer-view-home")
+
+        tabs.buttons["Trainers"].tap()
+        XCTAssertTrue(app.buttons["trainers.kpi.all"].waitForExistence(timeout: 10))
+        snap(app, "trainer-view-directory")
+
+        tabs.buttons["More"].tap()
+        let viewAs = app.segmentedControls["more.viewAs"]
+        XCTAssertTrue(viewAs.waitForExistence(timeout: 10))
+        XCTAssertTrue(viewAs.buttons["Trainer Admin"].isSelected)
+        XCTAssertTrue(app.staticTexts["Trainer Admin"].exists)
+        XCTAssertFalse(app.staticTexts["APPLICATIONS"].exists)
+        XCTAssertFalse(app.staticTexts["Approvals"].exists)
+        snap(app, "trainer-view-more")
+
+        viewAs.buttons["My view"].tap()
+        XCTAssertTrue(tabs.buttons["Leave"].waitForExistence(timeout: 5))
+        XCTAssertTrue(tabs.buttons["Team"].exists)
+        XCTAssertFalse(tabs.buttons["Trainers"].exists)
+        XCTAssertTrue(tabs.buttons["Home"].isSelected, "back to Home")
+        XCTAssertTrue(app.buttons["home.kpi.pending"].waitForExistence(timeout: 10))
+
+        tabs.buttons["More"].tap()
+        XCTAssertTrue(app.staticTexts["Trainer Admin"].waitForExistence(timeout: 5), "Manage link renamed")
+        XCTAssertTrue(app.staticTexts["ATTENDANCE"].exists, "clock group renamed")
+        app.segmentedControls["more.viewAs"].buttons["Trainer Admin"].tap()
+        XCTAssertTrue(tabs.buttons["Trainers"].waitForExistence(timeout: 5))
+        XCTAssertTrue(tabs.buttons["Trainers"].isSelected, "lands on the directory")
+    }
+
     /// My Profile → Appearance: the three choices exist and picking one selects it.
     func testAppearanceCardSwitchesBetweenLightDarkAndSystem() {
         let app = launch(["-uiPreviewScreen", "profile", "-hrms_appearance", "system"])
@@ -163,7 +208,7 @@ final class NeatUITests: XCTestCase {
         snap(app, "analytics-breakdown-staff-full")
     }
 
-    /// Trainer Management opens on ACLP trainers, A–Z; the ACLP / Non-ACLP / All control and the
+    /// Trainer Admin opens on ACLP trainers, A–Z; the ACLP / Non-ACLP / All control and the
     /// three KPI tiles (trainers only, no applicants) set the same choice.
     func testTrainerAclpFilterAndKpiTiles() {
         let app = launch(["-uiPreviewOpen", "trainers"])

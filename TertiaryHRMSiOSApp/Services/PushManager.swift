@@ -132,7 +132,9 @@ enum PushRoute: Identifiable, Equatable {
 
     var id: String { "\(self)" }
 
-    static func from(link: String?, isAdmin: Bool, isIntern: Bool) -> PushRoute {
+    /// `mustClockIn`: interns and accountants without an approver role (`LeaveRules.mustClockIn`) —
+    /// their "/timesheet" opens their own Timesheet.
+    static func from(link: String?, isAdmin: Bool, mustClockIn: Bool) -> PushRoute {
         let path = (link ?? "").split(separator: "?").first.map(String.init) ?? ""
         switch true {
         case path.hasPrefix("/approvals"), path.hasPrefix("/leave/approv"):
@@ -142,7 +144,7 @@ enum PushRoute: Identifiable, Equatable {
         case path.hasPrefix("/timesheet/overview"):
             return isAdmin ? .adminTimesheet : .myTimesheet
         case path.hasPrefix("/timesheet"):
-            return isIntern ? .myTimesheet : (isAdmin ? .adminTimesheet : .notifications)
+            return mustClockIn ? .myTimesheet : (isAdmin ? .adminTimesheet : .notifications)
         case path.hasPrefix("/expenses"):
             return isAdmin && path.contains("approv") ? .approvals : .expenses
         case path.hasPrefix("/time-off"):
