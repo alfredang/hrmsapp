@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.17] — 2026-11-20 (build 33, not uploaded yet; build 32 is the one in App Review)
+## [1.18] — 2026-11-20 (build 33; 1.17 build 32 was approved and released the same day)
 ### Build 33: parity with the web changes of 20 Nov
 - Calendar (approvers): **Leave shown for** now picks Everyone or one person, replacing All / Staff / Interns. The list is every active staff member and intern, grouped Staff then Interns, each with their number of leave entries; people who have left are not listed (their leave still shows under Everyone). Public holidays always show. Data: the new `people` field of `GET /api/mobile/team-calendar`; on a server without it the list is built from the leave entries.
 - Analytics: new **Workforce breakdown** at the end of the screen. Three donuts (gender, age group, ethnic group) of active people with counts and percentages, and a Staff / Interns / All control (Staff first). A note says when ethnic group is not recorded. Data: the new `breakdown` field of `GET /api/mobile/analytics`; the section is hidden without it.

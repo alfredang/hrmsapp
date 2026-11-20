@@ -8,7 +8,7 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "1.17"
+    MARKETING_VERSION: "1.18"
     CURRENT_PROJECT_VERSION: "33"
     SWIFT_VERSION: "5.0"
     # Google Sign-In (native, ASWebAuthenticationSession + PKCE).

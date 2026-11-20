@@ -148,7 +148,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
-## Web parity of 20 Nov 2026 (1.17 build 33)
+## Web parity of 20 Nov 2026 (1.18 build 33)
 Every field below is optional in the decoder; a control whose data is absent is hidden (the app can reach users before the server). Logic is unit-tested in `ParityBuild33Tests`.
 - **Calendar person filter** (replaces All / Staff / Interns): `TeamCalendarResponse.people` (`[{id,name,intern}]`, approvers only) → `TeamCalendarPeople` (HRModels.swift) builds the Staff / Interns groups with leave counts and filters by `employeeId`. No `people` → built from the entries when the viewer is an approver (`canSeeTypes` or a `group` tag), else no filter. The menu is Buttons in Sections (a Picker inside a Menu drops the section headers). Picking a person turns "Only me" off and vice versa.
 - **Workforce breakdown**: `AnalyticsData.breakdown` (`[{intern,gender,ageGroup,ethnicGroup}]`) → `WorkforceBreakdown(people, who:)` (AnalyticsModels.swift): fixed category orders, "Not recorded" last in grey, categorical slots `#5B82F0 #22978B #BF8420 #8E5FD0 #D9627A`, age ramp `#A9BEF7 #7F9DF3 #5B82F0 #3D63D6 #2A47A8`. `AnalyticsDonut` is drawn by hand (SectorMark needs iOS 17). Its Staff / Interns / All control is separate from the screen's filter card and starts on Staff.
