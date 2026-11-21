@@ -8,6 +8,8 @@ struct DashboardView: View {
     /// people only, as the web's workforce snapshot). nil until loaded, or on an older server
     /// without the intern flag: the two tiles are then left out.
     @State private var headcount: (staff: Int, interns: Int)?
+    /// Approvers: what is waiting, by type. nil until loaded (the tile then uses the summary counts).
+    @State private var pending: PendingApprovals?
     /// The leave form opened from the balance card, with the types loaded at tap time.
     @State private var applySheet: ApplySheet?
     @State private var openingApply: String?
@@ -45,9 +47,13 @@ struct DashboardView: View {
                                     kpi("Full-time staff", h.staff, "person.2.fill", Theme.sky, id: "staff") { TeamView(group: .staff) }
                                     kpi("Interns", h.interns, "graduationcap.fill", Theme.sky, id: "interns") { TeamView(group: .interns) }
                                 }
-                                let pending = s.pendingLeaves + s.pendingClaims
-                                kpi("Pending approvals", pending, "tray.full.fill",
-                                    pending > 0 ? Theme.gold600 : Theme.sky, id: "pending") { ApprovalsView() }
+                                let waiting = pending?.total ?? (s.pendingLeaves + s.pendingClaims)
+                                kpi("Pending approvals", waiting, "tray.full.fill",
+                                    waiting > 0 ? Theme.gold600 : Theme.sky, id: "pending") { ApprovalsView() }
+                            }
+                            if let pending {
+                                sectionTitle("Waiting for approval")
+                                pendingCard(pending)
                             }
                         }
 
@@ -62,7 +68,9 @@ struct DashboardView: View {
                         if !admin && !auth.showsAccountant { balanceCard(s) }
 
                         // Trainer Admins: the same three counts as the Trainers screen tiles (web TrainerKpiRow).
-                        if let t = s.trainerKpis, !auth.isRolePreview {
+                        // Trainer counts: Trainer Admins who are not approvers. Admins see them in the
+                        // Trainer Admin view, not on the admin Home (Alfred, 22 Nov 2026).
+                        if let t = s.trainerKpis, !admin, !auth.isRolePreview {
                             sectionTitle("Trainer Admin")
                             HStack(spacing: 10) {
                                 kpi("Trainers", t.total, "person.text.rectangle.fill", Theme.sky, id: "trainers") { TrainersView(aclp: .all) }
@@ -71,7 +79,8 @@ struct DashboardView: View {
                             }
                         }
 
-                        quickActions(isAdmin: admin)
+                        // Accountants: finance only, no quick actions (Alfred, 22 Nov 2026).
+                        if !auth.showsAccountant { quickActions(isAdmin: admin) }
 
                         if !admin, !auth.showsAccountant, let stats = s.leaveSummary, !stats.isEmpty {
                             // Staff / interns: the server's leave tiles (same as the web dashboard and the
@@ -84,11 +93,9 @@ struct DashboardView: View {
                             }
                         }
                         // Admins: no personal balances on Home (Alfred, 22 Nov 2026); their own leave is in the Leave tab.
-                        if !admin {
+                        if !admin && !auth.showsAccountant {
                             HStack(spacing: 12) {
-                                if !auth.showsAccountant {
-                                    StatTile(value: fmt(s.otRemaining), label: "OT leave", icon: "clock.arrow.circlepath", tint: .teal)
-                                }
+                                StatTile(value: fmt(s.otRemaining), label: "OT leave", icon: "clock.arrow.circlepath", tint: .teal)
                                 StatTile(value: Fmt.money(s.expenseYtd), label: "Expenses YTD", icon: "creditcard.fill", tint: .green)
                             }
                         }
@@ -166,27 +173,30 @@ struct DashboardView: View {
         }
     }
 
-    /// Welcome card; a tap opens My Profile (Alfred, 22 Nov 2026: My Profile one tap from Home).
+    /// Welcome card; a tap opens My Profile. The name spans the full width on one line (shrinking
+    /// for a long name); the chevron sits beside "Welcome back" so it takes no width from the name.
     private func greeting(_ s: DashboardSummary) -> some View {
         NavigationLink(destination: ProfileView()) {
             Card {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
                         Text("Welcome back").font(.subheadline).foregroundStyle(Theme.ink.opacity(0.75))
-                        Text(s.name ?? auth.user?.displayName ?? "Employee")
-                            .font(.title.weight(.bold)).foregroundStyle(Theme.ink)
-                            .multilineTextAlignment(.leading)
-                        HStack(spacing: 10) {
-                            Text(s.role?.capitalized ?? "")
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10).padding(.vertical, 4)
-                                .background(Theme.chipFill.opacity(0.55)).clipShape(Capsule()).foregroundStyle(Theme.chipInk)
-                            Label("My Profile", systemImage: "person.crop.circle")
-                                .font(.caption.weight(.semibold)).foregroundStyle(Theme.sky)
-                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.mist.opacity(0.6))
                     }
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.mist.opacity(0.6))
+                    Text(s.name ?? auth.user?.displayName ?? "Employee")
+                        .font(.title.weight(.bold)).foregroundStyle(Theme.ink)
+                        .lineLimit(1).minimumScaleFactor(0.5)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("home.name")
+                    HStack(spacing: 10) {
+                        Text(s.role?.capitalized ?? "")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(Theme.chipFill.opacity(0.55)).clipShape(Capsule()).foregroundStyle(Theme.chipInk)
+                        Label("My Profile", systemImage: "person.crop.circle")
+                            .font(.caption.weight(.semibold)).foregroundStyle(Theme.sky)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -368,17 +378,79 @@ struct DashboardView: View {
         .accessibilityIdentifier("home.leave.\(index)")
     }
 
+    /// Approvers: leave, MC, time off and claims waiting (→ Approvals) and missed punches
+    /// (→ the admin Timesheet). Feeds are best-effort: a failed one counts as 0, a failed
+    /// approvals feed leaves the section out.
+    private func loadPending() async {
+        async let a = try? HRMSAPI.shared.approvals()
+        async let t = try? HRMSAPI.shared.allTimeOff()
+        async let c = try? HRMSAPI.shared.pendingCorrections()
+        guard let approvals = await a else { pending = nil; return }
+        pending = PendingApprovals(approvals: approvals, timeOff: await t ?? [], punches: (await c)?.count ?? 0)
+    }
+
+    private func pendingCard(_ p: PendingApprovals) -> some View {
+        let rows: [(id: String, label: String, icon: String, tint: Color, count: Int)] = [
+            ("leave", "Leave", "calendar.badge.clock", Theme.sky, p.leave),
+            ("mc", "MC", "cross.case.fill", .pink, p.mc),
+            ("timeoff", "Time off", "hourglass", .orange, p.timeOff),
+            ("claims", "Expense claims", "creditcard.fill", .green, p.claims),
+            ("punches", "Missed punches", "person.badge.clock.fill", .teal, p.punches),
+        ]
+        return Card(padding: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
+                if i > 0 { Divider().padding(.leading, 52) }
+                NavigationLink {
+                    if r.id == "punches" { TimesheetAdminView() } else { ApprovalsView() }
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: r.icon).foregroundStyle(r.tint).frame(width: 24)
+                        Text(r.label).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                        Spacer(minLength: 8)
+                        Text("\(r.count)").font(.headline).monospacedDigit()
+                            .foregroundStyle(r.count > 0 ? Theme.gold600 : Theme.mist)
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.mist.opacity(0.6))
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 12)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(r.label)
+                .accessibilityValue("\(r.count) waiting")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("home.pending.\(r.id)")
+            }
+        }
+    }
+
     /// Accountants: pending claims, then this month's income and expenses with the year so far.
     private func financeCard(_ f: FinanceKpis) -> some View {
-        let rows: [(id: String, icon: String, tint: Color, label: String, value: String, sub: String)] = [
+        let count = { (n: Int?, noun: String) in n.map { "\($0) \(noun)\($0 == 1 ? "" : "s") · " } ?? "" }
+        var rows: [(id: String, icon: String, tint: Color, label: String, value: String, sub: String)] = [
             ("pending", "doc.text.fill", f.pendingClaims > 0 ? Theme.gold600 : Theme.sky, "Pending expense claims",
              "\(f.pendingClaims)",
              f.pendingClaims > 0 ? "\(Fmt.money(f.pendingClaimsAmount)) waiting for approval" : "Nothing waiting"),
             ("income", "arrow.up.right", Theme.success, "Income, \(f.monthLabel)", Fmt.money(f.incomeMonth),
-             "\(Fmt.money(f.incomeYtd)) in \(String(f.year)) so far"),
+             count(f.incomeCountMonth, "credit") + "\(Fmt.money(f.incomeYtd)) in \(String(f.year))"),
             ("expenses", "arrow.down.right", Theme.danger, "Expenses, \(f.monthLabel)", Fmt.money(f.expensesMonth),
-             "\(Fmt.money(f.expensesYtd)) in \(String(f.year)) so far"),
+             count(f.expenseCountMonth, "debit") + "\(Fmt.money(f.expensesYtd)) in \(String(f.year))"),
         ]
+        if let n = f.statementImports {
+            rows.append(("statements", "doc.richtext.fill", Theme.sky, "Bank statements", "\(n)",
+                         f.statementLatestDate.map { "Imported up to \(Fmt.date($0))" } ?? "None imported yet"))
+        }
+        if f.statementImports != nil || f.reconciliation != nil {
+            if let r = f.reconciliation {
+                rows.append(("reconciliation", "scale.3d", r.toReview > 0 ? Theme.gold600 : Theme.success,
+                             "Bank reconciliation", r.toReview > 0 ? "\(r.toReview) to review" : "All clear",
+                             "\(Fmt.date(r.periodStart)) – \(Fmt.date(r.periodEnd)) · \(r.matched) matched"
+                             + (r.status.uppercased() == "COMPLETED" ? "" : " · \(r.status.capitalized)")))
+            } else {
+                rows.append(("reconciliation", "scale.3d", Theme.mist, "Bank reconciliation", "Not run",
+                             "Run it on the web: Accounting → Reconciliation"))
+            }
+        }
         return Card(padding: 0) {
             ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
                 if i > 0 { Divider().padding(.leading, 52) }
@@ -419,6 +491,7 @@ struct DashboardView: View {
             auth.applyTrainerCapability(s.showsTrainers)
             state = .loaded(s)
             // Active staff and interns (approvers only); a failure only hides the two tiles.
+            if s.isAdmin, auth.showsAdmin { await loadPending() }
             if s.isAdmin, auth.showsAdmin, let list = try? await HRMSAPI.shared.employees().employees,
                EmployeeGroup.isAvailable(list) {
                 headcount = (EmployeeGroup.staff.filter(list).count, EmployeeGroup.interns.filter(list).count)

@@ -46,7 +46,12 @@ enum PreviewData {
         if view == "accountant" {
             s.financeKpis = FinanceKpis(pendingClaims: 2, pendingClaimsAmount: 486.40, incomeMonth: 182_400,
                                         incomeYtd: 2_104_900, expensesMonth: 141_250, expensesYtd: 1_688_300,
-                                        monthLabel: "Nov", year: 2026)
+                                        monthLabel: "Nov", year: 2026, incomeCountMonth: 172, expenseCountMonth: 107,
+                                        statementImports: 33, statementLatestDate: "2026-11-16",
+                                        statementLastImportedAt: "2026-11-16T05:21:55.243Z",
+                                        reconciliation: FinanceReconciliation(status: "COMPLETED", periodStart: "2026-10-01",
+                                                                              periodEnd: "2026-10-31", matched: 268, toReview: 4,
+                                                                              createdAt: "2026-11-02T03:00:00.000Z"))
         }
         return s
     }

@@ -83,6 +83,25 @@ struct FinanceKpis: Codable, Equatable {
     /// "Nov" (Singapore time).
     let monthLabel: String
     let year: Int
+    /// Bank credits / debits this month, statement imports and the latest reconciliation
+    /// (web e46f631, 22 Nov 2026). Optional: an older server leaves them out.
+    var incomeCountMonth: Int? = nil
+    var expenseCountMonth: Int? = nil
+    var statementImports: Int? = nil
+    /// yyyy-MM-dd: the last bank date the imported statements cover.
+    var statementLatestDate: String? = nil
+    var statementLastImportedAt: String? = nil
+    var reconciliation: FinanceReconciliation? = nil
+}
+
+/// The latest bank reconciliation run (DBS against QuickBooks). `toReview`: unreviewed lines that are not a match.
+struct FinanceReconciliation: Codable, Equatable {
+    let status: String
+    let periodStart: String
+    let periodEnd: String
+    let matched: Int
+    let toReview: Int
+    let createdAt: String
 }
 
 /// `summary.trainerKpis` (Trainer Admins): the web dashboard's TrainerKpiRow.
@@ -159,6 +178,25 @@ struct PendingLeave: Codable, Identifiable {
     let reason: String?
     let documentUrl: String?
     let createdAt: String?
+}
+
+/// Approver Home: what is waiting for a decision, by type (the web dashboard's pending counts,
+/// less No Pay Leave payback, which the app does not handle). Built from the same feeds as
+/// Approvals and the admin Timesheet, so the Home numbers match those screens.
+struct PendingApprovals: Equatable {
+    var leave = 0, mc = 0, timeOff = 0, claims = 0, punches = 0
+    var total: Int { leave + mc + timeOff + claims + punches }
+
+    init(leave: Int = 0, mc: Int = 0, timeOff: Int = 0, claims: Int = 0, punches: Int = 0) {
+        self.leave = leave; self.mc = mc; self.timeOff = timeOff; self.claims = claims; self.punches = punches
+    }
+
+    init(approvals: ApprovalsResponse, timeOff: [TimeOffRequest], punches: Int) {
+        let mc = approvals.leaves.filter { LeaveRules.medicalCodes.contains($0.leaveCode.uppercased()) }.count
+        self.init(leave: approvals.leaves.count - mc, mc: mc,
+                  timeOff: timeOff.filter { $0.status.uppercased() == "PENDING" }.count,
+                  claims: approvals.claims.count, punches: punches)
+    }
 }
 
 struct PendingClaim: Codable, Identifiable {

@@ -219,6 +219,7 @@ struct MoreView: View {
         }
         .buttonStyle(.plain)
         .disabled(loadingApply)
+        .accessibilityIdentifier("more.apply.\(title)")
     }
 
     /// Load the leave types / balances, then open the leave form preselected on `code`.

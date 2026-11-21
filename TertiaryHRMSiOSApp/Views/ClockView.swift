@@ -5,6 +5,7 @@ import SwiftUI
 /// /api/mobile/attendance; this screen shows today's state live plus the
 /// monthly daily history with total hours (same as the web Clock In / Out page).
 struct ClockView: View {
+    @EnvironmentObject private var auth: AuthViewModel
     @State private var state: LoadState<AttendanceResponse> = .idle
     @State private var punching = false
     @State private var errorMessage: String?
@@ -108,7 +109,9 @@ struct ClockView: View {
             .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
         }
-        .disabled(punching)
+        // An approver previewing another role (View As) must not create a real punch.
+        .disabled(punching || auth.isRolePreview)
+        .opacity(auth.isRolePreview ? 0.5 : 1)
     }
 
     // MARK: Actions & helpers

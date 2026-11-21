@@ -149,10 +149,16 @@ final class NeatUITests: XCTestCase {
 
     /// Home: Trainer Admin tiles; My Profile: the Work Schedule card.
     func testHomeTrainerTilesAndProfileWorkSchedule() {
+        // Admin Home: what is waiting by type, no trainer tiles (those are in the Trainer Admin view).
         let app = launch([])
-        XCTAssertTrue(app.buttons["home.kpi.trainers"].waitForExistence(timeout: 10))
-        XCTAssertEqual(app.buttons["home.kpi.aclp"].value as? String, "74")
-        snap(app, "home-trainer-tiles")
+        let leave = app.buttons["home.pending.leave"]
+        XCTAssertTrue(leave.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["home.kpi.trainers"].exists, "no trainer tiles on the admin Home")
+        XCTAssertTrue(app.staticTexts["home.name"].exists)
+        XCTAssertEqual(leave.value as? String, "1 waiting")
+        XCTAssertEqual(app.buttons["home.pending.timeoff"].value as? String, "2 waiting")
+        XCTAssertEqual(app.buttons["home.kpi.pending"].value as? String, "6", "tile = sum of the card")
+        snap(app, "home-admin-pending")
         let profile = launch(["-uiPreviewOpen", "profile"])
         XCTAssertTrue(profile.staticTexts["Work Schedule"].waitForExistence(timeout: 10))
         XCTAssertTrue(profile.staticTexts["Mon, Tue, Wed, Thu, Fri"].exists)
@@ -213,7 +219,8 @@ final class NeatUITests: XCTestCase {
         // Active people only, the same list as Team (no Analytics headcount since 1.20).
         XCTAssertEqual(staff.value as? String, "6")
         XCTAssertEqual(app.buttons["home.kpi.interns"].value as? String, "3")
-        XCTAssertEqual(app.buttons["home.kpi.pending"].value as? String, "5")
+        // Leave + MC + time off + claims + missed punches (preview feeds), as the "Waiting" card.
+        XCTAssertEqual(app.buttons["home.kpi.pending"].value as? String, "6")
         snap(app, "home-kpi")
         app.buttons["home.kpi.interns"].tap()
         XCTAssertTrue(app.segmentedControls["team.group"].buttons["Interns 3"].waitForExistence(timeout: 5))
@@ -277,9 +284,12 @@ final class NeatUITests: XCTestCase {
 
         app.buttons["home.viewAs"].tap(); app.buttons["viewAs.accountant"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["home.finance.income"].waitForExistence(timeout: 10))
-        let expenses = app.buttons["home.action.expenses"]
-        for _ in 0..<8 where !expenses.isHittable { app.swipeUp(velocity: .slow) }
-        XCTAssertTrue(expenses.exists)
+        // Accountant Home: finance only (bank statements, reconciliation), no quick actions.
+        let recon = app.descendants(matching: .any)["home.finance.reconciliation"]
+        for _ in 0..<6 where !recon.exists { app.swipeUp(velocity: .slow) }
+        XCTAssertTrue(recon.exists)
+        XCTAssertTrue(app.descendants(matching: .any)["home.finance.statements"].exists)
+        XCTAssertFalse(app.staticTexts["Quick actions"].exists, "no quick actions for accountants")
         snap(app, "viewas-accountant")
 
         XCTAssertFalse(app.buttons["home.apply.MC"].exists, "accountants have no leave or MC")
@@ -291,7 +301,7 @@ final class NeatUITests: XCTestCase {
         app.buttons["more.viewAs"].tap(); app.buttons["viewAs.mine"].tap()
         XCTAssertTrue(app.staticTexts["Approvals"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["ATTENDANCE"].exists)
-        XCTAssertFalse(app.staticTexts["MC"].exists, "admins do not apply for MC")
+        XCTAssertFalse(app.buttons["more.apply.MC"].exists, "admins do not apply for MC")
         // Admin Leave tab: leave management, no Apply button or own balances.
         app.tabBars.buttons["Leave"].tap()
         XCTAssertTrue(app.segmentedControls.firstMatch.waitForExistence(timeout: 10))

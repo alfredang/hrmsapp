@@ -62,6 +62,15 @@ final class LeaveRulesTests: XCTestCase {
     }
 
     /// Mirrors the server's `mustClockIn` (src/lib/attendance-policy.ts, 20 Nov 2026).
+    func testPendingApprovalsSplitsLeaveAndMcAndCountsOnlyPendingTimeOff() {
+        let p = PendingApprovals(approvals: PreviewData.approvals, timeOff: PreviewData.teamTimeOff, punches: 3)
+        XCTAssertEqual(p.leave, PreviewData.approvals.leaves.filter { $0.leaveCode == "AL" }.count)
+        XCTAssertEqual(p.mc, PreviewData.approvals.leaves.filter { $0.leaveCode == "MC" }.count)
+        XCTAssertEqual(p.timeOff, PreviewData.teamTimeOff.filter { $0.status == "PENDING" }.count)
+        XCTAssertEqual(p.claims, PreviewData.approvals.claims.count)
+        XCTAssertEqual(p.total, p.leave + p.mc + p.timeOff + p.claims + 3)
+    }
+
     func testAccountantMeansAccountantWithoutApproverRole() {
         XCTAssertTrue(LeaveRules.isAccountant(roles: ["ACCOUNTANT"]))
         XCTAssertTrue(LeaveRules.isAccountant(roles: ["STAFF", "accountant"]))
