@@ -58,7 +58,8 @@ struct DashboardView: View {
                         }
 
                         // Everyone but admins: leave and MC left, and the two forms one tap away.
-                        if !admin { balanceCard(s) }
+                        // Accountants have no leave or MC (Alfred, 22 Nov 2026).
+                        if !admin && !auth.showsAccountant { balanceCard(s) }
 
                         // Trainer Admins: the same three counts as the Trainers screen tiles (web TrainerKpiRow).
                         if let t = s.trainerKpis, !auth.isRolePreview {
@@ -72,7 +73,7 @@ struct DashboardView: View {
 
                         quickActions(isAdmin: admin)
 
-                        if !admin, let stats = s.leaveSummary, !stats.isEmpty {
+                        if !admin, !auth.showsAccountant, let stats = s.leaveSummary, !stats.isEmpty {
                             // Staff / interns: the server's leave tiles (same as the web dashboard and the
                             // decision email), shown as given.
                             sectionTitle("My leave this year")
@@ -85,7 +86,9 @@ struct DashboardView: View {
                         // Admins: no personal balances on Home (Alfred, 22 Nov 2026); their own leave is in the Leave tab.
                         if !admin {
                             HStack(spacing: 12) {
-                                StatTile(value: fmt(s.otRemaining), label: "OT leave", icon: "clock.arrow.circlepath", tint: .teal)
+                                if !auth.showsAccountant {
+                                    StatTile(value: fmt(s.otRemaining), label: "OT leave", icon: "clock.arrow.circlepath", tint: .teal)
+                                }
                                 StatTile(value: Fmt.money(s.expenseYtd), label: "Expenses YTD", icon: "creditcard.fill", tint: .green)
                             }
                         }

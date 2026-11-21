@@ -85,6 +85,8 @@ final class AuthViewModel: ObservableObject {
     var showsAdmin: Bool { isApprover && !isRolePreview && !isTrainerView }
     var showsIntern: Bool { isRolePreview ? viewAs == .intern : isIntern }
     var showsMustClockIn: Bool { isRolePreview ? (viewAs == .intern || viewAs == .accountant) : mustClockIn }
+    /// Accountant screens: no leave, MC or time off (no Leave tab, no balances, no Apply).
+    var showsAccountant: Bool { isRolePreview ? viewAs == .accountant : LeaveRules.isAccountant(roles: user?.roles) }
 
     /// Apply the server's `canManageTrainers`; a view that is no longer allowed falls back to "mine".
     func applyTrainerCapability(_ can: Bool) {

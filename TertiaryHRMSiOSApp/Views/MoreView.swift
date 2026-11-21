@@ -54,15 +54,18 @@ struct MoreView: View {
                     } else {
 
                     group("Applications") {
-                        // Admins do not apply for leave or MC (Alfred, 22 Nov 2026).
-                        if !showsAdmin {
+                        // Admins do not apply for leave or MC; accountants have no leave, MC or
+                        // time off (Alfred, 22 Nov 2026; web sidebar noAccountant).
+                        if !showsAdmin && !auth.showsAccountant {
                             action("MC", "cross.case.fill", .pink) { await openApply("MC") }
                             divider
                             action("Leave", "calendar.badge.clock", Theme.sky) { await openApply("AL") }
                             divider
                         }
-                        link("Time Off", "hourglass", Theme.sky) { TimeOffView() }
-                        divider
+                        if !auth.showsAccountant {
+                            link("Time Off", "hourglass", Theme.sky) { TimeOffView() }
+                            divider
+                        }
                         link("Expense Claims", "creditcard.fill", .orange) { ExpensesView() }
                         divider
                         if auth.showsIntern {

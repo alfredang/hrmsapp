@@ -34,7 +34,8 @@ struct MainTabView: View {
             if auth.isTrainerView {
                 NavigationStack { TrainersView() }
                     .tabItem { Label("Trainers", systemImage: "person.text.rectangle.fill") }.tag(Self.trainersTab)
-            } else {
+            } else if !auth.showsAccountant {
+                // Accountants have no leave or MC (Alfred, 22 Nov 2026): no Leave tab.
                 // Admins do not apply for leave or MC (Alfred, 22 Nov 2026): their Leave tab is
                 // leave management (everyone's leave and MC). Staff, interns, accountants and an
                 // approver previewing those roles keep their own leave with Apply.
@@ -102,8 +103,8 @@ struct MainTabView: View {
         guard let link = push.pendingLink else { return }
         push.pendingLink = nil
         switch PushRoute.from(link: link, isAdmin: isAdmin, mustClockIn: auth.mustClockIn) {
-        case .tab(let i) where auth.isTrainerView && (i == 1 || i == 3):
-            pushSheet = .tab(i)   // Leave / Team are hidden in the Trainer Admin view: open as a sheet
+        case .tab(let i) where (auth.isTrainerView && (i == 1 || i == 3)) || (auth.showsAccountant && i == 1):
+            pushSheet = .tab(i)   // a hidden tab (Trainer Admin view: Leave / Team; accountants: Leave) opens as a sheet
         case .tab(let i): pushSheet = nil; tab = i
         case let route: pushSheet = route
         }

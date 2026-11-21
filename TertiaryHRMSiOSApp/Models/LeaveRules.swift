@@ -32,6 +32,14 @@ enum LeaveRules {
         return upper.contains("ACCOUNTANT") && !upper.contains { ["ADMIN", "HR", "MANAGER"].contains($0) }
     }
 
+    /// Accountants without an approver role (web view "accountant"): finance only, no leave, MC or
+    /// time off (web sidebar `noAccountant`; Alfred, 22 Nov 2026).
+    static func isAccountant(roles: [String]?) -> Bool {
+        guard let roles else { return false }
+        let upper = roles.map { $0.uppercased() }
+        return upper.contains("ACCOUNTANT") && !upper.contains { ["ADMIN", "HR", "MANAGER"].contains($0) }
+    }
+
     static func isMedical(_ type: LeaveType?) -> Bool {
         guard let type else { return false }
         return medicalCodes.contains(type.code.uppercased())

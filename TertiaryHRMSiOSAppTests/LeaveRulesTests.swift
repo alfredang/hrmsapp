@@ -62,6 +62,14 @@ final class LeaveRulesTests: XCTestCase {
     }
 
     /// Mirrors the server's `mustClockIn` (src/lib/attendance-policy.ts, 20 Nov 2026).
+    func testAccountantMeansAccountantWithoutApproverRole() {
+        XCTAssertTrue(LeaveRules.isAccountant(roles: ["ACCOUNTANT"]))
+        XCTAssertTrue(LeaveRules.isAccountant(roles: ["STAFF", "accountant"]))
+        XCTAssertFalse(LeaveRules.isAccountant(roles: ["ADMIN", "ACCOUNTANT", "TRAINER_ADMIN"]), "tansc@: admin view")
+        XCTAssertFalse(LeaveRules.isAccountant(roles: ["INTERN"]))
+        XCTAssertFalse(LeaveRules.isAccountant(roles: nil))
+    }
+
     func testMustClockInInternsAndAccountantsWithoutApproverRole() {
         XCTAssertTrue(LeaveRules.mustClockIn(roles: ["INTERN"]))
         XCTAssertTrue(LeaveRules.mustClockIn(roles: ["ACCOUNTANT"]))

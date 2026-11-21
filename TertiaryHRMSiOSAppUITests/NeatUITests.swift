@@ -260,6 +260,9 @@ final class NeatUITests: XCTestCase {
 
         menu.tap(); app.buttons["viewAs.staff"].tap()
         XCTAssertTrue(app.buttons["home.apply.MC"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Leave"].tap()
+        XCTAssertTrue(app.buttons["Apply for Leave"].waitForExistence(timeout: 10), "staff apply for leave")
+        app.tabBars.buttons["Home"].tap()
         XCTAssertFalse(app.buttons["home.kpi.pending"].exists)
         XCTAssertFalse(app.buttons["home.clock.punch"].exists)
         XCTAssertTrue(app.staticTexts["home.viewAs.note"].exists)
@@ -279,10 +282,11 @@ final class NeatUITests: XCTestCase {
         XCTAssertTrue(expenses.exists)
         snap(app, "viewas-accountant")
 
-        app.tabBars.buttons["Leave"].tap()
-        XCTAssertTrue(app.buttons["Apply for Leave"].waitForExistence(timeout: 10), "previewed roles apply for leave")
+        XCTAssertFalse(app.buttons["home.apply.MC"].exists, "accountants have no leave or MC")
+        XCTAssertFalse(app.tabBars.buttons["Leave"].exists, "no Leave tab for accountants")
         app.tabBars.buttons["More"].tap()
         XCTAssertTrue(app.staticTexts["ATTENDANCE"].waitForExistence(timeout: 5), "accountant view clocks in")
+        XCTAssertFalse(app.staticTexts["Time Off"].exists)
         XCTAssertFalse(app.staticTexts["Approvals"].exists)
         app.buttons["more.viewAs"].tap(); app.buttons["viewAs.mine"].tap()
         XCTAssertTrue(app.staticTexts["Approvals"].waitForExistence(timeout: 5))
