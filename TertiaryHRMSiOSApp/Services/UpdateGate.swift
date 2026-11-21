@@ -14,9 +14,9 @@ final class UpdateGate: ObservableObject {
     @Published private(set) var storeURL: URL?
     @Published private(set) var liveVersion: String?
 
-    static let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
-    static let appBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
-    static let defaultStoreURL = URL(string: "https://apps.apple.com/app/id6759821144")!
+    nonisolated static let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+    nonisolated static let appBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+    nonisolated static let defaultStoreURL = URL(string: "https://apps.apple.com/app/id6759821144")!
 
     /// -1, 0 or 1, comparing dotted numbers ("1.9" < "1.10"); mirrors the server's compareVersions.
     nonisolated static func compare(_ a: String, _ b: String) -> Int {
