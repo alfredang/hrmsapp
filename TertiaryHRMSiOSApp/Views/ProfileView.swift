@@ -3,7 +3,10 @@ import SwiftUI
 /// My profile — full employee record from /api/mobile/profile.
 struct ProfileView: View {
     @State private var state: LoadState<ProfileResponse> = .idle
-    @State private var showEdit = false
+    /// The record the Edit sheet works on, captured when Edit is tapped. The sheet used to read
+    /// `state`, and drew nothing (a blank white sheet) whenever the profile was reloading.
+    @State private var editing: EditTarget?
+    private struct EditTarget: Identifiable { let id = UUID(); let employee: EmployeeProfile }
     @State private var showPassword = false
 
     var body: some View {
@@ -14,7 +17,7 @@ struct ProfileView: View {
                         VStack(spacing: 18) {
                             avatar(e)
                             HStack(spacing: 10) {
-                                actionButton("Edit profile", "square.and.pencil") { showEdit = true }
+                                actionButton("Edit profile", "square.and.pencil") { editing = EditTarget(employee: e) }
                                 actionButton("Password", "lock.fill") { showPassword = true }
                             }
                             Card {
@@ -44,10 +47,8 @@ struct ProfileView: View {
             }
         }
         .brandBar()
-        .sheet(isPresented: $showEdit) {
-            if case .loaded(let data) = state, let e = data.employee {
-                EditProfileView(employee: e) { Task { await load() } }
-            }
+        .sheet(item: $editing) { target in
+            EditProfileView(employee: target.employee) { Task { await load() } }
         }
         .sheet(isPresented: $showPassword) { ChangePasswordView() }
     }
@@ -119,8 +120,9 @@ struct ProfileView: View {
     }
 
     private func load() async {
-        state = .loading
+        // Keep the shown profile while refreshing (after a save, pull to refresh).
+        if case .loaded = state {} else { state = .loading }
         do { state = .loaded(try await HRMSAPI.shared.profile()) }
-        catch { state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load.") }
+        catch { if case .loaded = state { return }; state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load.") }
     }
 }

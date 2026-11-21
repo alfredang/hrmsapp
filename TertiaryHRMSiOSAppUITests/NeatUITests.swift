@@ -66,15 +66,16 @@ final class NeatUITests: XCTestCase {
         snap(app, "trainer-view-directory")
 
         tabs.buttons["More"].tap()
-        let viewAs = app.segmentedControls["more.viewAs"]
+        let viewAs = app.buttons["more.viewAs"]
         XCTAssertTrue(viewAs.waitForExistence(timeout: 10))
-        XCTAssertTrue(viewAs.buttons["Trainer Admin"].isSelected)
+        XCTAssertEqual(viewAs.value as? String, "Trainer Admin")
         XCTAssertTrue(app.staticTexts["Trainer Admin"].exists)
         XCTAssertFalse(app.staticTexts["APPLICATIONS"].exists)
         XCTAssertFalse(app.staticTexts["Approvals"].exists)
         snap(app, "trainer-view-more")
 
-        viewAs.buttons["My view"].tap()
+        viewAs.tap()
+        app.buttons["viewAs.mine"].tap()
         XCTAssertTrue(tabs.buttons["Leave"].waitForExistence(timeout: 5))
         XCTAssertTrue(tabs.buttons["Team"].exists)
         XCTAssertFalse(tabs.buttons["Trainers"].exists)
@@ -83,8 +84,9 @@ final class NeatUITests: XCTestCase {
 
         tabs.buttons["More"].tap()
         XCTAssertTrue(app.staticTexts["Trainer Admin"].waitForExistence(timeout: 5), "Manage link renamed")
-        XCTAssertTrue(app.staticTexts["ATTENDANCE"].exists, "clock group renamed")
-        app.segmentedControls["more.viewAs"].buttons["Trainer Admin"].tap()
+        XCTAssertFalse(app.staticTexts["ATTENDANCE"].exists, "admins do not clock in (1.20)")
+        app.buttons["more.viewAs"].tap()
+        app.buttons["viewAs.trainer"].tap()
         XCTAssertTrue(tabs.buttons["Trainers"].waitForExistence(timeout: 5))
         XCTAssertTrue(tabs.buttons["Trainers"].isSelected, "lands on the directory")
     }
@@ -246,6 +248,64 @@ final class NeatUITests: XCTestCase {
         XCTAssertFalse(admin.buttons["home.apply.MC"].exists)
         XCTAssertFalse(admin.buttons["home.analytics"].exists)
         snap(admin, "home-admin")
+    }
+
+    /// View As (approvers, 1.20): preview the Staff, Intern and Accountant Homes, then back to Admin.
+    func testApproverViewAsPreviewsRoles() {
+        let app = launch([])
+        let menu = app.buttons["home.viewAs"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        XCTAssertEqual(menu.value as? String, "Admin")
+        XCTAssertFalse(app.staticTexts["My balances"].exists, "no balances on the admin Home")
+
+        menu.tap(); app.buttons["viewAs.staff"].tap()
+        XCTAssertTrue(app.buttons["home.apply.MC"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["home.kpi.pending"].exists)
+        XCTAssertFalse(app.buttons["home.clock.punch"].exists)
+        XCTAssertTrue(app.staticTexts["home.viewAs.note"].exists)
+        snap(app, "viewas-staff")
+
+        app.buttons["home.viewAs"].tap(); app.buttons["viewAs.intern"].tap()
+        let punch = app.buttons["home.clock.punch"]
+        XCTAssertTrue(punch.waitForExistence(timeout: 10))
+        XCTAssertFalse(punch.isEnabled, "no real punch while previewing")
+        XCTAssertTrue(app.buttons["home.action.mytimesheet"].exists)
+        snap(app, "viewas-intern")
+
+        app.buttons["home.viewAs"].tap(); app.buttons["viewAs.accountant"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["home.finance.income"].waitForExistence(timeout: 10))
+        let expenses = app.buttons["home.action.expenses"]
+        for _ in 0..<8 where !expenses.isHittable { app.swipeUp(velocity: .slow) }
+        XCTAssertTrue(expenses.exists)
+        snap(app, "viewas-accountant")
+
+        app.tabBars.buttons["Leave"].tap()
+        XCTAssertTrue(app.buttons["Apply for Leave"].waitForExistence(timeout: 10), "previewed roles apply for leave")
+        app.tabBars.buttons["More"].tap()
+        XCTAssertTrue(app.staticTexts["ATTENDANCE"].waitForExistence(timeout: 5), "accountant view clocks in")
+        XCTAssertFalse(app.staticTexts["Approvals"].exists)
+        app.buttons["more.viewAs"].tap(); app.buttons["viewAs.mine"].tap()
+        XCTAssertTrue(app.staticTexts["Approvals"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["ATTENDANCE"].exists)
+        XCTAssertFalse(app.staticTexts["MC"].exists, "admins do not apply for MC")
+        // Admin Leave tab: leave management, no Apply button or own balances.
+        app.tabBars.buttons["Leave"].tap()
+        XCTAssertTrue(app.segmentedControls.firstMatch.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["Apply for Leave"].exists)
+        snap(app, "admin-leave-tab")
+    }
+
+    /// Home → My Profile → Edit profile shows the form (1.20: it was a blank sheet).
+    func testEditProfileSheetShowsTheForm() {
+        let app = launch(["-uiPreviewStaff"])
+        let profile = app.buttons["home.profile"]
+        XCTAssertTrue(profile.waitForExistence(timeout: 10))
+        profile.tap()
+        let edit = app.buttons["Edit profile"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 10))
+        edit.tap()
+        XCTAssertTrue(app.navigationBars["Edit profile"].waitForExistence(timeout: 5), "edit form, not a blank sheet")
+        snap(app, "edit-profile")
     }
 
     func testTrainerRowContactMenu() {

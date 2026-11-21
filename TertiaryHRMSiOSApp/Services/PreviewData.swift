@@ -40,6 +40,17 @@ enum PreviewData {
         trainerKpis: previewIntern || previewStaff ? nil
             : TrainerKpis(total: 128, aclp: 74, nonAclp: 54)) }
 
+    /// The accountant preview of an approver: the summary plus the finance tiles.
+    static func summary(view: String) -> DashboardSummary {
+        var s = summary
+        if view == "accountant" {
+            s.financeKpis = FinanceKpis(pendingClaims: 2, pendingClaimsAmount: 486.40, incomeMonth: 182_400,
+                                        incomeYtd: 2_104_900, expensesMonth: 141_250, expensesYtd: 1_688_300,
+                                        monthLabel: "Nov", year: 2026)
+        }
+        return s
+    }
+
     // MARK: Approvals
     static let approvals = ApprovalsResponse(
         leaves: [

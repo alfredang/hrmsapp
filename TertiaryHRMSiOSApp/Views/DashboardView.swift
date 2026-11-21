@@ -24,17 +24,20 @@ struct DashboardView: View {
         GradientScreen {
             AsyncContent(state: $state, load: load) { s in
                 if auth.isTrainerView { trainerAdminHome(s) } else {
+                // Admin layout only in the approver's own view; View As previews another role.
+                let admin = s.isAdmin && auth.showsAdmin
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         greeting(s)
+                        if auth.availableViews.count > 1 { viewAsRow }
 
                         // Each role gets its own Home (Alfred, 22 Nov 2026), in the order that role
                         // uses it most: interns / accountants who clock in see the punch first, staff
                         // see their leave and MC balances with the two apply buttons, admins the
                         // workforce overview.
-                        if auth.mustClockIn { HomeClockCard() }
+                        if auth.showsMustClockIn { HomeClockCard(preview: auth.isRolePreview) }
 
-                        if s.isAdmin {
+                        if admin {
                             // The web dashboard's three KPI tiles: active staff, active interns, pending approvals.
                             sectionTitle("Overview")
                             HStack(spacing: 10) {
@@ -55,10 +58,10 @@ struct DashboardView: View {
                         }
 
                         // Everyone but admins: leave and MC left, and the two forms one tap away.
-                        if !s.isAdmin { balanceCard(s) }
+                        if !admin { balanceCard(s) }
 
                         // Trainer Admins: the same three counts as the Trainers screen tiles (web TrainerKpiRow).
-                        if let t = s.trainerKpis {
+                        if let t = s.trainerKpis, !auth.isRolePreview {
                             sectionTitle("Trainer Admin")
                             HStack(spacing: 10) {
                                 kpi("Trainers", t.total, "person.text.rectangle.fill", Theme.sky, id: "trainers") { TrainersView(aclp: .all) }
@@ -67,9 +70,9 @@ struct DashboardView: View {
                             }
                         }
 
-                        quickActions(isAdmin: s.isAdmin)
+                        quickActions(isAdmin: admin)
 
-                        if !s.isAdmin, let stats = s.leaveSummary, !stats.isEmpty {
+                        if !admin, let stats = s.leaveSummary, !stats.isEmpty {
                             // Staff / interns: the server's leave tiles (same as the web dashboard and the
                             // decision email), shown as given.
                             sectionTitle("My leave this year")
@@ -79,16 +82,12 @@ struct DashboardView: View {
                                 }
                             }
                         }
-                        if s.isAdmin {
-                            sectionTitle("My balances")
+                        // Admins: no personal balances on Home (Alfred, 22 Nov 2026); their own leave is in the Leave tab.
+                        if !admin {
                             HStack(spacing: 12) {
-                                StatTile(value: fmt(s.alAvailable), label: "Annual leave", icon: "sun.max.fill", tint: Theme.sky)
-                                StatTile(value: fmt(s.mcAvailable), label: "Medical leave", icon: "cross.case.fill", tint: .pink)
+                                StatTile(value: fmt(s.otRemaining), label: "OT leave", icon: "clock.arrow.circlepath", tint: .teal)
+                                StatTile(value: Fmt.money(s.expenseYtd), label: "Expenses YTD", icon: "creditcard.fill", tint: .green)
                             }
-                        }
-                        HStack(spacing: 12) {
-                            StatTile(value: fmt(s.otRemaining), label: "OT leave", icon: "clock.arrow.circlepath", tint: .teal)
-                            StatTile(value: Fmt.money(s.expenseYtd), label: "Expenses YTD", icon: "creditcard.fill", tint: .green)
                         }
                     }
                     .padding(20)
@@ -107,6 +106,7 @@ struct DashboardView: View {
             Button("OK", role: .cancel) {}
         } message: { Text(applyError ?? "") }
         .task { await NotificationStore.shared.refresh() }
+        .onChange(of: auth.viewAs) { _ in Task { await load() } }
         .onReceive(NotificationCenter.default.publisher(for: .hrmsForeground)) { _ in Task { await load() } }
     }
 
@@ -143,10 +143,24 @@ struct DashboardView: View {
                     }
                 }
                 .accessibilityIdentifier("home.trainerAdmin.directory")
+                if auth.availableViews.count > 1 { viewAsRow }
             }
             .padding(20)
         }
         .refreshable { await load() }
+    }
+
+    /// View As on Home (approvers and Trainer Admins): switch to another role's screens to check them.
+    private var viewAsRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ViewAsMenu(id: "home.viewAs")
+            if auth.isRolePreview {
+                Text("Previewing the \(auth.viewAs.title(isApprover: true)) screens. Forms still use your own account; clocking in is off.")
+                    .font(.caption).foregroundStyle(Theme.mist)
+                    .padding(.horizontal, 6)
+                    .accessibilityIdentifier("home.viewAs.note")
+            }
+        }
     }
 
     /// Welcome card; a tap opens My Profile (Alfred, 22 Nov 2026: My Profile one tap from Home).
@@ -191,12 +205,12 @@ struct DashboardView: View {
                 quickAction("Leave & MC", "cross.case.fill", .pink, id: "leavemc") { LeaveSummaryView() }
                 quickAction("Timesheet", "person.badge.clock.fill", .teal, id: "timesheet") { TimesheetAdminView() }
                 quickAction("Calendar", "calendar", Theme.sky, id: "calendar") { TeamCalendarView() }
-            } else if auth.isIntern {
+            } else if auth.showsIntern {
                 quickAction("My timesheet", "tablecells", .teal, id: "mytimesheet") { MyTimesheetView() }
                 quickAction("Request time off", "hourglass", .orange, id: "timeoff") { TimeOffView() }
                 quickAction("Snap a claim", "camera.fill", .green, id: "claim") { NewClaimView() }
                 quickAction("Calendar", "calendar", Theme.sky, id: "calendar") { TeamCalendarView() }
-            } else if auth.mustClockIn {
+            } else if auth.showsMustClockIn {
                 // Accountants who clock in (web accountant view: claims first, then their timesheet).
                 quickAction("Snap a claim", "camera.fill", .green, id: "claim") { NewClaimView() }
                 quickAction("Expense claims", "creditcard.fill", .orange, id: "expenses") { ExpensesView() }
@@ -219,7 +233,7 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 12) {
                     balance(fmt(s.alAvailable), "Annual leave left", "sun.max.fill", Theme.sky, id: "al")
-                    if auth.isIntern {
+                    if auth.showsIntern {
                         balance("No pay", "Sick leave (MC)", "cross.case.fill", .pink, id: "mc")
                     } else {
                         balance(fmt(s.mcAvailable), "MC left", "cross.case.fill", .pink, id: "mc")
@@ -329,7 +343,7 @@ struct DashboardView: View {
     private func leaveTile(_ stat: SummaryStat, index: Int) -> some View {
         let style = Self.leaveTileStyle[index % Self.leaveTileStyle.count]
         // Interns have no paid MC: their sick leave is No Pay Leave.
-        let hint = stat.hint ?? (auth.isIntern && stat.label == "MC taken" ? "Sick leave is No Pay Leave" : nil)
+        let hint = stat.hint ?? (auth.showsIntern && stat.label == "MC taken" ? "Sick leave is No Pay Leave" : nil)
         return NavigationLink(destination: LeaveView()) {
             Card(padding: 14) {
                 VStack(alignment: .leading, spacing: 5) {
@@ -394,18 +408,20 @@ struct DashboardView: View {
     }
 
     private func load() async {
-        state = .loading
+        // Keep Home on screen while refreshing (foreground, View As): blanking it also reset the
+        // screens pushed from it, such as My Profile with its Edit sheet.
+        if case .loaded = state {} else { state = .loading }
         do {
-            let s = try await HRMSAPI.shared.summary()
+            let s = try await HRMSAPI.shared.summary(view: auth.isRolePreview ? auth.viewAs.rawValue : nil)
             auth.applyTrainerCapability(s.showsTrainers)
             state = .loaded(s)
             // Active staff and interns (approvers only); a failure only hides the two tiles.
-            if s.isAdmin, let list = try? await HRMSAPI.shared.employees().employees,
+            if s.isAdmin, auth.showsAdmin, let list = try? await HRMSAPI.shared.employees().employees,
                EmployeeGroup.isAvailable(list) {
                 headcount = (EmployeeGroup.staff.filter(list).count, EmployeeGroup.interns.filter(list).count)
             }
         }
-        catch { state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load.") }
+        catch { if case .loaded = state { return }; state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load.") }
     }
 }
 
@@ -420,6 +436,8 @@ private struct TintedIconLabel: LabelStyle {
 /// Home, for people who must clock in (interns, accountants without an approver role): today's
 /// punch and a one-tap Clock in / Clock out, right under the greeting. History lives in ClockView.
 struct HomeClockCard: View {
+    /// An approver previewing the intern / accountant Home: the card shows, but cannot punch.
+    var preview = false
     @State private var today: AttendancePunch?
     @State private var loaded = false
     @State private var punching = false
@@ -470,7 +488,8 @@ struct HomeClockCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .disabled(punching || !loaded)
+                    .disabled(punching || !loaded || preview)
+                    .opacity(preview ? 0.5 : 1)
                     .accessibilityIdentifier("home.clock.punch")
                 }
                 if let error { StatusBanner(kind: .error, text: error) }
@@ -509,5 +528,37 @@ struct HomeClockCard: View {
         let m = max(0, Int(now.timeIntervalSince(from)) / 60)
         guard m < 24 * 60 else { return nil }
         return "\(m / 60)h \(String(format: "%02d", m % 60))m"
+    }
+}
+
+/// View As menu (Home and More): the person's own view, the role previews (approvers) and the
+/// Trainer Admin view (TRAINER_ADMIN). Accessibility value = the current view's title.
+struct ViewAsMenu: View {
+    @EnvironmentObject private var auth: AuthViewModel
+    let id: String
+
+    var body: some View {
+        let current = auth.viewAs.title(isApprover: auth.isApprover)
+        Menu {
+            ForEach(auth.availableViews) { v in
+                Button { auth.viewAs = v } label: {
+                    Label(v.title(isApprover: auth.isApprover), systemImage: auth.viewAs == v ? "checkmark" : v.icon)
+                }
+                .accessibilityIdentifier("viewAs.\(v.rawValue)")
+            }
+        } label: {
+            Card(padding: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "eye.fill").foregroundStyle(Theme.sky)
+                    Text("View as").font(.subheadline).foregroundStyle(Theme.mist)
+                    Spacer(minLength: 8)
+                    Text(current).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                    Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(Theme.mist)
+                }
+            }
+        }
+        .accessibilityIdentifier(id)
+        .accessibilityLabel("View as")
+        .accessibilityValue(current)
     }
 }

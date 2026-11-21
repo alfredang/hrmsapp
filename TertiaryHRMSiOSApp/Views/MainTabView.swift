@@ -35,7 +35,10 @@ struct MainTabView: View {
                 NavigationStack { TrainersView() }
                     .tabItem { Label("Trainers", systemImage: "person.text.rectangle.fill") }.tag(Self.trainersTab)
             } else {
-                NavigationStack { LeaveView() }
+                // Admins do not apply for leave or MC (Alfred, 22 Nov 2026): their Leave tab is
+                // leave management (everyone's leave and MC). Staff, interns, accountants and an
+                // approver previewing those roles keep their own leave with Apply.
+                NavigationStack { if auth.showsAdmin { LeaveSummaryView() } else { LeaveView() } }
                     .tabItem { Label("Leave", systemImage: "calendar.badge.clock") }.tag(1)
             }
             NavigationStack { TeamCalendarView() }

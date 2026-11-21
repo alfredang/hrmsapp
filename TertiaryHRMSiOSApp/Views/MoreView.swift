@@ -29,8 +29,10 @@ struct MoreView: View {
         auth.isIntern || (auth.user?.roles ?? []).contains { $0.uppercased() == "INTERN" }
     }
 
-    /// Approver roles (mirrors the web's `hasAdminAccess`).
-    private var isAdmin: Bool { ["ADMIN", "HR", "MANAGER"].contains(auth.user?.primaryRole.uppercased() ?? "") }
+    /// Approver roles (mirrors the web's `hasAdminAccess`), unless View As previews another role.
+    private var showsAdmin: Bool { auth.showsAdmin }
+    /// Trainer Admin link: TRAINER_ADMIN holders in their own view (not in a role preview).
+    private var showsTrainerLink: Bool { auth.canManageTrainers && !auth.isRolePreview }
 
     var body: some View {
         GradientScreen {
@@ -38,7 +40,7 @@ struct MoreView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     header
 
-                    if auth.canManageTrainers { viewAsControl }
+                    if auth.availableViews.count > 1 { viewAsControl }
 
                     if auth.isTrainerView {
                         group("My Stuff") {
@@ -52,17 +54,20 @@ struct MoreView: View {
                     } else {
 
                     group("Applications") {
-                        action("MC", "cross.case.fill", .pink) { await openApply("MC") }
-                        divider
-                        action("Leave", "calendar.badge.clock", Theme.sky) { await openApply("AL") }
-                        divider
+                        // Admins do not apply for leave or MC (Alfred, 22 Nov 2026).
+                        if !showsAdmin {
+                            action("MC", "cross.case.fill", .pink) { await openApply("MC") }
+                            divider
+                            action("Leave", "calendar.badge.clock", Theme.sky) { await openApply("AL") }
+                            divider
+                        }
                         link("Time Off", "hourglass", Theme.sky) { TimeOffView() }
                         divider
                         link("Expense Claims", "creditcard.fill", .orange) { ExpensesView() }
                         divider
-                        if auth.isIntern {
+                        if auth.showsIntern {
                             link("Timesheet", "tablecells", .teal) { MyTimesheetView() }
-                        } else if auth.mustClockIn {
+                        } else if auth.showsMustClockIn {
                             link("Timesheet", "tablecells", .teal) { MyTimesheetView() }
                             divider
                             link("Off In Lieu", "calendar.badge.plus", .teal) { WeeklyTimesheetView() }
@@ -82,23 +87,23 @@ struct MoreView: View {
                     }
 
                     // Only people who must clock in (web: hidden for admins; Alfred, 22 Nov 2026).
-                    if isInternUser || auth.mustClockIn {
+                    if auth.isRolePreview ? auth.showsMustClockIn : (isInternUser || auth.mustClockIn) {
                         group("Attendance") {
                             link("Time In/Out", "clock.badge.checkmark.fill", Theme.gold600) { ClockView() }
                         }
                     }
 
-                    if isAdmin || auth.canManageTrainers {
+                    if showsAdmin || showsTrainerLink {
                         group("Manage") {
-                            if isAdmin {
+                            if showsAdmin {
                                 link("Approvals", "checkmark.circle.fill", Theme.success) { ApprovalsView() }
                                 divider
                                 link("Timesheet", "person.badge.clock.fill", .teal) { TimesheetAdminView() }
                                 divider
                                 link("Leave & MC", "cross.case.fill", .pink) { LeaveSummaryView() }
                             }
-                            if isAdmin && auth.canManageTrainers { divider }
-                            if auth.canManageTrainers {
+                            if showsAdmin && showsTrainerLink { divider }
+                            if showsTrainerLink {
                                 link("Trainer Admin", "person.text.rectangle.fill", Theme.gold600) { TrainersView() }
                             }
                         }
@@ -135,19 +140,24 @@ struct MoreView: View {
         } message: { Text(applyError ?? "") }
     }
 
-    /// View As (Trainer Admins only): "My view" is the normal app, "Trainer Admin" the trainer view.
+    /// View As: approvers get the menu (Admin / Staff / Intern / Accountant / Trainer Admin);
+    /// Trainer Admins who are not approvers keep the two-way control (My view / Trainer Admin).
     private var viewAsControl: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("VIEW AS")
                 .font(.caption.weight(.semibold)).foregroundStyle(Theme.mist)
                 .padding(.leading, 6)
                 .accessibilityAddTraits(.isHeader)
-            Card(padding: 10) {
-                Picker("View as", selection: $auth.viewAs) {
-                    ForEach(ViewAs.allCases) { Text($0.title).tag($0) }
+            if auth.isApprover {
+                ViewAsMenu(id: "more.viewAs")
+            } else {
+                Card(padding: 10) {
+                    Picker("View as", selection: $auth.viewAs) {
+                        ForEach(auth.availableViews) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("more.viewAs")
                 }
-                .pickerStyle(.segmented)
-                .accessibilityIdentifier("more.viewAs")
             }
         }
     }

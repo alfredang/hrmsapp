@@ -47,6 +47,16 @@ actor HRMSAPI {
     // MARK: - Typed reads
 
     func summary()  async throws -> DashboardSummary { isPreview ? PreviewData.summary   : try await get("api/mobile/summary") }
+    /// `view` ("staff" | "intern" | "accountant"): an approver previewing that role's Home. The server
+    /// then adds the leave tiles (staff, intern) or the finance tiles (accountant), which it leaves
+    /// out of an admin's own summary.
+    func summary(view: String?) async throws -> DashboardSummary {
+        guard let view else { return try await summary() }
+        if isPreview { return PreviewData.summary(view: view) }
+        var comps = URLComponents(url: base.appendingPathComponent("api/mobile/summary"), resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "view", value: view)]
+        return try await get(url: comps.url!)
+    }
     func leave()    async throws -> LeaveResponse     { isPreview ? PreviewData.leave     : try await get("api/mobile/leave") }
     func employees()async throws -> EmployeesResponse { isPreview ? PreviewData.employees : try await get("api/mobile/employees") }
     func expenses() async throws -> ExpensesResponse  { isPreview ? PreviewData.expenses  : try await get("api/mobile/expenses") }

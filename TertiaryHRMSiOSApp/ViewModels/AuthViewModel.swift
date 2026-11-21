@@ -1,14 +1,34 @@
 import Foundation
 import SwiftUI
 
-/// The More tab's "View As" choice for Trainer Admins (web view mode "trainer", 20 Nov 2026).
-/// "My view" is the normal app; "Trainer Admin" shows only Home (trainer tiles), Trainers,
-/// Calendar and More. Saved per device; only takes effect while `canManageTrainers` is true.
+/// View As (web view modes, 20–22 Nov 2026). Approvers (ADMIN / HR / MANAGER) can preview the
+/// Staff, Intern and Accountant screens; Trainer Admins can switch to the Trainer Admin view.
+/// "mine" is the person's own view (Admin for approvers). Only what is SHOWN changes: forms,
+/// approvals and every API call still act as the signed-in person, and the server enforces RBAC.
+/// Saved per device; a choice the person can no longer make falls back to "mine".
 enum ViewAs: String, CaseIterable, Identifiable {
-    case mine
+    case mine, staff, intern, accountant
     case trainerAdmin = "trainer"
     var id: String { rawValue }
-    var title: String { self == .mine ? "My view" : "Trainer Admin" }
+    var title: String { title(isApprover: false) }
+    func title(isApprover: Bool) -> String {
+        switch self {
+        case .mine: return isApprover ? "Admin" : "My view"
+        case .staff: return "Staff"
+        case .intern: return "Intern"
+        case .accountant: return "Accountant"
+        case .trainerAdmin: return "Trainer Admin"
+        }
+    }
+    var icon: String {
+        switch self {
+        case .mine: return "person.badge.key.fill"
+        case .staff: return "person.fill"
+        case .intern: return "graduationcap.fill"
+        case .accountant: return "dollarsign.circle.fill"
+        case .trainerAdmin: return "person.text.rectangle.fill"
+        }
+    }
     static let storageKey = "hrms_view_as"
 }
 
@@ -48,10 +68,28 @@ final class AuthViewModel: ObservableObject {
     /// The Trainer Admin view is on: chosen in View As and the user still holds TRAINER_ADMIN.
     var isTrainerView: Bool { canManageTrainers && viewAs == .trainerAdmin }
 
-    /// Apply the server's `canManageTrainers`; losing it falls back to "My view".
+    /// The views this person may pick: their own, the role previews for approvers, Trainer Admin
+    /// for TRAINER_ADMIN holders.
+    var availableViews: [ViewAs] {
+        var v: [ViewAs] = [.mine]
+        if isApprover { v += [.staff, .intern, .accountant] }
+        if canManageTrainers { v.append(.trainerAdmin) }
+        return v
+    }
+
+    /// An approver previewing another role's screens (Staff / Intern / Accountant).
+    var isRolePreview: Bool { isApprover && [.staff, .intern, .accountant].contains(viewAs) }
+
+    /// What the screens show (View As aware). Business rules and forms keep the real roles
+    /// (`isIntern`, `mustClockIn`, `isApprover`).
+    var showsAdmin: Bool { isApprover && !isRolePreview && !isTrainerView }
+    var showsIntern: Bool { isRolePreview ? viewAs == .intern : isIntern }
+    var showsMustClockIn: Bool { isRolePreview ? (viewAs == .intern || viewAs == .accountant) : mustClockIn }
+
+    /// Apply the server's `canManageTrainers`; a view that is no longer allowed falls back to "mine".
     func applyTrainerCapability(_ can: Bool) {
         canManageTrainers = can
-        if !can && viewAs != .mine { viewAs = .mine }
+        if !availableViews.contains(viewAs) { viewAs = .mine }
     }
 
     /// Interns (roles exactly ["INTERN"]) have no paid MC — sick leave goes in as No Pay Leave.
