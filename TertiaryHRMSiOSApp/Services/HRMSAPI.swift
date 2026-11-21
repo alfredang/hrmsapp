@@ -553,8 +553,22 @@ actor HRMSAPI {
         }
     }
 
+    /// Every HRMS call: tells the server which app version is calling (force update), and turns a
+    /// 426 (this app is older than the store's) into the blocking Update required screen.
     private func safe(_ req: URLRequest) async throws -> (Data, URLResponse) {
-        do { return try await session.data(for: req) }
+        var req = req
+        req.setValue("ios", forHTTPHeaderField: "X-App-Platform")
+        req.setValue(UpdateGate.appVersion, forHTTPHeaderField: "X-App-Version")
+        req.setValue(UpdateGate.appBuild, forHTTPHeaderField: "X-App-Build")
+        let result: (Data, URLResponse)
+        do { result = try await session.data(for: req) }
         catch { throw APIError.network }
+        if (result.1 as? HTTPURLResponse)?.statusCode == 426 {
+            let body = try? JSONSerialization.jsonObject(with: result.0) as? [String: Any]
+            let url = (body?["storeUrl"] as? String).flatMap(URL.init(string:))
+            await MainActor.run { UpdateGate.shared.require(url) }
+            throw APIError.http(426)
+        }
+        return result
     }
 }

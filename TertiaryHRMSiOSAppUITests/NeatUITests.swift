@@ -69,9 +69,10 @@ final class NeatUITests: XCTestCase {
         let viewAs = app.buttons["more.viewAs"]
         XCTAssertTrue(viewAs.waitForExistence(timeout: 10))
         XCTAssertEqual(viewAs.value as? String, "Trainer Admin")
-        XCTAssertTrue(app.staticTexts["Trainer Admin"].exists)
-        XCTAssertFalse(app.staticTexts["APPLICATIONS"].exists)
-        XCTAssertFalse(app.staticTexts["Approvals"].exists)
+        XCTAssertTrue(app.buttons["more.row.trainers"].exists, "Trainer Admin view: People → Trainers")
+        XCTAssertTrue(app.descendants(matching: .any)["more.row.sop"].exists)
+        XCTAssertFalse(app.staticTexts["PROCESSES"].exists)
+        XCTAssertFalse(app.buttons["more.row.approvals"].exists)
         snap(app, "trainer-view-more")
 
         viewAs.tap()
@@ -83,8 +84,8 @@ final class NeatUITests: XCTestCase {
         XCTAssertTrue(app.buttons["home.kpi.pending"].waitForExistence(timeout: 10))
 
         tabs.buttons["More"].tap()
-        XCTAssertTrue(app.staticTexts["Trainer Admin"].waitForExistence(timeout: 5), "Manage link renamed")
-        XCTAssertFalse(app.staticTexts["ATTENDANCE"].exists, "admins do not clock in (1.20)")
+        XCTAssertTrue(app.buttons["more.row.trainers"].waitForExistence(timeout: 5), "People → Trainers")
+        XCTAssertFalse(app.buttons["more.row.clock"].exists, "admins do not clock in (1.20)")
         app.buttons["more.viewAs"].tap()
         app.buttons["viewAs.trainer"].tap()
         XCTAssertTrue(tabs.buttons["Trainers"].waitForExistence(timeout: 5))
@@ -295,12 +296,20 @@ final class NeatUITests: XCTestCase {
         XCTAssertFalse(app.buttons["home.apply.MC"].exists, "accountants have no leave or MC")
         XCTAssertFalse(app.tabBars.buttons["Leave"].exists, "no Leave tab for accountants")
         app.tabBars.buttons["More"].tap()
-        XCTAssertTrue(app.staticTexts["ATTENDANCE"].waitForExistence(timeout: 5), "accountant view clocks in")
-        XCTAssertFalse(app.staticTexts["Time Off"].exists)
-        XCTAssertFalse(app.staticTexts["Approvals"].exists)
+        XCTAssertTrue(app.buttons["more.row.clock"].waitForExistence(timeout: 5), "accountant view clocks in")
+        XCTAssertTrue(app.buttons["more.row.mytimesheet"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["more.row.reconciliation"].exists, "accounting links")
+        XCTAssertFalse(app.buttons["more.row.timeoff"].exists)
+        XCTAssertFalse(app.buttons["more.row.claims"].exists, "web: no Expense Claims in the accountant view")
+        XCTAssertFalse(app.buttons["more.row.approvals"].exists)
         app.buttons["more.viewAs"].tap(); app.buttons["viewAs.mine"].tap()
-        XCTAssertTrue(app.staticTexts["Approvals"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["ATTENDANCE"].exists)
+        // Switching View As lands on Home; go back to More.
+        XCTAssertTrue(app.buttons["home.kpi.pending"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["More"].tap()
+        XCTAssertTrue(app.buttons["more.row.approvals"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["more.row.staff"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["more.row.settings"].exists)
+        XCTAssertFalse(app.buttons["more.row.clock"].exists)
         XCTAssertFalse(app.buttons["more.apply.MC"].exists, "admins do not apply for MC")
         // Admin Leave tab: leave management, no Apply button or own balances.
         app.tabBars.buttons["Leave"].tap()
@@ -320,6 +329,14 @@ final class NeatUITests: XCTestCase {
         edit.tap()
         XCTAssertTrue(app.navigationBars["Edit profile"].waitForExistence(timeout: 5), "edit form, not a blank sheet")
         snap(app, "edit-profile")
+    }
+
+    /// Force update: an outdated app is blocked by a screen whose only way on is the App Store.
+    func testUpdateRequiredBlocksTheApp() {
+        let app = launch(["-uiPreviewUpdateRequired"])
+        XCTAssertTrue(app.staticTexts["update.title"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["update.button"].exists)
+        snap(app, "update-required")
     }
 
     func testTrainerRowContactMenu() {

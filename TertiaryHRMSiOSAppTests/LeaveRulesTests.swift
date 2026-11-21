@@ -71,6 +71,15 @@ final class LeaveRulesTests: XCTestCase {
         XCTAssertEqual(p.total, p.leave + p.mc + p.timeOff + p.claims + 3)
     }
 
+    func testUpdateGateComparesDottedVersions() {
+        XCTAssertTrue(UpdateGate.mustUpdate(version: "1.19", live: "1.20"))
+        XCTAssertTrue(UpdateGate.mustUpdate(version: "1.9", live: "1.10"), "numeric, not text")
+        XCTAssertFalse(UpdateGate.mustUpdate(version: "1.20", live: "1.20"))
+        XCTAssertFalse(UpdateGate.mustUpdate(version: "1.20", live: "1.20.0"))
+        XCTAssertFalse(UpdateGate.mustUpdate(version: "1.21", live: "1.20"), "newer than the store (in review)")
+        XCTAssertFalse(UpdateGate.mustUpdate(version: "1.20", live: nil), "no live version: never block")
+    }
+
     func testAccountantMeansAccountantWithoutApproverRole() {
         XCTAssertTrue(LeaveRules.isAccountant(roles: ["ACCOUNTANT"]))
         XCTAssertTrue(LeaveRules.isAccountant(roles: ["STAFF", "accountant"]))

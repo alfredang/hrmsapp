@@ -1,14 +1,13 @@
 import SwiftUI
 
-/// More tab (Alfred, 11 Nov 2026; 20 Nov 2026): Applications (MC, Leave, Time Off, Expense Claims,
-/// Off In Lieu and/or the Timesheet), Staff (Calendar, Payslips, My Profile, Trainers), Attendance
-/// (Time In/Out — interns and accountants who must clock in; not admins or staff), Manage (approvers: Approvals,
-/// Timesheet, Leave & MC; Trainer Admins: Trainer Admin) and Help, then sign out.
-/// Interns see "Timesheet"; accountants who must clock in (`auth.mustClockIn`) see "Timesheet" and
-/// "Off In Lieu"; other staff see "Off In Lieu"; approvers get the one admin "Timesheet"
-/// (intern hours + missing punches + Off In Lieu).
-/// Trainer Admins get a View As control on top (My view / Trainer Admin). In the Trainer Admin
-/// view More is only My Stuff (My Profile, Calendar), People (Trainer Admin) and Help.
+/// More tab = the web sidebar (Alfred, 22 Nov 2026): My Stuff, People, Processes, Finance,
+/// Accounting, Documents and System, each row shown under the same rules as the web
+/// (`src/components/layout/sidebar.tsx` `isVisible`), then Help and sign out. Screens the app
+/// has natively open in the app; accounting, SOP and settings open the web page.
+/// Departures from the web, by product decision: Clock In/Out only for people who must clock in
+/// (never admins or staff), Approvals as its own row for admins, no Woods Square, no NPL Payback.
+/// View As (approvers, Trainer Admins) sits on top; the Trainer Admin view shows My Stuff,
+/// People → Trainers and Documents only (web TRAINER_VIEW_HREFS).
 struct MoreView: View {
     @EnvironmentObject private var auth: AuthViewModel
     @State private var signingOut = false
@@ -24,15 +23,101 @@ struct MoreView: View {
         let code: String
     }
 
-    /// Interns: roles exactly ["INTERN"] (`auth.isIntern`) or any account carrying INTERN.
-    private var isInternUser: Bool {
-        auth.isIntern || (auth.user?.roles ?? []).contains { $0.uppercased() == "INTERN" }
+    /// One More row: pushes a screen, opens the leave form preset to a type, or opens a web page.
+    private struct Row: Identifiable {
+        enum Kind { case push(AnyView), apply(String), web(String) }
+        let id: String
+        let title: String
+        let icon: String
+        let tint: Color
+        let kind: Kind
+        init(_ id: String, _ title: String, _ icon: String, _ tint: Color, _ kind: Kind) {
+            self.id = id; self.title = title; self.icon = icon; self.tint = tint; self.kind = kind
+        }
+        static func push<V: View>(_ id: String, _ title: String, _ icon: String, _ tint: Color, _ v: V) -> Row {
+            Row(id, title, icon, tint, .push(AnyView(v)))
+        }
     }
 
-    /// Approver roles (mirrors the web's `hasAdminAccess`), unless View As previews another role.
-    private var showsAdmin: Bool { auth.showsAdmin }
-    /// Trainer Admin link: TRAINER_ADMIN holders in their own view (not in a role preview).
-    private var showsTrainerLink: Bool { auth.canManageTrainers && !auth.isRolePreview }
+    /// The sections, as the web sidebar shows them for the current view.
+    private var sections: [(title: String, rows: [Row])] {
+        if auth.isTrainerView {
+            return [
+                ("My Stuff", [.push("profile", "My Profile", "person.crop.circle.fill", Theme.azure, ProfileView()),
+                              .push("calendar", "Calendar", "calendar", Theme.sky, CalendarListView())]),
+                ("People", [.push("trainers", "Trainers", "person.text.rectangle.fill", Theme.gold600, TrainersView())]),
+                ("Documents", [Row("sop", "SOP", "book.fill", Theme.sky, .web("sop"))]),
+            ]
+        }
+        let admin = auth.showsAdmin
+        let accountant = auth.showsAccountant && !admin
+        let intern = auth.showsIntern && !admin
+        let staff = !admin && !accountant && !intern
+        var people: [Row] = []
+        if admin {
+            people.append(.push("staff", "Staff", "person.2.fill", Theme.sky, TeamView(group: .staff)))
+            people.append(.push("interns", "Interns", "person.badge.plus", Theme.sky, TeamView(group: .interns)))
+        }
+        if auth.canManageTrainers && !auth.isRolePreview {
+            people.append(.push("trainers", "Trainers", "person.text.rectangle.fill", Theme.gold600, TrainersView()))
+        } else {
+            // Everyone can reach a trainer (app-only contact list; the directory is Trainer Admin's).
+            people.append(.push("trainercontacts", "Trainer contacts", "person.crop.rectangle.stack.fill", Theme.gold600, TrainerContactsView()))
+        }
+
+        var processes: [Row] = []
+        if admin {
+            processes.append(.push("approvals", "Approvals", "checkmark.circle.fill", Theme.success, ApprovalsView()))
+            processes.append(.push("leavemgmt", "Leave Management", "calendar.badge.clock", Theme.sky, LeaveSummaryView()))
+            processes.append(.push("timeoff", "Time Off Approvals", "hourglass", .orange, TimeOffView()))
+            processes.append(.push("timesheet", "Timesheet", "person.badge.clock.fill", .teal, TimesheetAdminView()))
+        } else if !accountant {
+            processes.append(Row("AL", "Annual Leave", "sun.max.fill", Theme.sky, .apply("AL")))
+            processes.append(Row("MC", "Medical Leave", "cross.case.fill", .pink, .apply("MC")))
+            processes.append(.push("timeoff", "Time Off Application", "hourglass", .orange, TimeOffView()))
+        }
+        if !admin && auth.showsMustClockIn {
+            processes.append(.push("clock", "Clock In/Out", "clock.badge.checkmark.fill", Theme.gold600, ClockView()))
+        }
+        if intern || accountant {
+            processes.append(.push("mytimesheet", "Timesheet", "tablecells", .teal, MyTimesheetView()))
+        }
+        if staff {
+            processes.append(.push("offinlieu", "Off In Lieu", "calendar.badge.plus", .teal, WeeklyTimesheetView()))
+        }
+
+        var finance: [Row] = []
+        if !intern { finance.append(.push("payslips", "Payslips", "doc.text.fill", Theme.success, PayslipsView())) }
+        if admin {
+            finance.append(.push("claims", "Claim Management", "creditcard.fill", .orange, ApprovalsView()))
+        } else if !accountant {
+            finance.append(.push("claims", "Expense Claims", "creditcard.fill", .orange, ExpensesView()))
+        }
+
+        var accounting: [Row] = []
+        if admin || accountant {
+            accounting = [
+                Row("expensetracking", "Expense Tracking", "arrow.down.right", Theme.danger, .web("accounting/expense-tracking")),
+                Row("incometracking", "Income Tracking", "arrow.up.right", Theme.success, .web("accounting/income-tracking")),
+                Row("reconciliation", "Bank Reconciliation", "scale.3d", Theme.gold600, .web("accounting/reconciliation")),
+                Row("statements", "Bank Statements", "folder.fill", Theme.sky, .web(Self.bankStatementsFolder)),
+            ]
+        }
+
+        return [
+            ("My Stuff", [.push("profile", "My Profile", "person.crop.circle.fill", Theme.azure, ProfileView()),
+                          .push("calendar", "Calendar", "calendar", Theme.sky, CalendarListView())]),
+            ("People", people),
+            ("Processes", processes),
+            ("Finance", finance),
+            ("Accounting", accounting),
+            ("Documents", [Row("sop", "SOP", "book.fill", Theme.sky, .web("sop"))]),
+            ("System", admin ? [Row("settings", "Settings", "gearshape.fill", Theme.mist, .web("settings"))] : []),
+        ]
+    }
+
+    /// Web sidebar "Bank Statements": the shared Drive folder of DBS statements.
+    static let bankStatementsFolder = "https://drive.google.com/drive/u/1/folders/1U6MCWuKZQ4wWZqn36AVHUeOD7a-URAaY"
 
     var body: some View {
         GradientScreen {
@@ -42,76 +127,8 @@ struct MoreView: View {
 
                     if auth.availableViews.count > 1 { viewAsControl }
 
-                    if auth.isTrainerView {
-                        group("My Stuff") {
-                            link("My Profile", "person.crop.circle.fill", Theme.azure) { ProfileView() }
-                            divider
-                            link("Calendar", "calendar", Theme.sky) { CalendarListView() }
-                        }
-                        group("People") {
-                            link("Trainer Admin", "person.text.rectangle.fill", Theme.gold600) { TrainersView() }
-                        }
-                    } else {
-
-                    group("Applications") {
-                        // Admins do not apply for leave or MC; accountants have no leave, MC or
-                        // time off (Alfred, 22 Nov 2026; web sidebar noAccountant).
-                        if !showsAdmin && !auth.showsAccountant {
-                            action("MC", "cross.case.fill", .pink) { await openApply("MC") }
-                            divider
-                            action("Leave", "calendar.badge.clock", Theme.sky) { await openApply("AL") }
-                            divider
-                        }
-                        if !auth.showsAccountant {
-                            link("Time Off", "hourglass", Theme.sky) { TimeOffView() }
-                            divider
-                        }
-                        link("Expense Claims", "creditcard.fill", .orange) { ExpensesView() }
-                        divider
-                        if auth.showsIntern {
-                            link("Timesheet", "tablecells", .teal) { MyTimesheetView() }
-                        } else if auth.showsMustClockIn {
-                            link("Timesheet", "tablecells", .teal) { MyTimesheetView() }
-                            divider
-                            link("Off In Lieu", "calendar.badge.plus", .teal) { WeeklyTimesheetView() }
-                        } else {
-                            link("Off In Lieu", "calendar.badge.plus", .teal) { WeeklyTimesheetView() }
-                        }
-                    }
-
-                    group("Staff") {
-                        link("Calendar", "calendar", Theme.sky) { CalendarListView() }
-                        divider
-                        link("Payslips", "doc.text.fill", Theme.success) { PayslipsView() }
-                        divider
-                        link("My Profile", "person.crop.circle.fill", Theme.azure) { ProfileView() }
-                        divider
-                        link("Trainers", "person.crop.rectangle.stack.fill", Theme.gold600) { TrainerContactsView() }
-                    }
-
-                    // Only people who must clock in (web: hidden for admins; Alfred, 22 Nov 2026).
-                    if auth.isRolePreview ? auth.showsMustClockIn : (isInternUser || auth.mustClockIn) {
-                        group("Attendance") {
-                            link("Time In/Out", "clock.badge.checkmark.fill", Theme.gold600) { ClockView() }
-                        }
-                    }
-
-                    if showsAdmin || showsTrainerLink {
-                        group("Manage") {
-                            if showsAdmin {
-                                link("Approvals", "checkmark.circle.fill", Theme.success) { ApprovalsView() }
-                                divider
-                                link("Timesheet", "person.badge.clock.fill", .teal) { TimesheetAdminView() }
-                                divider
-                                link("Leave & MC", "cross.case.fill", .pink) { LeaveSummaryView() }
-                            }
-                            if showsAdmin && showsTrainerLink { divider }
-                            if showsTrainerLink {
-                                link("Trainer Admin", "person.text.rectangle.fill", Theme.gold600) { TrainersView() }
-                            }
-                        }
-                    }
-
+                    ForEach(sections.filter { !$0.rows.isEmpty }, id: \.title) { section in
+                        rowGroup(section.title, section.rows)
                     }
 
                     group("Help") {
@@ -181,6 +198,41 @@ struct MoreView: View {
         }
     }
 
+    private func rowGroup(_ title: String, _ rows: [Row]) -> some View {
+        group(title) {
+            ForEach(Array(rows.enumerated()), id: \.element.id) { i, row in
+                if i > 0 { divider }
+                switch row.kind {
+                case .push(let view):
+                    link(row.title, row.icon, row.tint) { view }
+                        .accessibilityIdentifier("more.row.\(row.id)")
+                case .apply(let code):
+                    action(row.title, row.icon, row.tint) { await openApply(code) }
+                        .accessibilityIdentifier("more.apply.\(code)")
+                case .web(let path):
+                    webLink(row.title, row.icon, row.tint, path)
+                        .accessibilityIdentifier("more.row.\(row.id)")
+                }
+            }
+        }
+    }
+
+    /// A row that opens a web page (the HRMS web app, or a full URL) in Safari.
+    private func webLink(_ title: String, _ icon: String, _ tint: Color, _ path: String) -> some View {
+        let url = path.hasPrefix("http") ? URL(string: path)! : AuthService.baseURL.appendingPathComponent(path)
+        return Link(destination: url) {
+            HStack(spacing: 14) {
+                Image(systemName: icon).foregroundStyle(tint).frame(width: 26)
+                Text(title).foregroundStyle(Theme.ink)
+                Spacer()
+                Image(systemName: "arrow.up.right.square").font(.caption).foregroundStyle(Theme.mist.opacity(0.7))
+            }
+            .padding(.horizontal, 12).padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .accessibilityHint("Opens the web page")
+    }
+
     private func group<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title.uppercased())
@@ -219,7 +271,6 @@ struct MoreView: View {
         }
         .buttonStyle(.plain)
         .disabled(loadingApply)
-        .accessibilityIdentifier("more.apply.\(title)")
     }
 
     /// Load the leave types / balances, then open the leave form preselected on `code`.
