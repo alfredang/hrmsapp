@@ -107,34 +107,6 @@ final class NeatUITests: XCTestCase {
         XCTAssertTrue(app.buttons["System"].isSelected)
     }
 
-    func testAnalyticsFiltersDriveTilesAndLists() {
-        let app = launch(["-uiPreviewOpen", "analytics"])
-        let headcount = app.descendants(matching: .any)["analytics.tile.Headcount"]
-        XCTAssertTrue(headcount.waitForExistence(timeout: 10))
-        XCTAssertTrue((headcount.value as? String ?? "").hasPrefix("23"), "preview: 14 staff + 9 interns")
-        snap(app, "analytics-all")
-
-        app.segmentedControls["analytics.who"].buttons["Interns"].tap()
-        XCTAssertTrue((headcount.value as? String ?? "").hasPrefix("9"))
-        XCTAssertTrue(app.buttons["analytics.reset"].exists)
-
-        // Hiding a category takes it out of the Expenses tile.
-        let expenses = app.descendants(matching: .any)["analytics.tile.Expenses"]
-        let before = expenses.value as? String ?? ""
-        let payroll = app.buttons["analytics.type.Payroll"]
-        for _ in 0..<6 where !payroll.isHittable { app.swipeUp(velocity: .slow) }
-        payroll.tap()
-        XCTAssertTrue((payroll.value as? String ?? "").hasSuffix("hidden"))
-        snap(app, "analytics-categories")
-        for i in 1...4 { app.swipeUp(velocity: .slow); snap(app, "analytics-scroll-\(i)") }
-        for _ in 0..<12 where !expenses.isHittable { app.swipeDown(velocity: .slow) }
-        XCTAssertNotEqual(expenses.value as? String ?? "", before)
-        snap(app, "analytics-interns-no-payroll")
-
-        app.buttons["analytics.reset"].tap()
-        XCTAssertTrue((headcount.value as? String ?? "").hasPrefix("23"))
-    }
-
     /// Calendar (approvers): "Leave shown for" lists active people grouped Staff / Interns with
     /// their leave counts; picking one shows only their leave, the x goes back to everyone.
     func testCalendarPersonFilter() {
@@ -183,29 +155,6 @@ final class NeatUITests: XCTestCase {
         XCTAssertTrue(profile.staticTexts["Work Schedule"].waitForExistence(timeout: 10))
         XCTAssertTrue(profile.staticTexts["Mon, Tue, Wed, Thu, Fri"].exists)
         snap(profile, "profile-work-schedule")
-    }
-
-    /// Analytics: the workforce breakdown starts on Staff; Interns shows the ethnic-group note.
-    func testAnalyticsWorkforceBreakdown() {
-        let app = launch(["-uiPreviewOpen", "analytics"])
-        let who = app.segmentedControls["analytics.breakdown.who"]
-        XCTAssertTrue(app.descendants(matching: .any)["analytics.tile.Headcount"].waitForExistence(timeout: 10))
-        for _ in 0..<14 where !who.isHittable { app.swipeUp() }
-        XCTAssertTrue(who.buttons["Staff"].isSelected)
-        let male = app.buttons["analytics.breakdown.Gender.Male"]
-        for _ in 0..<4 where !male.isHittable { app.swipeUp(velocity: .slow) }
-        XCTAssertEqual(male.value as? String, "7, 50%")
-        snap(app, "analytics-breakdown-staff")
-        for _ in 0..<4 where !who.isHittable { app.swipeDown(velocity: .slow) }
-        who.buttons["Interns"].tap()
-        XCTAssertEqual(app.buttons["analytics.breakdown.Gender.Male"].value as? String, "5, 56%")
-        app.swipeUp()
-        XCTAssertTrue(app.staticTexts["analytics.breakdown.note"].waitForExistence(timeout: 5))
-        snap(app, "analytics-breakdown-interns")
-        for _ in 0..<3 where !who.isHittable { app.swipeDown(velocity: .slow) }
-        who.buttons["Staff"].tap()
-        app.swipeUp()
-        snap(app, "analytics-breakdown-staff-full")
     }
 
     /// Trainer Admin opens on ACLP trainers, A–Z; the ACLP / Non-ACLP / All control and the
@@ -259,13 +208,44 @@ final class NeatUITests: XCTestCase {
         app.tabBars.buttons["Home"].tap()
         let staff = app.buttons["home.kpi.staff"]
         XCTAssertTrue(staff.waitForExistence(timeout: 10))
-        XCTAssertEqual(staff.value as? String, "14")
-        XCTAssertEqual(app.buttons["home.kpi.interns"].value as? String, "9")
+        // Active people only, the same list as Team (no Analytics headcount since 1.20).
+        XCTAssertEqual(staff.value as? String, "6")
+        XCTAssertEqual(app.buttons["home.kpi.interns"].value as? String, "3")
         XCTAssertEqual(app.buttons["home.kpi.pending"].value as? String, "5")
         snap(app, "home-kpi")
         app.buttons["home.kpi.interns"].tap()
         XCTAssertTrue(app.segmentedControls["team.group"].buttons["Interns 3"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.segmentedControls["team.group"].buttons["Interns 3"].isSelected)
+    }
+
+    /// Each role has its own Home (1.20): interns clock in from Home; staff see AL / MC left with
+    /// Apply for leave / MC; admins see the workforce tiles and never a clock or apply buttons.
+    func testHomeFollowsRole() {
+        let intern = launch(["-uiPreviewIntern"])
+        XCTAssertTrue(intern.buttons["home.clock.punch"].waitForExistence(timeout: 10))
+        XCTAssertTrue(intern.buttons["home.apply.MC"].exists)
+        XCTAssertTrue(intern.buttons["home.action.mytimesheet"].exists)
+        XCTAssertFalse(intern.buttons["home.kpi.staff"].exists)
+        snap(intern, "home-intern")
+        intern.terminate()
+
+        let staff = launch(["-uiPreviewStaff"])
+        XCTAssertTrue(staff.buttons["home.apply.AL"].waitForExistence(timeout: 10))
+        XCTAssertEqual(staff.descendants(matching: .any)["home.balance.mc"].value as? String, "14 days")
+        XCTAssertFalse(staff.buttons["home.clock.punch"].exists)
+        XCTAssertFalse(staff.buttons["home.action.clock"].exists)
+        snap(staff, "home-staff")
+        staff.buttons["home.profile"].tap()
+        XCTAssertTrue(staff.navigationBars.buttons.firstMatch.waitForExistence(timeout: 5))
+        staff.terminate()
+
+        let admin = launch([])
+        XCTAssertTrue(admin.buttons["home.kpi.staff"].waitForExistence(timeout: 10))
+        XCTAssertTrue(admin.buttons["home.action.approvals"].exists)
+        XCTAssertFalse(admin.buttons["home.clock.punch"].exists)
+        XCTAssertFalse(admin.buttons["home.apply.MC"].exists)
+        XCTAssertFalse(admin.buttons["home.analytics"].exists)
+        snap(admin, "home-admin")
     }
 
     func testTrainerRowContactMenu() {

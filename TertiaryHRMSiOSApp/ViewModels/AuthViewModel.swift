@@ -93,12 +93,16 @@ final class AuthViewModel: ObservableObject {
                 user = SessionUser(id: "preview-intern", email: "intern@tertiaryinfotech.com",
                                    name: "Jamie Koh", role: "INTERN",
                                    roles: ["INTERN"], employeeId: "I0007")
+            } else if args.contains("-uiPreviewStaff") {
+                user = SessionUser(id: "preview-staff", email: "staff@tertiaryinfotech.com",
+                                   name: "Sarah Lim", role: "STAFF",
+                                   roles: ["STAFF"], employeeId: "E0002")
             } else {
                 user = SessionUser(id: "preview", email: "alfred.ang@tertiaryinfotech.com",
                                    name: "Alfred Ang", role: "ADMIN",
                                    roles: ["ADMIN", "HR", "TRAINER_ADMIN"], employeeId: "E0001")
             }
-            canManageTrainers = !args.contains("-uiPreviewIntern")
+            canManageTrainers = !args.contains("-uiPreviewIntern") && !args.contains("-uiPreviewStaff")
             // `-uiPreviewViewAs trainer` opens the Trainer Admin view; otherwise always My view.
             if let i = args.firstIndex(of: "-uiPreviewViewAs"), i + 1 < args.count,
                let v = ViewAs(rawValue: args[i + 1]) { viewAs = v } else { viewAs = .mine }

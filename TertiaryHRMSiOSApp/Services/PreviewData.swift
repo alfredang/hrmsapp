@@ -21,18 +21,23 @@ enum PreviewData {
     }
 
     // MARK: Dashboard
+    /// `-uiPreviewIntern` / `-uiPreviewStaff` sign the preview in as an intern / plain staff member.
+    static var previewIntern: Bool { ProcessInfo.processInfo.arguments.contains("-uiPreviewIntern") }
+    static var previewStaff: Bool { ProcessInfo.processInfo.arguments.contains("-uiPreviewStaff") }
     static var summary: DashboardSummary { DashboardSummary(
-        name: "Alfred Ang", role: "Administrator", isAdmin: true,
+        name: previewIntern ? "Jamie Koh" : previewStaff ? "Sarah Lim" : "Alfred Ang",
+        role: previewIntern ? "Intern" : previewStaff ? "Staff" : "Administrator",
+        isAdmin: !(previewIntern || previewStaff),
         alAvailable: 12.5, mcAvailable: 14, otRemaining: 8,
         expenseYtd: 1860.50, pendingLeaves: 3, pendingClaims: 2,
-        canManageTrainers: !ProcessInfo.processInfo.arguments.contains("-uiPreviewIntern"),
+        canManageTrainers: !(previewIntern || previewStaff),
         leaveSummary: [
             SummaryStat(label: "Paid leave taken", value: "5.5 days"),
             SummaryStat(label: "Annual leave balance", value: "12.5 days"),
             SummaryStat(label: "MC taken", value: "0 days"),
             SummaryStat(label: "No-pay leave taken", value: "2 days", hint: "11 of 14 left"),
         ],
-        trainerKpis: ProcessInfo.processInfo.arguments.contains("-uiPreviewIntern") ? nil
+        trainerKpis: previewIntern || previewStaff ? nil
             : TrainerKpis(total: 128, aclp: 74, nonAclp: 54)) }
 
     // MARK: Approvals
@@ -234,78 +239,6 @@ enum PreviewData {
         ],
         ownWorkdays: [1, 2, 3, 4, 5],
         categories: CalendarCategory.fallback)
-
-    // MARK: Analytics (approvers)
-    static let analytics: AnalyticsData = {
-        let labels = ["Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov"]
-        let months = labels.enumerated().map { i, l in
-            AnalyticsMonth(key: i == 0 ? "2025-12" : String(format: "2026-%02d", i), label: l, year: i == 0 ? 2025 : 2026)
-        }
-        let keys = months.map(\.key)
-        let income: [Double] = [0, 0, 0, 0, 0, 412_300, 455_800, 580_200, 522_400, 398_700, 610_500, 142_900]
-        let spend: [(String, [Double])] = [
-            ("Trainer Fee", [0, 0, 0, 0, 0, 181_000, 162_400, 96_300, 240_800, 205_100, 121_700, 78_200]),
-            ("Vendor Payment", [0, 0, 0, 0, 0, 96_500, 118_200, 41_900, 152_300, 88_400, 60_100, 31_800]),
-            ("Payroll", [0, 0, 0, 0, 0, 30_200, 30_400, 30_900, 31_200, 31_200, 31_600, 0]),
-            ("CPF", [0, 0, 0, 0, 0, 14_800, 14_900, 15_100, 15_300, 15_300, 15_500, 0]),
-            ("Subscription", [0, 0, 0, 0, 0, 4_200, 4_650, 4_900, 5_100, 4_800, 5_200, 2_300]),
-            ("Rental", [0, 0, 0, 0, 0, 2_900, 2_900, 2_900, 2_900, 2_900, 2_900, 0]),
-        ]
-        var finance: [AnalyticsFinanceRow] = []
-        for (i, k) in keys.enumerated() where income[i] > 0 {
-            finance.append(AnalyticsFinanceRow(month: k, type: "Income", revenue: income[i], expenses: 0))
-            for (name, v) in spend where v[i] > 0 {
-                finance.append(AnalyticsFinanceRow(month: k, type: name, revenue: 0, expenses: v[i]))
-            }
-        }
-        let people = [
-            AnalyticsPerson(id: "p1", name: "ANG SEE SIANG", code: "E0014", intern: false),
-            AnalyticsPerson(id: "p2", name: "JYOTI CHOPRA", code: "E0008", intern: false),
-            AnalyticsPerson(id: "p3", name: "MARCUS WOON ZHI XUAN", code: "E0011", intern: false),
-            AnalyticsPerson(id: "p4", name: "AMANDA HALIM", code: "I0003", intern: true),
-            AnalyticsPerson(id: "p5", name: "FEMINA JASMIN", code: "I0002", intern: true),
-            AnalyticsPerson(id: "p6", name: "EVAN PANG", code: "I0005", intern: true),
-            AnalyticsPerson(id: "p7", name: "CHERYL LIM", code: "E0005", intern: false, active: false),
-        ]
-        func row(_ m: Int, _ p: String, _ c: AnalyticsLeaveCategory, _ d: Double) -> AnalyticsLeaveRow {
-            AnalyticsLeaveRow(month: keys[m], personId: p, category: c, days: d)
-        }
-        let leave = [
-            row(5, "p2", .leave, 1), row(6, "p1", .leave, 1.5), row(6, "p5", .mc, 2), row(6, "p4", .leave, 1),
-            row(7, "p2", .leave, 3), row(7, "p3", .mc, 4), row(7, "p1", .npl, 2), row(8, "p5", .mc, 2),
-            row(8, "p6", .leave, 1), row(9, "p3", .leave, 4), row(9, "p4", .mc, 2), row(9, "p7", .leave, 1),
-            row(10, "p1", .mc, 6), row(10, "p4", .leave, 2), row(10, "p5", .mc, 4), row(10, "p2", .leave, 2),
-            row(11, "p4", .leave, 4), row(11, "p2", .leave, 2), row(11, "p3", .mc, 1), row(11, "p1", .npl, 1),
-        ]
-        // 14 active staff and 9 active interns, as in the latest headcount month. No intern has an
-        // ethnic group on record, so the Interns view shows the "not recorded" note.
-        func person(_ intern: Bool, _ g: String, _ age: String, _ eth: String) -> AnalyticsBreakdownPerson {
-            AnalyticsBreakdownPerson(intern: intern, gender: g, ageGroup: age, ethnicGroup: eth)
-        }
-        let nr = WorkforceBreakdown.notRecorded
-        let workforce: [AnalyticsBreakdownPerson] = [
-            person(false, "Male", "45–54", "Chinese"), person(false, "Female", "55 and over", "Chinese"),
-            person(false, "Male", "35–44", "Chinese"), person(false, "Female", "25–34", "Indian"),
-            person(false, "Male", "25–34", "Chinese"), person(false, "Female", "35–44", "Malay"),
-            person(false, "Female", "25–34", "Chinese"), person(false, "Male", "35–44", "Indian"),
-            person(false, "Female", "45–54", "Chinese"), person(false, "Male", "25–34", "Eurasian"),
-            person(false, "Female", "Under 25", "Malay"), person(false, "Male", "35–44", "Others"),
-            person(false, "Female", "25–34", nr), person(false, "Male", "55 and over", nr),
-            person(true, "Female", "Under 25", nr), person(true, "Male", "Under 25", nr),
-            person(true, "Female", "Under 25", nr), person(true, "Male", "Under 25", nr),
-            person(true, "Male", "Under 25", nr), person(true, "Female", "Under 25", nr),
-            person(true, "Male", "25–34", nr), person(true, "Female", "Under 25", nr),
-            person(true, "Male", nr, nr),
-        ]
-        let staff = [10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 14, 14]
-        let interns = [0, 1, 1, 5, 5, 7, 9, 7, 6, 6, 9, 9]
-        return AnalyticsData(
-            months: months, finance: finance,
-            financeRange: AnalyticsFinanceRange(from: "2026-04-30", to: "2026-11-16"),
-            leave: leave, people: people,
-            headcount: keys.enumerated().map { AnalyticsHeadcountRow(month: $1, staff: staff[$0], interns: interns[$0]) },
-            breakdown: workforce)
-    }()
 
     static let calendar = CalendarResponse(events: [
         CalendarEvent(id: "ev1", title: "Hari Raya Haji", startDate: "2026-06-06T09:00:00Z", endDate: "2026-06-06T09:00:00Z",

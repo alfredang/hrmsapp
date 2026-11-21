@@ -2,8 +2,8 @@ import SwiftUI
 
 /// More tab (Alfred, 11 Nov 2026; 20 Nov 2026): Applications (MC, Leave, Time Off, Expense Claims,
 /// Off In Lieu and/or the Timesheet), Staff (Calendar, Payslips, My Profile, Trainers), Attendance
-/// (Time In/Out — interns, accountants who must clock in, and approvers), Manage (approvers: Approvals,
-/// Analytics, Timesheet, Leave & MC; Trainer Admins: Trainer Admin) and Help, then sign out.
+/// (Time In/Out — interns and accountants who must clock in; not admins or staff), Manage (approvers: Approvals,
+/// Timesheet, Leave & MC; Trainer Admins: Trainer Admin) and Help, then sign out.
 /// Interns see "Timesheet"; accountants who must clock in (`auth.mustClockIn`) see "Timesheet" and
 /// "Off In Lieu"; other staff see "Off In Lieu"; approvers get the one admin "Timesheet"
 /// (intern hours + missing punches + Off In Lieu).
@@ -81,7 +81,8 @@ struct MoreView: View {
                         link("Trainers", "person.crop.rectangle.stack.fill", Theme.gold600) { TrainerContactsView() }
                     }
 
-                    if isInternUser || auth.mustClockIn || isAdmin {
+                    // Only people who must clock in (web: hidden for admins; Alfred, 22 Nov 2026).
+                    if isInternUser || auth.mustClockIn {
                         group("Attendance") {
                             link("Time In/Out", "clock.badge.checkmark.fill", Theme.gold600) { ClockView() }
                         }
@@ -91,8 +92,6 @@ struct MoreView: View {
                         group("Manage") {
                             if isAdmin {
                                 link("Approvals", "checkmark.circle.fill", Theme.success) { ApprovalsView() }
-                                divider
-                                link("Analytics", "chart.bar.xaxis", Theme.sky) { AnalyticsView() }
                                 divider
                                 link("Timesheet", "person.badge.clock.fill", .teal) { TimesheetAdminView() }
                                 divider
