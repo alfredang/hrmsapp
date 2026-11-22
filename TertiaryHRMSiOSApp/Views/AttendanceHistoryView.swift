@@ -25,6 +25,13 @@ enum AttendanceMonth {
         return f.string(from: d)
     }
 
+    /// "Nov" (short month name, for tile labels).
+    static func shortName(_ month: String) -> String {
+        guard let d = Fmt.ymdDate("\(month)-01") else { return month }
+        let f = DateFormatter(); f.timeZone = TimeZone(identifier: "UTC"); f.dateFormat = "LLL"
+        return f.string(from: d)
+    }
+
     /// "Wed, 8 Oct 2026" for a plain `yyyy-MM-dd`.
     static func dayLabel(_ ymd: String) -> String {
         guard let d = Fmt.ymdDate(ymd) else { return ymd }

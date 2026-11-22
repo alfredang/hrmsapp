@@ -80,7 +80,7 @@ struct LeaveSummaryView: View {
                 ForEach(data.totals.byLeaveType) { t in Text(t.name).tag(t.code) }
             }
         } label: {
-            Label(typeFilter == "ALL" ? "All types" : typeFilter, systemImage: "line.3.horizontal.decrease.circle")
+            Label(typeFilter == "ALL" ? "All types" : (data.totals.byLeaveType.first { $0.code == typeFilter }?.name ?? typeFilter), systemImage: "line.3.horizontal.decrease.circle")
                 .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.sky)
         }
     }
@@ -101,24 +101,29 @@ struct LeaveSummaryView: View {
         .sorted { ($0.start ?? "") > ($1.start ?? "") }
     }
 
+    /// The four month tiles. Labels say what is counted and for which month (Alfred, 22 Nov 2026:
+    /// "AL days" alone was not understood). Days are approved days in the month; pending is separate.
     private func totals(_ data: LeaveSummary) -> some View {
         let al = data.totals.byLeaveType.first { $0.code == "AL" }
         let pending = data.totals.byLeaveType.reduce(0) { $0 + $1.pendingDays }
+        let mon = AttendanceMonth.shortName(month)
+        let onMc = data.totals.mc.employeesOnMc
         return VStack(spacing: 12) {
             HStack(spacing: 12) {
-                StatTile(value: "\(data.totals.headcount.total)", label: "People",
+                StatTile(value: "\(data.totals.headcount.total)", label: "Staff and interns",
                          icon: "person.2.fill", tint: Theme.sky)
                 StatTile(value: Self.num(data.totals.mc.approvedDays),
-                         label: "MC days · \(data.totals.mc.employeesOnMc) on MC",
+                         label: "MC days taken in \(mon) · \(onMc) \(onMc == 1 ? "person" : "people")",
                          icon: "cross.case.fill", tint: .pink)
             }
             HStack(spacing: 12) {
-                StatTile(value: Self.num(al?.approvedDays ?? 0), label: "AL days",
+                StatTile(value: Self.num(al?.approvedDays ?? 0), label: "Annual leave days taken in \(mon)",
                          icon: "sun.max.fill", tint: .orange)
-                StatTile(value: Self.num(pending), label: "Pending days",
+                StatTile(value: Self.num(pending), label: "Leave days waiting for approval",
                          icon: "hourglass", tint: Theme.gold600)
             }
         }
+        .accessibilityIdentifier("leaveSummary.tiles")
     }
 
     private func row(_ e: LeaveSummaryEmployee) -> some View {
@@ -130,7 +135,7 @@ struct LeaveSummaryView: View {
                         .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
                     HStack(spacing: 10) {
                         metric("MC", e.approved("MC"), .pink)
-                        metric("AL", e.approved("AL"), .orange)
+                        metric("Annual leave", e.approved("AL"), .orange)
                         if e.otherApproved > 0 { metric("Other", e.otherApproved, Theme.sky) }
                         if e.isIntern, let t = e.timeOff, t.approvedHours + t.pendingHours > 0 {
                             Text("\(Self.num(t.approvedHours)) h off")
@@ -176,7 +181,7 @@ struct LeaveSummaryDetailView: View {
                         .font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
 
                     HStack(spacing: 12) {
-                        StatTile(value: balance("AL"), label: "AL available", icon: "sun.max.fill", tint: .orange)
+                        StatTile(value: balance("AL"), label: "Annual leave available", icon: "sun.max.fill", tint: .orange)
                         StatTile(value: balance("MC"), label: "MC available", icon: "cross.case.fill", tint: .pink)
                     }
 
