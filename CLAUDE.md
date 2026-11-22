@@ -150,7 +150,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
 ## 1.21 build 45 (22 Nov 2026)
-- **Sign-in defaults** (`LoginView.emailStep`, `AuthViewModel.usesGoogleByDefault`): one first screen; a @tertiaryinfotech.com email → Continue with Google (login hint) + "Email me a code instead"; any other email → "Email me a sign-in code". "Sign in with a password" is the last, small grey link. Only email codes exist on the server (no SMS / WhatsApp provider yet). `-uiPreviewLogin email|intern` previews both (it now wins over `-uiPreview`). UI test `testLoginDefaultsByEmail`.
+- **Sign-in defaults** (`LoginView.emailStep`, `AuthViewModel.usesGoogleByDefault`): one first screen; a @tertiaryinfotech.com email → Continue with Google (login hint) + a full-width tinted "Email me a sign-in code" button (build 46), with "Interns and part-time staff: sign in with a code sent to your email." under it; any other email → "Email me a sign-in code". "Sign in with a password" is the last, small grey link. Only email codes exist on the server (no SMS / WhatsApp provider yet). `-uiPreviewLogin email|intern` previews both (it now wins over `-uiPreview`). UI test `testLoginDefaultsByEmail`.
 
 ## 1.21 build 44 (22 Nov 2026, replaces build 42 in App Review; 43 was never uploaded)
 - **Accountants**: tabs Home / **Income** (`BankTransactionsView(.credit)`) / **Expenses** / More; no calendar (a calendar push opens as a sheet), no More → Calendar.

@@ -71,10 +71,29 @@ struct LoginView: View {
                     .accessibilityIdentifier("login.sendCode")
             }
             if auth.usesGoogleByDefault {
-                Button("Email me a code instead", action: { Task { await auth.sendOTP() } })
-                    .font(.footnote.weight(.semibold)).tint(Theme.sky)
-                    .accessibilityIdentifier("login.codeInstead")
+                // The code sign-in as a full-width button (Alfred, 22 Nov 2026: "make the OTP button
+                // more visible, and indicate that interns can sign in using OTP").
+                Button(action: { Task { await auth.sendOTP() } }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "envelope.badge.fill")
+                        Text("Email me a sign-in code").fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Theme.controlHeight)
+                    .foregroundStyle(Theme.chipInk)
+                    .background(Theme.chipFill.opacity(0.55))
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
+                        .stroke(Theme.sky.opacity(0.35), lineWidth: 1))
+                }
+                .disabled(auth.isWorking)
+                .accessibilityIdentifier("login.codeInstead")
             }
+            Label("Interns and part-time staff: sign in with a code sent to your email.", systemImage: "graduationcap.fill")
+                .font(.caption).foregroundStyle(Theme.mist)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("login.internHint")
             // Password is the last resort (Alfred, 22 Nov 2026): small and grey, at the bottom.
             Button("Sign in with a password", action: auth.usePassword)
                 .font(.caption).tint(Theme.mist)
