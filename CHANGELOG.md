@@ -1,6 +1,7 @@
 # Changelog
 
 ## [1.21] — 2026-11-22 (build 40; 1.20 build 38 is live)
+Status (22 Nov 2026, 15:00 SGT): build 40 uploaded, VALID, submitted: WAITING_FOR_REVIEW. Android 1.21 (34) released to the Play production track the same day.
 **What's New (user-facing):**
 > The app is now called TIA HRMS at the top of every screen. Accountants can tap Income, Expenses, Bank statements and Bank reconciliation on Home to see the details: every bank line for the month with search, every statement import, and the reconciliation lines still to review. Trainer Admins can search trainers, skills and certifications straight from Home, and switch between My view and Trainer Admin right under their name. The staff list shows each person's department, full time or part time, and email. Notifications now list only what is still relevant: a request disappears once it is decided and old notices are cleared. Leave & MC tiles say what they count, and Annual leave is spelled out.
 
