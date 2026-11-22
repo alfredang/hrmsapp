@@ -1,29 +1,30 @@
 import SwiftUI
 
-/// The Premier Blue brand mark: a rounded badge with people + a check, plus the wordmark.
+/// The sign-in / launch header (Alfred, 22 Nov 2026): the Tertiary Infotech Academy logo, then
+/// "Tertiary Infotech Academy" and "HRMS".
 struct BrandHeader: View {
     var compact = false
 
     var body: some View {
-        VStack(spacing: compact ? 10 : 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Theme.brand)
-                    .frame(width: compact ? 76 : 92, height: compact ? 76 : 92)
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: compact ? 34 : 42, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-            .shadow(color: Theme.navy800.opacity(0.25), radius: 18, y: 10)
+        VStack(spacing: compact ? 10 : 14) {
+            Image("CompanyLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: compact ? 76 : 96, height: compact ? 76 : 96)
+                .clipShape(Circle())
+                .shadow(color: Theme.navy800.opacity(0.22), radius: 16, y: 8)
+                .accessibilityLabel("Tertiary Infotech Academy logo")
 
-            VStack(spacing: 4) {
-                Text("TIA HRMS")
-                    .font(.system(size: compact ? 24 : 30, weight: .bold, design: .rounded))
+            VStack(spacing: 2) {
+                Text("Tertiary Infotech Academy")
+                    .font(.system(size: compact ? 21 : 25, weight: .bold, design: .rounded))
                     .foregroundStyle(Theme.ink)
-                Text("Human Resource Management")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.mist)
+                    .multilineTextAlignment(.center)
+                Text("HRMS")
+                    .font(.system(size: compact ? 17 : 20, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.sky)
             }
+            .accessibilityElement(children: .combine)
         }
     }
 }

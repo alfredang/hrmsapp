@@ -141,6 +141,12 @@ struct LoginView: View {
             }
             .font(.footnote)
             .tint(Theme.sky)
+            // Back to the first sign-in screen (Alfred, 22 Nov 2026).
+            Button(action: auth.backToEmail) {
+                Label("Back to sign in", systemImage: "chevron.left")
+            }
+            .font(.footnote.weight(.semibold)).tint(Theme.sky)
+            .accessibilityIdentifier("login.backToSignIn")
         }
     }
 
