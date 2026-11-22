@@ -149,6 +149,11 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
+## 1.21 build 44 (22 Nov 2026, replaces build 42 in App Review; 43 was never uploaded)
+- **Accountants**: tabs Home / **Income** (`BankTransactionsView(.credit)`) / **Expenses** / More; no calendar (a calendar push opens as a sheet), no More → Calendar.
+- **Trainer Admin view**: Home / Trainers / More (no calendar tab or More row).
+- **Calendar privacy** (server, web 22 Nov 2026): staff and interns get only their own leave, MC, NPL, time off and the holidays; only admins see everyone. The Everyone / Only me filter shows for admins only; others see "My leave and holidays".
+
 ## 1.21 build 43 (22 Nov 2026, replaces build 42 in App Review)
 - Tab 3 per role: admins **Team**, accountants **Expenses** (`BankTransactionsView(direction: .debit)`, the month's bank debits), everyone else **SOP**. SOP stays in More for accountants. UI test `testSopTabReplacesTeamForStaff` covers all three.
 

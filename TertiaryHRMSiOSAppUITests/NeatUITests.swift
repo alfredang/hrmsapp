@@ -73,6 +73,8 @@ final class NeatUITests: XCTestCase {
         XCTAssertTrue(accTabs.buttons["Expenses"].waitForExistence(timeout: 10))
         XCTAssertFalse(accTabs.buttons["SOP"].exists)
         XCTAssertFalse(accTabs.buttons["Team"].exists)
+        XCTAssertTrue(accTabs.buttons["Income"].exists, "accountants: Income in Calendar's place")
+        XCTAssertFalse(accTabs.buttons["Calendar"].exists)
         accTabs.buttons["Expenses"].tap()
         XCTAssertTrue(acc.descendants(matching: .any)["finance.debit.total"].waitForExistence(timeout: 10))
     }

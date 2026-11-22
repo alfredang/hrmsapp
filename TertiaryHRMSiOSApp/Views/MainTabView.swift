@@ -42,8 +42,16 @@ struct MainTabView: View {
                 NavigationStack { if auth.showsAdmin { LeaveSummaryView() } else { LeaveView() } }
                     .tabItem { Label("Leave", systemImage: "calendar.badge.clock") }.tag(1)
             }
-            NavigationStack { TeamCalendarView() }
-                .tabItem { Label("Calendar", systemImage: "calendar") }.tag(2)
+            if auth.isTrainerView {
+                // Trainer Admin view: no calendar (Alfred, 22 Nov 2026).
+            } else if auth.showsAccountant && !auth.showsAdmin {
+                // Accountants: the month's bank income in Calendar's place (Alfred, 22 Nov 2026).
+                NavigationStack { BankTransactionsView(direction: .credit) }
+                    .tabItem { Label("Income", systemImage: "chart.line.uptrend.xyaxis") }.tag(2)
+            } else {
+                NavigationStack { TeamCalendarView() }
+                    .tabItem { Label("Calendar", systemImage: "calendar") }.tag(2)
+            }
             // Only admins see the full team; everyone else gets the SOPs here (Alfred, 22 Nov 2026).
             if auth.showsAdmin {
                 NavigationStack { TeamView() }
@@ -112,8 +120,8 @@ struct MainTabView: View {
         guard let link = push.pendingLink else { return }
         push.pendingLink = nil
         switch PushRoute.from(link: link, isAdmin: isAdmin, mustClockIn: auth.mustClockIn) {
-        case .tab(let i) where (auth.isTrainerView && (i == 1 || i == 3)) || (auth.showsAccountant && i == 1):
-            pushSheet = .tab(i)   // a hidden tab (Trainer Admin view: Leave / Team; accountants: Leave) opens as a sheet
+        case .tab(let i) where (auth.isTrainerView && (1...3).contains(i)) || (auth.showsAccountant && (i == 1 || i == 2)):
+            pushSheet = .tab(i)   // a hidden tab (Trainer Admin view: Leave / Team; accountants: Leave / Calendar) opens as a sheet
         case .tab(let i): pushSheet = nil; tab = i
         case let route: pushSheet = route
         }
@@ -128,6 +136,7 @@ struct MainTabView: View {
         case .adminTimesheet: TimesheetAdminView()
         case .myTimesheet: MyTimesheetView()
         case .tab(1): LeaveView()
+        case .tab(2): TeamCalendarView()   // accountants: Calendar is not a tab
         case .tab(3):
             if auth.showsAdmin { TeamView() }
             else if auth.showsAccountant { BankTransactionsView(direction: .debit) }

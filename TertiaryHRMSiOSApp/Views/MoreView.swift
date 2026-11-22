@@ -43,8 +43,8 @@ struct MoreView: View {
     private var sections: [(title: String, rows: [Row])] {
         if auth.isTrainerView {
             return [
-                ("My Stuff", [.push("profile", "My Profile", "person.crop.circle.fill", Theme.azure, ProfileView()),
-                              .push("calendar", "Calendar", "calendar", Theme.sky, CalendarListView())]),
+                // No calendar in the Trainer Admin view (Alfred, 22 Nov 2026).
+                ("My Stuff", [.push("profile", "My Profile", "person.crop.circle.fill", Theme.azure, ProfileView())]),
                 ("People", [.push("trainers", "Trainers", "person.text.rectangle.fill", Theme.gold600, TrainersView())]),
                 ("Documents", [.push("sop", "SOP", "book.fill", Theme.sky, SopListView())]),
             ]
@@ -105,8 +105,9 @@ struct MoreView: View {
         }
 
         return [
-            ("My Stuff", [.push("profile", "My Profile", "person.crop.circle.fill", Theme.azure, ProfileView()),
-                          .push("calendar", "Calendar", "calendar", Theme.sky, CalendarListView())]),
+            // Accountants have no calendar (Alfred, 22 Nov 2026).
+            ("My Stuff", [.push("profile", "My Profile", "person.crop.circle.fill", Theme.azure, ProfileView())]
+                + (accountant ? [] : [.push("calendar", "Calendar", "calendar", Theme.sky, CalendarListView())])),
             ("People", people),
             ("Processes", processes),
             ("Finance", finance),

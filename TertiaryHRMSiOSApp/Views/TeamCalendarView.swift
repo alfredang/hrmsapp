@@ -16,6 +16,7 @@ import SwiftUI
 /// A colleague's leave *type* is only present when the server chose to disclose it (your own,
 /// or an approver).
 struct TeamCalendarView: View {
+    @EnvironmentObject private var auth: AuthViewModel
     @State private var state: LoadState<TeamCalendarResponse> = .idle
     @State private var loadedYear: Int?
     @AppStorage("teamCalendar.mode") private var modeRaw = Mode.month.rawValue
@@ -194,7 +195,7 @@ struct TeamCalendarView: View {
 
     /// "Synced 1:15 PM · Everyone" — the last successful load, like the Planner app.
     private func syncCaption(_ person: TeamCalendarPeople.Option?) -> String {
-        let who = mineOnly ? "Only me" : person?.name ?? "Everyone"
+        let who = !auth.showsAdmin ? "My leave and holidays" : mineOnly ? "Only me" : person?.name ?? "Everyone"
         guard let t = autoSync.lastSynced else { return who }
         return "Synced \(t.formatted(date: .omitted, time: .shortened)) · \(who)"
     }
@@ -226,6 +227,8 @@ struct TeamCalendarView: View {
             Button("Today") { goToToday() }
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 6)
+            // Staff and interns see only their own leave (server-side, 22 Nov 2026): no Everyone / Only me.
+            if auth.showsAdmin {
             Menu {
                 Picker("Show", selection: Binding(get: { mineOnly },
                                                   set: { mineOnly = $0; if $0 { personId = nil } })) {
@@ -238,6 +241,7 @@ struct TeamCalendarView: View {
                     .frame(width: 34, height: 32)
             }
             .accessibilityLabel("Show leave for everyone or only me")
+            }
             Button { shiftMonth(-1) } label: {
                 Image(systemName: "chevron.left").frame(width: 34, height: 32)
             }
