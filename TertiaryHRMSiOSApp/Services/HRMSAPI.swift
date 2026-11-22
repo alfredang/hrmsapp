@@ -111,6 +111,13 @@ actor HRMSAPI {
         return try await get(url: comps.url!)
     }
 
+    /// The Standard Operating Procedures (every signed-in employee).
+    func sops() async throws -> [Sop] {
+        if isPreview { return PreviewData.sops }
+        let r: SopsResponse = try await get("api/mobile/sops")
+        return r.sops
+    }
+
     // MARK: Finance details (admin / accountant; the accountant Home's Finance card)
 
     /// One month of bank credits (income) or debits (expenses), newest first.

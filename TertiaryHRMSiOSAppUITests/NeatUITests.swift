@@ -46,6 +46,27 @@ final class NeatUITests: XCTestCase {
 
     /// Trainer Admin view (More → View As, web view mode "trainer"): tabs Home / Trainers / Calendar /
     /// More, Home = the trainer tiles only, More without Applications; switching back returns to Home.
+    /// Only admins have the Team tab; staff and interns get SOP there, shown natively (22 Nov 2026).
+    func testSopTabReplacesTeamForStaff() {
+        let app = launch(["-uiPreviewStaff"])
+        let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(tabs.buttons["SOP"].waitForExistence(timeout: 10))
+        XCTAssertFalse(tabs.buttons["Team"].exists, "staff do not see the full team")
+        tabs.buttons["SOP"].tap()
+        let row = app.buttons["sop.row.apply-leave"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        snap(app, "sop-list")
+        row.tap()
+        XCTAssertTrue(app.staticTexts["sop.detail.title"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Steps"].exists)
+        snap(app, "sop-detail")
+        app.terminate()
+
+        let admin = launch([])
+        XCTAssertTrue(admin.tabBars.firstMatch.buttons["Team"].waitForExistence(timeout: 10))
+        XCTAssertFalse(admin.tabBars.firstMatch.buttons["SOP"].exists)
+    }
+
     /// Accountant Home: every Finance row opens its detail (Alfred, 22 Nov 2026).
     func testAccountantFinanceRowsOpenDetails() {
         let app = launch(["-uiPreviewViewAs", "accountant"])

@@ -44,9 +44,13 @@ struct MainTabView: View {
             }
             NavigationStack { TeamCalendarView() }
                 .tabItem { Label("Calendar", systemImage: "calendar") }.tag(2)
-            if !auth.isTrainerView {
+            // Only admins see the full team; everyone else gets the SOPs here (Alfred, 22 Nov 2026).
+            if auth.showsAdmin {
                 NavigationStack { TeamView() }
                     .tabItem { Label("Team", systemImage: "person.2.fill") }.tag(3)
+            } else if !auth.isTrainerView {
+                NavigationStack { SopListView() }
+                    .tabItem { Label("SOP", systemImage: "book.fill") }.tag(3)
             }
             NavigationStack { MoreView() }
                 .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }.tag(4)
@@ -85,6 +89,7 @@ struct MainTabView: View {
                 case "profile": ProfileView()
                 case "trainers": TrainersView()
                 case "trainercontacts": TrainerContactsView()
+                case "sop": SopListView()
                 case "trainer": TrainerProfileView(trainerId: PreviewData.trainerList[0].id,
                                                    name: PreviewData.trainerList[0].name)
                 default: EmptyView()
@@ -119,7 +124,7 @@ struct MainTabView: View {
         case .adminTimesheet: TimesheetAdminView()
         case .myTimesheet: MyTimesheetView()
         case .tab(1): LeaveView()
-        case .tab(3): TeamView()
+        case .tab(3): if auth.showsAdmin { TeamView() } else { SopListView() }
         case .notifications, .tab: NotificationsView()
         }
     }

@@ -653,3 +653,29 @@ extension PreviewData {
         return ReconciliationDetail(run: run, items: items)
     }
 }
+
+// MARK: SOPs
+extension PreviewData {
+    static let sops: [Sop] = [
+        Sop(slug: "apply-leave", title: "Applying for leave", category: "Human Resources",
+            summary: "How staff and interns apply for annual leave, MC and other leave in the HRMS.",
+            purpose: "Keep leave fair, recorded and approved before it is taken.", scope: "All staff and interns.",
+            owner: "HR", triggers: ["You plan to take leave", "You are unwell (MC)"],
+            steps: [SopStep(title: "Check your balance", detail: "Open Leave and check the days left.", owner: "Employee"),
+                    SopStep(title: "Apply in the HRMS", detail: "Pick the type and dates; attach the MC for medical leave.",
+                            items: ["Annual leave at least 3 days ahead", "MC on the day"], owner: "Employee", timing: "Before the leave"),
+                    SopStep(title: "Approval", detail: "Your approver decides in the HRMS; you get a notification.",
+                            owner: "Approver", timing: "Within 2 working days", note: "Leave is not approved until the status says Approved.")],
+            references: [SopReference(label: "HR mailbox", value: "hr@tertiaryinfotech.com", href: "mailto:hr@tertiaryinfotech.com")],
+            source: "HR policy as the HRMS enforces it"),
+        Sop(slug: "class-setup", title: "Setting up a class", category: "Operations",
+            summary: "Create the class run, assign the trainer and publish it for registration.", owner: "Operations",
+            steps: [SopStep(title: "Create the class run", detail: "Enter dates, venue and trainer in the TMS.", owner: "Course administrator"),
+                    SopStep(title: "Publish", detail: "Open the run for registration.", owner: "Course administrator")],
+            source: "POM section 3.1"),
+        Sop(slug: "assessment-appeal", title: "Handling an assessment appeal", category: "Assessment",
+            summary: "Receive, review and decide on a learner's appeal against an assessment result.", owner: "Assessment manager",
+            steps: [SopStep(title: "Receive the appeal", detail: "Log it within 1 working day.", timing: "Within 1 working day")],
+            source: "POM section 5.4"),
+    ]
+}

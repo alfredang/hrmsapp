@@ -46,7 +46,7 @@ struct MoreView: View {
                 ("My Stuff", [.push("profile", "My Profile", "person.crop.circle.fill", Theme.azure, ProfileView()),
                               .push("calendar", "Calendar", "calendar", Theme.sky, CalendarListView())]),
                 ("People", [.push("trainers", "Trainers", "person.text.rectangle.fill", Theme.gold600, TrainersView())]),
-                ("Documents", [Row("sop", "SOP", "book.fill", Theme.sky, .web("sop"))]),
+                ("Documents", [.push("sop", "SOP", "book.fill", Theme.sky, SopListView())]),
             ]
         }
         let admin = auth.showsAdmin
@@ -111,7 +111,7 @@ struct MoreView: View {
             ("Processes", processes),
             ("Finance", finance),
             ("Accounting", accounting),
-            ("Documents", [Row("sop", "SOP", "book.fill", Theme.sky, .web("sop"))]),
+            ("Documents", [.push("sop", "SOP", "book.fill", Theme.sky, SopListView())]),
             ("System", admin ? [Row("settings", "Settings", "gearshape.fill", Theme.mist, .web("settings"))] : []),
         ]
     }

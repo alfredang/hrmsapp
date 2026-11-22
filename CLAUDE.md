@@ -149,6 +149,9 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
+## 1.21 build 41 (22 Nov 2026, replaces build 40 in App Review)
+- **Team tab = admins only** (`auth.showsAdmin`); everyone else gets an **SOP** tab (tag 3) with `SopListView` / `SopDetailView` (`Views/SopViews.swift`, `Models/SopModels.swift`) over `GET /api/mobile/sops` (any signed-in employee). More → Documents → SOP opens the same native screen. Opening web /sop in Safari failed (no web session, Google 400). The server 403s `/api/mobile/employees` for non-admins (web 22 Nov 2026). UI test `testSopTabReplacesTeamForStaff`.
+
 ## 1.21 build 40 (22 Nov 2026)
 - Nav title is **TIA HRMS** (`BrandBarTitle`), not the company name.
 - **Finance details**: every accountant Home Finance row opens a screen (`Views/FinanceViews.swift`, `Models/FinanceModels.swift`): Income / Expenses = `BankTransactionsView` over `GET /api/mobile/finance/transactions?direction=&month=`; Bank statements = `BankStatementsView` over `GET /api/mobile/finance/statements`; Bank reconciliation = `ReconciliationView` over the web's `GET /api/accounting/reconciliation` and `/{id}` (Decimal strings, decoded leniently). Read-only; actions stay on the web (footer links). Pending claims opens Approvals for approvers only. UI test `testAccountantFinanceRowsOpenDetails`.
