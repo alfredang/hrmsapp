@@ -48,6 +48,10 @@ struct MainTabView: View {
             if auth.showsAdmin {
                 NavigationStack { TeamView() }
                     .tabItem { Label("Team", systemImage: "person.2.fill") }.tag(3)
+            } else if auth.showsAccountant {
+                // Accountants: the month's bank expenses (Alfred, 22 Nov 2026); SOP stays in More.
+                NavigationStack { BankTransactionsView(direction: .debit) }
+                    .tabItem { Label("Expenses", systemImage: "creditcard.fill") }.tag(3)
             } else if !auth.isTrainerView {
                 NavigationStack { SopListView() }
                     .tabItem { Label("SOP", systemImage: "book.fill") }.tag(3)
@@ -124,7 +128,10 @@ struct MainTabView: View {
         case .adminTimesheet: TimesheetAdminView()
         case .myTimesheet: MyTimesheetView()
         case .tab(1): LeaveView()
-        case .tab(3): if auth.showsAdmin { TeamView() } else { SopListView() }
+        case .tab(3):
+            if auth.showsAdmin { TeamView() }
+            else if auth.showsAccountant { BankTransactionsView(direction: .debit) }
+            else { SopListView() }
         case .notifications, .tab: NotificationsView()
         }
     }

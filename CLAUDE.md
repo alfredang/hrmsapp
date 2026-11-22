@@ -149,6 +149,9 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
+## 1.21 build 43 (22 Nov 2026, replaces build 42 in App Review)
+- Tab 3 per role: admins **Team**, accountants **Expenses** (`BankTransactionsView(direction: .debit)`, the month's bank debits), everyone else **SOP**. SOP stays in More for accountants. UI test `testSopTabReplacesTeamForStaff` covers all three.
+
 ## 1.21 build 42 (22 Nov 2026, replaces build 41 in App Review)
 - **One-tap company Google sign-in**: `ASWebAuthenticationSession` is no longer ephemeral (shares Safari's Google sign-in); `hd=tertiaryinfotech.com` always; `login_hint` = the typed company email or the last company address used with Google (`hrms_google_company_email`), else `prompt=select_account`. The private session made people type an email each time and iOS offered the personal Gmail passkey first, which the server refuses. Caption under the button: company account; part-timers and interns use email.
 

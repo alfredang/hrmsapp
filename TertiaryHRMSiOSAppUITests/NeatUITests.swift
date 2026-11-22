@@ -65,6 +65,16 @@ final class NeatUITests: XCTestCase {
         let admin = launch([])
         XCTAssertTrue(admin.tabBars.firstMatch.buttons["Team"].waitForExistence(timeout: 10))
         XCTAssertFalse(admin.tabBars.firstMatch.buttons["SOP"].exists)
+        admin.terminate()
+
+        // Accountants get Expenses there instead (22 Nov 2026).
+        let acc = launch(["-uiPreviewViewAs", "accountant"])
+        let accTabs = acc.tabBars.firstMatch
+        XCTAssertTrue(accTabs.buttons["Expenses"].waitForExistence(timeout: 10))
+        XCTAssertFalse(accTabs.buttons["SOP"].exists)
+        XCTAssertFalse(accTabs.buttons["Team"].exists)
+        accTabs.buttons["Expenses"].tap()
+        XCTAssertTrue(acc.descendants(matching: .any)["finance.debit.total"].waitForExistence(timeout: 10))
     }
 
     /// Accountant Home: every Finance row opens its detail (Alfred, 22 Nov 2026).
