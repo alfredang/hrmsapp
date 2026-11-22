@@ -1,6 +1,9 @@
 # Changelog
 
-## [1.21] — 2026-11-22 (build 45 replaces builds 40–44 in App Review; 1.20 build 38 is live)
+## [1.21] — 2026-11-22 (build 46 replaces builds 40–45 in App Review; 1.20 build 38 is live)
+### Build 46
+- Sign-in: "Email me a sign-in code" is a full-width button; the screen tells interns and part-time staff to sign in with a code.
+
 ### Build 45
 - Sign-in: staff on a company email get Continue with Google first, interns and part-time staff an emailed code; password is the last option.
 
