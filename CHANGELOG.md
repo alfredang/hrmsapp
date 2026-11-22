@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.21] — 2026-11-22 (build 40; 1.20 build 38 is live)
+**What's New (user-facing):**
+> The app is now called TIA HRMS at the top of every screen. Accountants can tap Income, Expenses, Bank statements and Bank reconciliation on Home to see the details: every bank line for the month with search, every statement import, and the reconciliation lines still to review. Trainer Admins can search trainers, skills and certifications straight from Home, and switch between My view and Trainer Admin right under their name. The staff list shows each person's department, full time or part time, and email. Notifications now list only what is still relevant: a request disappears once it is decided and old notices are cleared. Leave & MC tiles say what they count, and Annual leave is spelled out.
+
+- Finance details (`FinanceViews.swift`, `FinanceModels.swift`) over the new `/api/mobile/finance/transactions` and `/api/mobile/finance/statements` and the web's reconciliation routes.
+- `TrainerHomeSearch` on the Trainer Admin Home; View As row under the name.
+- View As role previews for angch@ only; Trainer Admins keep My view / Trainer Admin.
+- Team rows: department, employment pill, email. Leave & MC tile labels from build 39.
+- Server side (web f87e76d): company-email login for staff, named elevated roles, relevant notifications, per-role alerts.
+
 ## [1.19] — 2026-11-20 (build 35; 1.18 build 34 was in App Review, so this is the next version)
 Status (21 Nov 2026, 00:20 SGT): build 35 uploaded and VALID in App Store Connect. 1.18 build 34 is IN_REVIEW, so the 1.19 version cannot be created yet (ASC 409 "cannot create a new version of the App in the current state"); the in-review submission was not cancelled. Once 1.18 leaves review: create version 1.19, set What's New, then `submit_for_review.py --version 1.19 --build 35`.
 

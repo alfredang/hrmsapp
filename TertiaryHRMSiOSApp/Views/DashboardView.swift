@@ -136,6 +136,8 @@ struct DashboardView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                // The switcher right under the name (Alfred, 22 Nov 2026), as on the other Homes.
+                if auth.availableViews.count > 1 { viewAsRow }
                 // Search every trainer by name, skill, certification or course (Alfred, 22 Nov 2026).
                 TrainerHomeSearch()
                 if let t = s.trainerKpis {
@@ -156,7 +158,6 @@ struct DashboardView: View {
                     }
                 }
                 .accessibilityIdentifier("home.trainerAdmin.directory")
-                if auth.availableViews.count > 1 { viewAsRow }
             }
             .padding(20)
         }

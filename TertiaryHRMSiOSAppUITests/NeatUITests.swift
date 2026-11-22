@@ -46,6 +46,49 @@ final class NeatUITests: XCTestCase {
 
     /// Trainer Admin view (More → View As, web view mode "trainer"): tabs Home / Trainers / Calendar /
     /// More, Home = the trainer tiles only, More without Applications; switching back returns to Home.
+    /// Accountant Home: every Finance row opens its detail (Alfred, 22 Nov 2026).
+    func testAccountantFinanceRowsOpenDetails() {
+        let app = launch(["-uiPreviewViewAs", "accountant"])
+        let income = app.buttons["home.finance.income"]
+        XCTAssertTrue(income.waitForExistence(timeout: 10))
+        income.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["finance.credit.total"].waitForExistence(timeout: 10))
+        let first = app.buttons["finance.txn.CREDIT-0"]
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        snap(app, "finance-income")
+        first.tap()
+        XCTAssertTrue(app.staticTexts["Bank statement text"].waitForExistence(timeout: 5))
+        app.swipeDown(velocity: .fast)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        app.buttons["home.finance.expenses"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["finance.debit.total"].waitForExistence(timeout: 10))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        app.buttons["home.finance.statements"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["finance.statements.total"].waitForExistence(timeout: 10))
+        snap(app, "finance-statements")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        app.buttons["home.finance.reconciliation"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["reconciliation.headline"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["reconciliation.item.i1"].exists, "opens on the lines to review")
+        XCTAssertFalse(app.buttons["reconciliation.item.i6"].exists, "matched lines are not in To review")
+        snap(app, "finance-reconciliation")
+    }
+
+    /// Trainer Admin Home: the switcher sits under the name, and the search finds trainers and skills.
+    func testTrainerHomeSearch() {
+        let app = launch(["-uiPreviewViewAs", "trainer"])
+        let field = app.textFields["home.trainerSearch.field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        XCTAssertLessThan(app.buttons["home.viewAs"].frame.minY, field.frame.minY, "switcher above the search, under the name")
+        field.tap()
+        field.typeText("python")
+        XCTAssertTrue(app.descendants(matching: .any)["home.trainerSearch.results"].waitForExistence(timeout: 10))
+        snap(app, "trainer-home-search")
+    }
+
     func testTrainerAdminViewAs() {
         let app = launch(["-uiPreviewViewAs", "trainer"])
         let tabs = app.tabBars.firstMatch

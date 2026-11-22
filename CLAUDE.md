@@ -134,8 +134,8 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   (`auth.mustClockIn`) see `MyTimesheetView` **and** Off In Lieu; other staff see **Off In Lieu**
   (`WeeklyTimesheetView`, weekend / PH hours) and no Timesheet.
 - **Notifications** — in-app list + nav-bar bell with unread badge. `GET /api/notifications`
-  (raw array), mark-read `POST /api/notifications/{id}/read`; filtered to staff-relevant types
-  (LEAVE_/OT_/WOODS_SQUARE_ APPROVED/REJECTED/DECLINED, INFO). `NotificationStore` keeps the badge in sync.
+  (raw array, already filtered to relevant notices by the server), mark-read `POST /api/notifications/{id}/read`.
+  `NotificationStore` keeps the badge in sync.
 - **Calendar** — a **month grid of the whole team's approved leave** (`GET /api/mobile/team-calendar`),
   with an Everyone / Only me filter, a "Leave shown for" person filter for approvers and a per-day detail sheet. A colleague's leave **type** is masked
   server-side unless the viewer is the person themselves or an approver — medical leave would otherwise
@@ -148,6 +148,14 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Accounting module** entirely (bank-statement import, transaction dedupe, reconciliation, income/expense tracking) — finance/back-office only, not part of the mobile employee experience.
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
+
+## 1.21 build 40 (22 Nov 2026)
+- Nav title is **TIA HRMS** (`BrandBarTitle`), not the company name.
+- **Finance details**: every accountant Home Finance row opens a screen (`Views/FinanceViews.swift`, `Models/FinanceModels.swift`): Income / Expenses = `BankTransactionsView` over `GET /api/mobile/finance/transactions?direction=&month=`; Bank statements = `BankStatementsView` over `GET /api/mobile/finance/statements`; Bank reconciliation = `ReconciliationView` over the web's `GET /api/accounting/reconciliation` and `/{id}` (Decimal strings, decoded leniently). Read-only; actions stay on the web (footer links). Pending claims opens Approvals for approvers only. UI test `testAccountantFinanceRowsOpenDetails`.
+- **Trainer search on Home**: `TrainerHomeSearch` (TrainersView.swift) under the Trainer Admin title (and in the Trainer Admin section of a non-admin Home): popular skills, live matches, "See all" → `TrainersView(aclp: .all, query:, tags:)`. The View As row sits right under the name. UI test `testTrainerHomeSearch`.
+- **View As**: full role previews only for `AuthViewModel.viewAsEmails` (angch@, mirrors web `src/lib/view-as-policy.ts`); Trainer Admins keep My view / Trainer Admin. The `-uiPreview` admin signs in as angch@.
+- **Team**: rows show full name, department, an employment pill (`Employee.employmentLabel`: Full time / Part time / Contract / Intern) and email (approvers).
+- **Server rules the app relies on** (web f87e76d): staff log in only with @tertiaryinfotech.com (Part time staff and interns may use personal email, `src/lib/login-policy.ts`); elevated roles only for the people in `src/lib/role-policy.ts` (Alfred all; Tan Soik Ching ADMIN + TRAINER_ADMIN; Jasmine Sho ACCOUNTANT; Deepa TRAINER_ADMIN), everyone else STAFF or INTERN; `/api/notifications` returns only relevant notices (approval links carry `?request=<id>`, which `PushRoute` strips).
 
 ## Home per role (1.20 build 36, 22 Nov 2026)
 Each role has its own Home (`DashboardView`), mirroring the web dashboard's `QuickActions` per view:
