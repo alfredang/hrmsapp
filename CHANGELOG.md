@@ -1,6 +1,9 @@
 # Changelog
 
-## [1.21] — 2026-11-22 (build 46 replaces builds 40–45 in App Review; 1.20 build 38 is live)
+## [1.21] — 2026-11-22 (build 47 replaces builds 40–46 in App Review; 1.20 build 38 is live)
+### Build 47
+- Sign-in shows the Tertiary Infotech Academy logo with "Tertiary Infotech Academy" and "HRMS"; the code screen has Back to sign in.
+
 ### Build 46
 - Sign-in: "Email me a sign-in code" is a full-width button; the screen tells interns and part-time staff to sign in with a code.
 
