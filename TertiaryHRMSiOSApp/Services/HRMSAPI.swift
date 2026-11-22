@@ -111,6 +111,38 @@ actor HRMSAPI {
         return try await get(url: comps.url!)
     }
 
+    // MARK: Finance details (admin / accountant; the accountant Home's Finance card)
+
+    /// One month of bank credits (income) or debits (expenses), newest first.
+    func bankTransactions(_ direction: BankDirection, month: String) async throws -> BankTransactionsMonth {
+        if isPreview { return PreviewData.bankTransactions(direction, month: month) }
+        var comps = URLComponents(url: base.appendingPathComponent("api/mobile/finance/transactions"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "direction", value: direction.rawValue),
+                            URLQueryItem(name: "month", value: month)]
+        return try await get(url: comps.url!)
+    }
+
+    /// Every bank statement import, newest first.
+    func statementImports() async throws -> [StatementImport] {
+        if isPreview { return PreviewData.statementImports }
+        let r: StatementImportsResponse = try await get("api/mobile/finance/statements")
+        return r.imports
+    }
+
+    /// Bank reconciliation runs (the web's Accounting → Reconciliation), newest first.
+    func reconciliationRuns() async throws -> [ReconciliationRun] {
+        if isPreview { return PreviewData.reconciliationRuns }
+        let r: ReconciliationRunsResponse = try await get("api/accounting/reconciliation")
+        return r.runs
+    }
+
+    /// One reconciliation run with every line.
+    func reconciliation(id: String) async throws -> ReconciliationDetail {
+        if isPreview { return PreviewData.reconciliationDetail(id: id) }
+        return try await get("api/accounting/reconciliation/\(id)")
+    }
+
     /// Weekly timesheet (existing /api/timesheet). `weekStart` is a Monday
     /// `yyyy-MM-dd`; nil returns the server's current week.
     func timesheet(weekStart: String? = nil) async throws -> TimesheetResponse {

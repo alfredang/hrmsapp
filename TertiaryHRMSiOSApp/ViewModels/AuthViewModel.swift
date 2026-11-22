@@ -68,17 +68,22 @@ final class AuthViewModel: ObservableObject {
     /// The Trainer Admin view is on: chosen in View As and the user still holds TRAINER_ADMIN.
     var isTrainerView: Bool { canManageTrainers && viewAs == .trainerAdmin }
 
+    /// Previewing other roles (Staff / Intern / Accountant) is Alfred's only (22 Nov 2026; web
+    /// src/lib/view-as-policy.ts). Trainer Admins (Deepa, Tan Soik Ching) switch My view / Trainer Admin.
+    static let viewAsEmails = ["angch@tertiaryinfotech.com"]
+    var canViewAs: Bool { Self.viewAsEmails.contains((user?.email ?? "").trimmingCharacters(in: .whitespaces).lowercased()) }
+
     /// The views this person may pick: their own, the role previews for approvers, Trainer Admin
     /// for TRAINER_ADMIN holders.
     var availableViews: [ViewAs] {
         var v: [ViewAs] = [.mine]
-        if isApprover { v += [.staff, .intern, .accountant] }
+        if canViewAs, isApprover { v += [.staff, .intern, .accountant] }
         if canManageTrainers { v.append(.trainerAdmin) }
         return v
     }
 
     /// An approver previewing another role's screens (Staff / Intern / Accountant).
-    var isRolePreview: Bool { isApprover && [.staff, .intern, .accountant].contains(viewAs) }
+    var isRolePreview: Bool { canViewAs && isApprover && [.staff, .intern, .accountant].contains(viewAs) }
 
     /// What the screens show (View As aware). Business rules and forms keep the real roles
     /// (`isIntern`, `mustClockIn`, `isApprover`).
@@ -138,7 +143,7 @@ final class AuthViewModel: ObservableObject {
                                    name: "Sarah Lim", role: "STAFF",
                                    roles: ["STAFF"], employeeId: "E0002")
             } else {
-                user = SessionUser(id: "preview", email: "alfred.ang@tertiaryinfotech.com",
+                user = SessionUser(id: "preview", email: "angch@tertiaryinfotech.com",
                                    name: "Alfred Ang", role: "ADMIN",
                                    roles: ["ADMIN", "HR", "TRAINER_ADMIN"], employeeId: "E0001")
             }

@@ -123,31 +123,31 @@ enum PreviewData {
     static let employees = EmployeesResponse(isAdmin: true, employees: [
         Employee(id: "e1", employeeId: "E0001", name: "Alfred Ang", position: "Managing Director",
                  department: "Management", avatarUrl: nil, email: "alfred.ang@tertiaryinfotech.com",
-                 phone: "+65 9123 4567", employmentType: "Full-time", startDate: "2015-01-05T09:00:00Z", intern: false),
+                 phone: "+65 9123 4567", employmentType: "FULL_TIME", startDate: "2015-01-05T09:00:00Z", intern: false),
         Employee(id: "e2", employeeId: "E0014", name: "Jasmine Lee", position: "HR Manager",
                  department: "Human Resources", avatarUrl: nil, email: "jasmine.lee@tertiaryinfotech.com",
-                 phone: "+65 9234 5678", employmentType: "Full-time", startDate: "2018-03-12T09:00:00Z", intern: false),
+                 phone: "+65 9234 5678", employmentType: "FULL_TIME", startDate: "2018-03-12T09:00:00Z", intern: false),
         Employee(id: "e3", employeeId: "E0027", name: "Daniel Tan", position: "Senior Trainer",
                  department: "Training", avatarUrl: nil, email: "daniel.tan@tertiaryinfotech.com",
-                 phone: "+65 9345 6789", employmentType: "Full-time", startDate: "2019-07-01T09:00:00Z", intern: false),
+                 phone: "+65 9345 6789", employmentType: "FULL_TIME", startDate: "2019-07-01T09:00:00Z", intern: false),
         Employee(id: "e4", employeeId: "E0033", name: "Priya Nair", position: "Course Consultant",
                  department: "Sales", avatarUrl: nil, email: "priya.nair@tertiaryinfotech.com",
-                 phone: "+65 9456 7890", employmentType: "Full-time", startDate: "2021-09-20T09:00:00Z", intern: false),
+                 phone: "+65 9456 7890", employmentType: "FULL_TIME", startDate: "2021-09-20T09:00:00Z", intern: false),
         Employee(id: "e5", employeeId: "E0041", name: "Marcus Wong", position: "Software Engineer",
                  department: "Technology", avatarUrl: nil, email: "marcus.wong@tertiaryinfotech.com",
-                 phone: "+65 9567 8901", employmentType: "Full-time", startDate: "2022-11-02T09:00:00Z", intern: false),
+                 phone: "+65 9567 8901", employmentType: "FULL_TIME", startDate: "2022-11-02T09:00:00Z", intern: false),
         Employee(id: "e6", employeeId: "E0048", name: "Siti Rahman", position: "Finance Executive",
                  department: "Finance", avatarUrl: nil, email: "siti.rahman@tertiaryinfotech.com",
-                 phone: "+65 9678 9012", employmentType: "Full-time", startDate: "2023-02-15T09:00:00Z", intern: false),
+                 phone: "+65 9678 9012", employmentType: "FULL_TIME", startDate: "2023-02-15T09:00:00Z", intern: false),
         Employee(id: "e7", employeeId: "I0002", name: "Amanda Halim", position: "Intern (NYP)",
                  department: "Software Development", avatarUrl: nil, email: "amanda.halim@tertiaryinfotech.com",
-                 phone: "+65 9789 0123", employmentType: "Intern", startDate: "2026-09-01T09:00:00Z", intern: true),
+                 phone: "+65 9789 0123", employmentType: "INTERN", startDate: "2026-09-01T09:00:00Z", intern: true),
         Employee(id: "e8", employeeId: "I0011", name: "Rachel Chua", position: "Intern (SP)",
                  department: "Marketing", avatarUrl: nil, email: "rachel.chua@tertiaryinfotech.com",
-                 phone: "+65 9890 1234", employmentType: "Intern", startDate: "2026-09-14T09:00:00Z", intern: true),
+                 phone: "+65 9890 1234", employmentType: "INTERN", startDate: "2026-09-14T09:00:00Z", intern: true),
         Employee(id: "e9", employeeId: "I0012", name: "Kenneth Wang", position: "Intern (SP)",
                  department: "Software Development", avatarUrl: nil, email: "kenneth.wang@tertiaryinfotech.com",
-                 phone: "+65 9901 2345", employmentType: "Intern", startDate: "2026-10-05T09:00:00Z", intern: true),
+                 phone: "+65 9901 2345", employmentType: "INTERN", startDate: "2026-10-05T09:00:00Z", intern: true),
     ])
 
     // MARK: Expenses
@@ -274,7 +274,7 @@ enum PreviewData {
         id: "e1", employeeId: "E0001", name: "Alfred Ang",
         email: "alfred.ang@tertiaryinfotech.com", phone: "+65 9123 4567",
         position: "Managing Director", department: "Management",
-        employmentType: "Full-time", nationality: "Singaporean", gender: "Male",
+        employmentType: "FULL_TIME", nationality: "Singaporean", gender: "Male",
         dateOfBirth: "1982-04-18T09:00:00Z", address: "1 Tampines Central, Singapore 529536",
         startDate: "2015-01-05T09:00:00Z", endDate: nil, status: "Active", avatarUrl: nil,
         monthlyLeaveRate: 1.33, roles: ["ADMIN", "HR"], role: "ADMIN",
@@ -575,5 +575,81 @@ enum PreviewData {
         """#
         // swiftlint:disable:next force_try
         return try! JSONDecoder().decode(TrainerDetailResponse.self, from: Data(json.utf8)).trainer
+    }
+}
+
+// MARK: Finance details (accountant Home → Income / Expenses / Bank statements / Bank reconciliation)
+extension PreviewData {
+    static func bankTransactions(_ direction: BankDirection, month: String) -> BankTransactionsMonth {
+        let income: [(String, String, Double, String)] = [
+            ("16", "SkillsFuture Singapore Agency - course fee grant", 48_250.00, "Grant"),
+            ("14", "UOB corporate training - Python for Data Analysis", 12_960.00, "Corporate"),
+            ("12", "PayNow - Tan Wei Ming - WSQ Data Analytics", 650.00, "Course fee"),
+            ("10", "Stripe payout", 7_412.35, "Online"),
+            ("6", "PUB - Power BI in-house run", 18_400.00, "Corporate"),
+            ("3", "GIRO - Adecco Personnel", 9_870.00, "Corporate"),
+        ]
+        let expenses: [(String, String, Double, String)] = [
+            ("15", "Salary - November", 96_400.00, "Payroll"),
+            ("13", "Google Workspace", 1_284.00, "Software"),
+            ("11", "Trainer fee - J. Lee (Python)", 2_400.00, "Trainer"),
+            ("8", "Office rental - Woods Square", 9_800.00, "Rent"),
+            ("4", "AWS", 612.47, "Software"),
+        ]
+        let rows = (direction == .credit ? income : expenses).enumerated().map { i, r in
+            BankTransaction(id: "\(direction.rawValue)-\(i)", paymentDate: "\(month)-\(r.0.count == 1 ? "0" + r.0 : r.0)",
+                            title: r.1, amount: r.2, direction: direction.rawValue, type: r.3,
+                            paymentType: "Bank Transfer", paymentRef: "REF\(4810 + i)",
+                            status: i < 2 ? "Pending" : "Recorded",
+                            rawDescription: "\(r.1.uppercased())\nDBS \(direction == .credit ? "INWARD" : "OUTWARD") \(4810 + i)",
+                            statementRef: "DBS-\(month)")
+        }
+        return BankTransactionsMonth(month: month, direction: direction.rawValue, count: rows.count,
+                                     total: rows.reduce(0) { $0 + $1.amount }, transactions: rows)
+    }
+
+    static let statementImports: [StatementImport] = [
+        StatementImport(batchId: "b3", importedAt: "2026-11-16T05:21:55.243Z", from: "2026-11-01", to: "2026-11-16",
+                        credits: 98, debits: 61, creditTotal: 140_742.99, debitTotal: 364_908.01, statementRef: "DBS Nov 2026"),
+        StatementImport(batchId: "b2", importedAt: "2026-11-02T02:10:11.000Z", from: "2026-10-01", to: "2026-10-31",
+                        credits: 181, debits: 112, creditTotal: 402_118.40, debitTotal: 377_090.12, statementRef: "DBS Oct 2026"),
+        StatementImport(batchId: "b1", importedAt: "2026-10-01T03:00:00.000Z", from: "2026-09-01", to: "2026-09-30",
+                        credits: 166, debits: 104, creditTotal: 356_004.10, debitTotal: 341_772.55, statementRef: "DBS Sep 2026"),
+    ]
+
+    static let reconciliationRuns: [ReconciliationRun] = [
+        ReconciliationRun(id: "r2", periodStart: "2026-10-01", periodEnd: "2026-10-31", status: "COMPLETED",
+                          bankCount: 293, qbCount: 290, matchedCount: 268, mismatchCount: 2, unmatchedBankCount: 2,
+                          unmatchedQbCount: 1, reviewedCount: 1, matchRate: 92.2, createdAt: "2026-11-02T03:00:00.000Z"),
+        ReconciliationRun(id: "r1", periodStart: "2026-09-01", periodEnd: "2026-09-30", status: "COMPLETED",
+                          bankCount: 270, qbCount: 268, matchedCount: 266, mismatchCount: 0, unmatchedBankCount: 0,
+                          unmatchedQbCount: 0, reviewedCount: 4, matchRate: 98.5, createdAt: "2026-10-02T03:00:00.000Z"),
+    ]
+
+    static func reconciliationDetail(id: String) -> ReconciliationDetail {
+        let run = reconciliationRuns.first { $0.id == id } ?? reconciliationRuns[0]
+        let items: [ReconciliationItem] = [
+            ReconciliationItem(id: "i1", status: "AMOUNT_MISMATCH", bankDate: "2026-10-28", bankAmount: 1_284.00,
+                               bankDirection: "DEBIT", bankDescription: "GOOGLE WORKSPACE", qbTxnType: "Expense",
+                               qbDate: "2026-10-28", qbAmount: 1_248.00, qbDirection: "DEBIT", qbDocNumber: "E-2291",
+                               qbPayee: "Google Asia Pacific"),
+            ReconciliationItem(id: "i2", status: "UNMATCHED_BANK", bankDate: "2026-10-21", bankAmount: 650.00,
+                               bankDirection: "CREDIT", bankDescription: "PAYNOW TAN WEI MING"),
+            ReconciliationItem(id: "i3", status: "UNMATCHED_BANK", bankDate: "2026-10-09", bankAmount: 18.00,
+                               bankDirection: "DEBIT", bankDescription: "BANK CHARGES"),
+            ReconciliationItem(id: "i4", status: "UNMATCHED_QB", qbTxnType: "Payment", qbDate: "2026-10-30",
+                               qbAmount: 2_400.00, qbDirection: "CREDIT", qbDocNumber: "INV-1182", qbPayee: "Adecco Personnel"),
+            ReconciliationItem(id: "i5", status: "AMOUNT_MISMATCH", bankDate: "2026-10-05", bankAmount: 9_800.00,
+                               bankDirection: "DEBIT", bankDescription: "WOODS SQUARE RENT", qbTxnType: "Bill",
+                               qbDate: "2026-10-05", qbAmount: 9_810.00, qbDirection: "DEBIT", qbPayee: "Woods Square",
+                               reviewed: true),
+            ReconciliationItem(id: "i6", status: "MATCHED", bankDate: "2026-10-15", bankAmount: 96_400.00,
+                               bankDirection: "DEBIT", bankDescription: "SALARY OCTOBER", qbTxnType: "Expense",
+                               qbDate: "2026-10-15", qbAmount: 96_400.00, qbDirection: "DEBIT", qbPayee: "Payroll"),
+            ReconciliationItem(id: "i7", status: "MATCHED", bankDate: "2026-10-03", bankAmount: 48_250.00,
+                               bankDirection: "CREDIT", bankDescription: "SKILLSFUTURE SINGAPORE", qbTxnType: "Payment",
+                               qbDate: "2026-10-03", qbAmount: 48_250.00, qbDirection: "CREDIT", qbPayee: "SSG"),
+        ]
+        return ReconciliationDetail(run: run, items: items)
     }
 }

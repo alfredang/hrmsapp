@@ -231,6 +231,19 @@ struct Employee: Codable, Identifiable {
     var intern: Bool? = nil
 }
 
+extension Employee {
+    /// "Full time" / "Part time" / "Contract" / "Intern" (approvers only; nil when not sent).
+    var employmentLabel: String? {
+        switch employmentType?.uppercased() {
+        case "FULL_TIME": return "Full time"
+        case "PART_TIME": return "Part time"
+        case "CONTRACT": return "Contract"
+        case "INTERN": return "Intern"
+        default: return nil
+        }
+    }
+}
+
 /// The Team tab's Staff / Interns lists (approvers). Works on the server's `intern` flag.
 enum EmployeeGroup: String, CaseIterable, Identifiable {
     case staff, interns

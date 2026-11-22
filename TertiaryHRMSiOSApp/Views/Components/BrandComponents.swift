@@ -28,7 +28,7 @@ struct BrandHeader: View {
     }
 }
 
-/// The company lockup (logo + name) shown as the inline nav-bar title on
+/// The app lockup (logo + "TIA HRMS") shown as the inline nav-bar title on
 /// every screen, so no screen has an empty large-title deadspace and the
 /// brand is present everywhere.
 struct BrandBarTitle: View {
@@ -39,7 +39,8 @@ struct BrandBarTitle: View {
                 .scaledToFit()
                 .frame(width: 30, height: 30)
                 .clipShape(Circle())
-            Text("Tertiary Infotech Academy")
+            // App name, not the company name (Alfred, 22 Nov 2026).
+            Text("TIA HRMS")
                 .font(.headline.weight(.bold))
                 .foregroundStyle(Theme.ink)
         }

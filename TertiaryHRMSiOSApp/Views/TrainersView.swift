@@ -24,8 +24,13 @@ struct TrainersView: View {
     /// ACLP / Non-ACLP / All; the screen opens on ACLP trainers (Alfred, 20 Nov 2026).
     @State private var aclp: TrainerAclpFilter
 
-    /// `aclp`: the choice it opens on (Home's trainer tiles open their own).
-    init(aclp: TrainerAclpFilter = .aclp) { _aclp = State(initialValue: aclp) }
+    /// `aclp`: the choice it opens on (Home's trainer tiles open their own). `query` / `tags`: a
+    /// search started on the Trainer Admin Home.
+    init(aclp: TrainerAclpFilter = .aclp, query: String? = nil, tags: [TrainerTag] = []) {
+        _aclp = State(initialValue: aclp)
+        _query = State(initialValue: query ?? PreviewData.query ?? "")
+        _tokens = State(initialValue: tags)
+    }
 
     var body: some View {
         GradientScreen {
@@ -243,6 +248,150 @@ struct TrainersView: View {
         } catch {
             if (error as? URLError)?.code == .cancelled { return }
             state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load trainers.")
+        }
+    }
+}
+
+// MARK: - Home search (Trainer Admin view)
+
+/// The Trainer Admin Home's search field (Alfred, 22 Nov 2026: "add a search field for trainers,
+/// skills etc"). Searches every trainer (ACLP or not) by name, skill, certification, course or
+/// contact as you type: the first matches and matching skills show under the field, Search opens
+/// the directory with the same search. Empty, it offers the most common skills.
+struct TrainerHomeSearch: View {
+    @State private var all: [TrainerListItem]?
+    @State private var loadError: String?
+    @State private var text = ""
+    @State private var openSearch = false
+    @FocusState private var focused: Bool
+
+    private let previewCount = 5
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            field
+            if let all {
+                let q = text.trimmingCharacters(in: .whitespaces)
+                if q.isEmpty {
+                    popular(all)
+                } else {
+                    results(all, query: q)
+                }
+            } else if let loadError {
+                Text(loadError).font(.caption).foregroundStyle(Theme.mist).padding(.horizontal, 6)
+            }
+        }
+        .navigationDestination(isPresented: $openSearch) {
+            TrainersView(aclp: .all, query: text.trimmingCharacters(in: .whitespaces))
+        }
+        .task { if all == nil { await load() } }
+    }
+
+    private var field: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass").foregroundStyle(Theme.mist)
+            TextField("Search trainers, skills, certifications", text: $text)
+                .focused($focused)
+                .submitLabel(.search)
+                .onSubmit { if !text.trimmingCharacters(in: .whitespaces).isEmpty { openSearch = true } }
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .foregroundStyle(Theme.ink)
+                .accessibilityIdentifier("home.trainerSearch.field")
+            if !text.isEmpty {
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.mist)
+                }
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 14).frame(minHeight: 48)
+        .background(Theme.card)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .stroke(focused ? Theme.sky : Theme.cardBorder, lineWidth: focused ? 1.5 : 1))
+    }
+
+    /// Empty search: the most common skills and certifications, one tap from a filtered directory.
+    private func popular(_ all: [TrainerListItem]) -> some View {
+        let tags = TrainerDirectory.suggestions(TrainerDirectory.vocabulary(all), text: "", excluding: [], limit: 8)
+        return VStack(alignment: .leading, spacing: 8) {
+            if !tags.isEmpty {
+                Text("Popular skills").font(.caption.weight(.semibold)).foregroundStyle(Theme.mist).padding(.horizontal, 6)
+                FlowChips(tags: tags)
+            }
+        }
+    }
+
+    private func results(_ all: [TrainerListItem], query: String) -> some View {
+        let matches = TrainerDirectory.filter(all, query: query, tags: [], accreditations: [], status: .trainers)
+        let tags = TrainerDirectory.suggestions(TrainerDirectory.vocabulary(all), text: query, excluding: [], limit: 4)
+        return VStack(alignment: .leading, spacing: 10) {
+            if !tags.isEmpty { FlowChips(tags: tags) }
+            if matches.isEmpty {
+                Text("No trainers match “\(query)”.").font(.subheadline).foregroundStyle(Theme.mist).padding(.horizontal, 6)
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(matches.prefix(previewCount).enumerated()), id: \.element.id) { i, t in
+                        if i > 0 { Divider().padding(.leading, 16) }
+                        TrainerRow(trainer: t, needles: [query])
+                    }
+                    if matches.count > previewCount {
+                        Divider()
+                        Button { openSearch = true } label: {
+                            HStack {
+                                Text("See all \(matches.count) trainers").font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.caption)
+                            }
+                            .foregroundStyle(Theme.sky)
+                            .padding(.horizontal, 16).padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("home.trainerSearch.all")
+                    }
+                }
+                .background(Theme.card)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.cardBorder, lineWidth: 1))
+                .accessibilityIdentifier("home.trainerSearch.results")
+            }
+        }
+    }
+
+    private func load() async {
+        do { all = try await HRMSAPI.shared.trainers(TrainerFilter(status: .all)).trainers; loadError = nil }
+        catch is CancellationError {}
+        catch {
+            if (error as? URLError)?.code == .cancelled { return }
+            loadError = (error as? LocalizedError)?.errorDescription ?? "Could not load trainers."
+        }
+    }
+}
+
+/// Skill / certification chips that wrap onto as many lines as they need; a tap opens the
+/// directory filtered to that tag (all trainers, ACLP or not).
+private struct FlowChips: View {
+    let tags: [TrainerTag]
+    var body: some View {
+        FlowLayout(spacing: 8) {
+            ForEach(tags) { t in
+                NavigationLink { TrainersView(aclp: .all, query: "", tags: [t]) } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: t.kind == .skill ? "wrench.and.screwdriver" : "rosette").font(.caption2)
+                        Text(t.tag).font(.caption.weight(.semibold)).lineLimit(1)
+                        Text("\(t.count)").font(.caption2.weight(.bold)).monospacedDigit().foregroundStyle(Theme.mist)
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 7)
+                    .background(Theme.chipFill.opacity(0.55))
+                    .foregroundStyle(Theme.chipInk)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(t.tag), \(t.count) trainers")
+                .accessibilityIdentifier("home.trainerSearch.tag.\(t.id)")
+            }
         }
     }
 }

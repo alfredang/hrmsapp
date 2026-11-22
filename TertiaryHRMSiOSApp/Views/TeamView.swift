@@ -48,13 +48,15 @@ struct TeamView: View {
             }
         }
         .brandBar()
-        .searchable(text: $query, prompt: "Search name or role")
+        .searchable(text: $query, prompt: "Name, department, email or role")
     }
 
     private func filtered(_ list: [Employee]) -> [Employee] {
         guard !query.isEmpty else { return list }
         let q = query.lowercased()
-        return list.filter { $0.name.lowercased().contains(q) || ($0.position ?? "").lowercased().contains(q) || ($0.department ?? "").lowercased().contains(q) }
+        return list.filter { e in
+            [e.name, e.position, e.department, e.email, e.employmentLabel].compactMap { $0?.lowercased() }.contains { $0.contains(q) }
+        }
     }
 
     private func row(_ e: Employee, isAdmin: Bool) -> some View {
@@ -64,12 +66,25 @@ struct TeamView: View {
                     Circle().fill(Theme.accent).frame(width: 46, height: 46)
                     Text(initials(e.name)).font(.subheadline.weight(.bold)).foregroundStyle(.white)
                 }
-                VStack(alignment: .leading, spacing: 3) {
+                // Full name, department, full time / part time and email (Alfred, 22 Nov 2026).
+                VStack(alignment: .leading, spacing: 4) {
                     Text(e.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
-                    Text([e.position, e.department].compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 6) {
+                        Text(e.department ?? "No department")
+                            .font(.caption).foregroundStyle(Theme.ink.opacity(0.7)).lineLimit(1)
+                        if let type = e.employmentLabel {
+                            Text(type)
+                                .font(.caption2.weight(.semibold))
+                                .padding(.horizontal, 7).padding(.vertical, 2)
+                                .background((e.employmentType == "PART_TIME" ? Theme.gold : Theme.chipFill).opacity(0.55))
+                                .foregroundStyle(e.employmentType == "PART_TIME" ? Theme.navy950 : Theme.chipInk)
+                                .clipShape(Capsule())
+                                .accessibilityIdentifier("team.type.\(e.employeeId)")
+                        }
+                    }
                     if isAdmin, let email = e.email {
-                        Text(email).font(.caption2).foregroundStyle(Theme.sky)
+                        Text(email).font(.caption).foregroundStyle(Theme.sky).lineLimit(1).minimumScaleFactor(0.8)
                     }
                 }
                 Spacer()

@@ -60,7 +60,7 @@ struct DashboardView: View {
                         // Accountants: claims waiting, then this month's bank income and expenses (web FinanceKpiRow).
                         if let f = s.financeKpis {
                             sectionTitle("Finance")
-                            financeCard(f)
+                            financeCard(f, canApprove: s.isAdmin)
                         }
 
                         // Everyone but admins: leave and MC left, and the two forms one tap away.
@@ -72,6 +72,7 @@ struct DashboardView: View {
                         // Trainer Admin view, not on the admin Home (Alfred, 22 Nov 2026).
                         if let t = s.trainerKpis, !admin, !auth.isRolePreview {
                             sectionTitle("Trainer Admin")
+                            TrainerHomeSearch()
                             HStack(spacing: 10) {
                                 kpi("Trainers", t.total, "person.text.rectangle.fill", Theme.sky, id: "trainers") { TrainersView(aclp: .all) }
                                 kpi("ACLP trainers", t.aclp, "checkmark.seal.fill", Theme.sky, id: "aclp") { TrainersView(aclp: .aclp) }
@@ -135,6 +136,8 @@ struct DashboardView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                // Search every trainer by name, skill, certification or course (Alfred, 22 Nov 2026).
+                TrainerHomeSearch()
                 if let t = s.trainerKpis {
                     HStack(spacing: 10) {
                         kpi("Trainers", t.total, "person.text.rectangle.fill", Theme.sky, id: "trainers") { TrainersView(aclp: .all) }
@@ -157,6 +160,7 @@ struct DashboardView: View {
             }
             .padding(20)
         }
+        .scrollDismissesKeyboard(.interactively)
         .refreshable { await load() }
     }
 
@@ -425,7 +429,9 @@ struct DashboardView: View {
     }
 
     /// Accountants: pending claims, then this month's income and expenses with the year so far.
-    private func financeCard(_ f: FinanceKpis) -> some View {
+    /// Every row opens its detail (Alfred, 22 Nov 2026); pending claims open Approvals for approvers
+    /// only (the server refuses anyone else).
+    private func financeCard(_ f: FinanceKpis, canApprove: Bool) -> some View {
         let count = { (n: Int?, noun: String) in n.map { "\($0) \(noun)\($0 == 1 ? "" : "s") · " } ?? "" }
         var rows: [(id: String, icon: String, tint: Color, label: String, value: String, sub: String)] = [
             ("pending", "doc.text.fill", f.pendingClaims > 0 ? Theme.gold600 : Theme.sky, "Pending expense claims",
@@ -454,22 +460,44 @@ struct DashboardView: View {
         return Card(padding: 0) {
             ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
                 if i > 0 { Divider().padding(.leading, 52) }
-                HStack(spacing: 12) {
-                    Image(systemName: r.icon).foregroundStyle(r.tint).frame(width: 24)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(r.label).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink).lineLimit(1)
-                        Text(r.sub).font(.caption).foregroundStyle(Theme.mist).lineLimit(1).minimumScaleFactor(0.8)
+                let tappable = r.id != "pending" || canApprove
+                NavigationLink { financeDetail(r.id) } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: r.icon).foregroundStyle(r.tint).frame(width: 24)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(r.label).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink).lineLimit(1)
+                            Text(r.sub).font(.caption).foregroundStyle(Theme.mist).lineLimit(1).minimumScaleFactor(0.8)
+                        }
+                        Spacer(minLength: 8)
+                        Text(r.value).font(.headline).monospacedDigit().foregroundStyle(Theme.ink)
+                            .lineLimit(1).minimumScaleFactor(0.7)
+                        if tappable {
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.mist.opacity(0.6))
+                        }
                     }
-                    Spacer(minLength: 8)
-                    Text(r.value).font(.headline).monospacedDigit().foregroundStyle(Theme.ink)
-                        .lineLimit(1).minimumScaleFactor(0.7)
+                    .padding(.horizontal, 14).padding(.vertical, 12)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 14).padding(.vertical, 12)
+                .buttonStyle(.plain)
+                .disabled(!tappable)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(r.label)
                 .accessibilityValue("\(r.value), \(r.sub)")
+                .accessibilityAddTraits(tappable ? .isButton : [])
                 .accessibilityIdentifier("home.finance.\(r.id)")
             }
+        }
+    }
+
+    /// The screen behind a Finance card row.
+    @ViewBuilder
+    private func financeDetail(_ id: String) -> some View {
+        switch id {
+        case "income": BankTransactionsView(direction: .credit)
+        case "expenses": BankTransactionsView(direction: .debit)
+        case "statements": BankStatementsView()
+        case "reconciliation": ReconciliationView()
+        default: ApprovalsView()
         }
     }
 
