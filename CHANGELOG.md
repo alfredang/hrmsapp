@@ -1,6 +1,9 @@
 # Changelog
 
-## [1.21] — 2026-11-22 (build 44 replaces builds 40–42 in App Review; 1.20 build 38 is live)
+## [1.21] — 2026-11-22 (build 45 replaces builds 40–44 in App Review; 1.20 build 38 is live)
+### Build 45
+- Sign-in: staff on a company email get Continue with Google first, interns and part-time staff an emailed code; password is the last option.
+
 ### Build 44
 - Accountants: **Income** and **Expenses** tabs (the month's bank credits and debits) in place of Calendar and SOP.
 - Trainer Admin view and accountants: no calendar.
@@ -14,7 +17,7 @@
 
 Status (22 Nov 2026, 15:00 SGT): build 40 uploaded, VALID, submitted: WAITING_FOR_REVIEW. Android 1.21 (34) released to the Play production track the same day.
 **What's New (user-facing):**
-> The app is now called TIA HRMS at the top of every screen. Accountants can tap Income, Expenses, Bank statements and Bank reconciliation on Home to see the details: every bank line for the month with search, every statement import, and the reconciliation lines still to review. Staff and interns have a new SOP tab with the company's procedures, and accountants Income and Expenses tabs. Staff and interns see only their own leave on the calendar. Trainer Admins can search trainers, skills and certifications straight from Home, and switch between My view and Trainer Admin right under their name. The staff list shows each person's department, full time or part time, and email. Continue with Google now opens your company account directly. Notifications now list only what is still relevant: a request disappears once it is decided and old notices are cleared. Leave & MC tiles say what they count, and Annual leave is spelled out.
+> The app is now called TIA HRMS at the top of every screen. Accountants can tap Income, Expenses, Bank statements and Bank reconciliation on Home to see the details: every bank line for the month with search, every statement import, and the reconciliation lines still to review. Staff and interns have a new SOP tab with the company's procedures, and accountants Income and Expenses tabs. Staff and interns see only their own leave on the calendar. Trainer Admins can search trainers, skills and certifications straight from Home, and switch between My view and Trainer Admin right under their name. The staff list shows each person's department, full time or part time, and email. Signing in is simpler: staff continue with Google, interns and part-time staff get an emailed code. Notifications now list only what is still relevant: a request disappears once it is decided and old notices are cleared. Leave & MC tiles say what they count, and Annual leave is spelled out.
 
 - Finance details (`FinanceViews.swift`, `FinanceModels.swift`) over the new `/api/mobile/finance/transactions` and `/api/mobile/finance/statements` and the web's reconciliation routes.
 - `TrainerHomeSearch` on the Trainer Admin Home; View As row under the name.

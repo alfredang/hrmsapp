@@ -149,6 +149,9 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
+## 1.21 build 45 (22 Nov 2026)
+- **Sign-in defaults** (`LoginView.emailStep`, `AuthViewModel.usesGoogleByDefault`): one first screen; a @tertiaryinfotech.com email → Continue with Google (login hint) + "Email me a code instead"; any other email → "Email me a sign-in code". "Sign in with a password" is the last, small grey link. Only email codes exist on the server (no SMS / WhatsApp provider yet). `-uiPreviewLogin email|intern` previews both (it now wins over `-uiPreview`). UI test `testLoginDefaultsByEmail`.
+
 ## 1.21 build 44 (22 Nov 2026, replaces build 42 in App Review; 43 was never uploaded)
 - **Accountants**: tabs Home / **Income** (`BankTransactionsView(.credit)`) / **Expenses** / More; no calendar (a calendar push opens as a sheet), no More → Calendar.
 - **Trainer Admin view**: Home / Trainers / More (no calendar tab or More row).

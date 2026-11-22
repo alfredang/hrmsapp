@@ -47,17 +47,38 @@ struct LoginView: View {
 
     // MARK: Steps
 
+    /// One screen, one tap (Alfred, 22 Nov 2026): a company email signs in with Google, any other
+    /// email (interns, part-time staff) is sent a one-time code. Password is a link below.
     private var emailStep: some View {
         VStack(spacing: 16) {
-            sectionTitle("Sign in", "Enter your work email to continue.")
-            PremierField(title: "Work email", systemImage: "envelope.fill",
+            sectionTitle(auth.email.isEmpty ? "Sign in" : "Welcome back",
+                         "Enter your email. Staff sign in with Google, interns and part-time staff with a code.")
+            PremierField(title: "Email", systemImage: "envelope.fill",
                          text: $auth.email, keyboard: .emailAddress,
-                         contentType: .username, submitLabel: .next,
+                         contentType: .username, submitLabel: .go,
                          onSubmit: auth.continueFromEmail)
             rememberRow
-            PremierButton(title: "Continue", systemImage: "arrow.right",
-                          enabled: !auth.email.isEmpty, action: auth.continueFromEmail)
-            googleOption
+            if auth.usesGoogleByDefault {
+                GoogleSignInButton(loading: auth.isWorking, enabled: !auth.isWorking,
+                                   action: { Task { await auth.signInWithGoogle() } })
+                    .accessibilityIdentifier("login.google")
+                Text("Signs in with your company Google account.")
+                    .font(.caption).foregroundStyle(Theme.mist).frame(maxWidth: .infinity)
+            } else {
+                PremierButton(title: "Email me a sign-in code", systemImage: "envelope.badge.fill",
+                              loading: auth.isWorking, enabled: !auth.email.isEmpty,
+                              action: { Task { await auth.sendOTP() } })
+                    .accessibilityIdentifier("login.sendCode")
+            }
+            if auth.usesGoogleByDefault {
+                Button("Email me a code instead", action: { Task { await auth.sendOTP() } })
+                    .font(.footnote.weight(.semibold)).tint(Theme.sky)
+                    .accessibilityIdentifier("login.codeInstead")
+            }
+            // Password is the last resort (Alfred, 22 Nov 2026): small and grey, at the bottom.
+            Button("Sign in with a password", action: auth.usePassword)
+                .font(.caption).tint(Theme.mist)
+                .accessibilityIdentifier("login.usePassword")
         }
     }
 
@@ -71,7 +92,7 @@ struct LoginView: View {
             PremierButton(title: "Sign in", systemImage: "checkmark.circle.fill",
                           loading: auth.isWorking, enabled: !auth.password.isEmpty,
                           action: { Task { await auth.signInWithPassword() } })
-            googleOption
+            if auth.usesGoogleByDefault { googleOption }
 
             HStack {
                 Button("Use a one-time code", action: auth.switchToOTP)
@@ -114,7 +135,7 @@ struct LoginView: View {
             OrDivider()
             GoogleSignInButton(loading: auth.isWorking, enabled: !auth.isWorking,
                                action: { Task { await auth.signInWithGoogle() } })
-            Text("Use your @tertiaryinfotech.com Google account. Part-time staff and interns can sign in with their email instead.")
+            Text("Use your @tertiaryinfotech.com Google account.")
                 .font(.caption).foregroundStyle(Theme.mist).multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("login.googleHint")

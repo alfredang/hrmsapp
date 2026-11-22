@@ -46,6 +46,24 @@ final class NeatUITests: XCTestCase {
 
     /// Trainer Admin view (More → View As, web view mode "trainer"): tabs Home / Trainers / Calendar /
     /// More, Home = the trainer tiles only, More without Applications; switching back returns to Home.
+    /// Sign-in defaults (22 Nov 2026): a company email gets Google, any other email a one-time code;
+    /// password is the last, small link.
+    func testLoginDefaultsByEmail() {
+        let staff = launch(["-uiPreviewLogin", "email"])
+        XCTAssertTrue(staff.buttons["login.google"].waitForExistence(timeout: 10))
+        XCTAssertTrue(staff.buttons["login.codeInstead"].exists)
+        XCTAssertFalse(staff.buttons["login.sendCode"].exists)
+        XCTAssertGreaterThan(staff.buttons["login.usePassword"].frame.minY, staff.buttons["login.codeInstead"].frame.minY,
+                             "password is the last option")
+        snap(staff, "login-staff")
+        staff.terminate()
+
+        let intern = launch(["-uiPreviewLogin", "intern"])
+        XCTAssertTrue(intern.buttons["login.sendCode"].waitForExistence(timeout: 10))
+        XCTAssertFalse(intern.buttons["login.google"].exists)
+        snap(intern, "login-intern")
+    }
+
     /// Only admins have the Team tab; staff and interns get SOP there, shown natively (22 Nov 2026).
     func testSopTabReplacesTeamForStaff() {
         let app = launch(["-uiPreviewStaff"])

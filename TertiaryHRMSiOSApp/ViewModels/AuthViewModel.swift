@@ -135,7 +135,7 @@ final class AuthViewModel: ObservableObject {
         // Screenshot/demo seed: only when launched with `-uiPreview` (App Store capture &
         // UI checks). Never triggered in a normal install — no fake data ships to users.
         let args = ProcessInfo.processInfo.arguments
-        if args.contains("-uiPreview") {
+        if args.contains("-uiPreview"), !args.contains("-uiPreviewLogin") {
             if args.contains("-uiPreviewIntern") {
                 user = SessionUser(id: "preview-intern", email: "intern@tertiaryinfotech.com",
                                    name: "Jamie Koh", role: "INTERN",
@@ -157,7 +157,8 @@ final class AuthViewModel: ObservableObject {
             return
         }
         if let i = args.firstIndex(of: "-uiPreviewLogin"), i + 1 < args.count {
-            email = "alfred.ang@tertiaryinfotech.com"
+            // `-uiPreviewLogin intern` shows the first screen for a personal email (code sign-in).
+            email = args[i + 1] == "intern" ? "jamie.koh@gmail.com" : "angch@tertiaryinfotech.com"
             switch args[i + 1] {
             case "password": step = .password
             case "otp":
@@ -181,7 +182,19 @@ final class AuthViewModel: ObservableObject {
 
     // MARK: - Step transitions
 
+    /// The default sign-in for this email (Alfred, 22 Nov 2026): a company address signs in with
+    /// Google, any other address (interns, part-time staff) gets a one-time code. Password is a link.
+    var usesGoogleByDefault: Bool { googleSignInAvailable && GoogleSignInService.isCompanyEmail(email) }
+
     func continueFromEmail() {
+        errorMessage = nil; infoMessage = nil
+        guard isValidEmail(email) else { errorMessage = "Enter a valid email address."; return }
+        persistRememberedEmail()
+        if usesGoogleByDefault { Task { await signInWithGoogle() } } else { Task { await sendOTP() } }
+    }
+
+    /// "Use password" from the first screen.
+    func usePassword() {
         errorMessage = nil; infoMessage = nil
         guard isValidEmail(email) else { errorMessage = "Enter a valid email address."; return }
         persistRememberedEmail()
