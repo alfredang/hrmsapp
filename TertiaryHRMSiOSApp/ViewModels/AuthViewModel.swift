@@ -118,6 +118,8 @@ final class AuthViewModel: ObservableObject {
     private enum Keys {
         static let rememberFlag = "hrms_remember_email"
         static let rememberedEmail = "hrms_remembered_email"
+        /// The company address last signed in with Google on this device (the one-tap hint).
+        static let googleCompanyEmail = "hrms_google_company_email"
     }
 
     init() {
@@ -246,13 +248,24 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
+    /// Which company account Google should open on: the typed email if it is a company address,
+    /// else the one last used with Google here. nil → Google lists the company accounts.
+    private var googleHint: String? {
+        let typed = email.trimmingCharacters(in: .whitespaces).lowercased()
+        if GoogleSignInService.isCompanyEmail(typed) { return typed }
+        return UserDefaults.standard.string(forKey: Keys.googleCompanyEmail)
+    }
+
     /// Sign in with Google (native consent sheet → backend-verified NextAuth session).
     func signInWithGoogle() async {
         guard !isWorking else { return }
         errorMessage = nil; infoMessage = nil
         isWorking = true; defer { isWorking = false }
         do {
-            let u = try await GoogleSignInService.shared.signIn()
+            let u = try await GoogleSignInService.shared.signIn(hint: googleHint)
+            if let e = u.email, GoogleSignInService.isCompanyEmail(e) {
+                UserDefaults.standard.set(e.lowercased(), forKey: Keys.googleCompanyEmail)
+            }
             // Carry the Google account forward so "remember my email" and a later
             // password/OTP sign-in both land on the right address.
             if let signedInEmail = u.email, !signedInEmail.isEmpty { email = signedInEmail }

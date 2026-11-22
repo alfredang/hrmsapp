@@ -73,7 +73,9 @@ actor GoogleSignInService {
     // MARK: - Public API
 
     /// Run the full Google sign-in and return the HRMS session user.
-    func signIn() async throws -> SessionUser {
+    /// `hint`: the company address to sign in as (the last one used here, or the typed email). With a
+    /// hint Google goes straight to that account, so a returning user signs in with one tap.
+    func signIn(hint: String? = nil) async throws -> SessionUser {
         guard let clientID = Self.clientID else { throw GoogleAuthError.notConfigured }
         let redirect = Self.redirectURI(for: clientID)
 
@@ -82,17 +84,22 @@ actor GoogleSignInService {
         let state = Self.randomCodeVerifier()
 
         let callback = try await authorize(clientID: clientID, redirect: redirect,
-                                           challenge: challenge, state: state)
+                                           challenge: challenge, state: state, hint: hint)
         let code = try Self.authorizationCode(from: callback, expectedState: state)
         let idToken = try await exchange(code: code, verifier: verifier,
                                          clientID: clientID, redirect: redirect)
         return try await establishSession(idToken: idToken)
     }
 
+    static let companyDomain = "tertiaryinfotech.com"
+    static func isCompanyEmail(_ email: String) -> Bool {
+        email.trimmingCharacters(in: .whitespaces).lowercased().hasSuffix("@" + companyDomain)
+    }
+
     // MARK: - 1. Consent screen
 
     private func authorize(clientID: String, redirect: String,
-                           challenge: String, state: String) async throws -> URL {
+                           challenge: String, state: String, hint: String?) async throws -> URL {
         var comps = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
         comps.queryItems = [
             .init(name: "client_id", value: clientID),
@@ -102,11 +109,16 @@ actor GoogleSignInService {
             .init(name: "code_challenge", value: challenge),
             .init(name: "code_challenge_method", value: "S256"),
             .init(name: "state", value: state),
-            // Company workspace accounts first, but personal accounts still resolve
-            // against the employee directory server-side.
-            .init(name: "hd", value: "tertiaryinfotech.com"),
-            .init(name: "prompt", value: "select_account"),
+            // Staff sign in with the company account (22 Nov 2026): Google lists only
+            // tertiaryinfotech.com accounts. The server still checks every address.
+            .init(name: "hd", value: Self.companyDomain),
         ]
+        if let hint, Self.isCompanyEmail(hint) {
+            // Straight to the remembered company account: no chooser, no typing (one tap).
+            comps.queryItems?.append(.init(name: "login_hint", value: hint))
+        } else {
+            comps.queryItems?.append(.init(name: "prompt", value: "select_account"))
+        }
         guard let url = comps.url else { throw GoogleAuthError.notConfigured }
 
         let scheme = String(redirect.split(separator: ":").first ?? "")
@@ -260,8 +272,10 @@ private final class WebAuthPresenter: NSObject, ASWebAuthenticationPresentationC
                 continuation.resume(returning: callbackURL)
             }
             session.presentationContextProvider = presenter
-            // A fresh browser session each time, so "select account" really does.
-            session.prefersEphemeralWebBrowserSession = true
+            // Share Safari's Google sign-in, so a company account signed in once is reused and the
+            // next sign-in is one tap. (A private session made people type an email every time, and
+            // iOS then offered the personal Gmail passkey first, which the server refuses.)
+            session.prefersEphemeralWebBrowserSession = false
             active = (session, presenter)
 
             if !session.start() {

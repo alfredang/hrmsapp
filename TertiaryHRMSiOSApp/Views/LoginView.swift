@@ -114,6 +114,10 @@ struct LoginView: View {
             OrDivider()
             GoogleSignInButton(loading: auth.isWorking, enabled: !auth.isWorking,
                                action: { Task { await auth.signInWithGoogle() } })
+            Text("Use your @tertiaryinfotech.com Google account. Part-time staff and interns can sign in with their email instead.")
+                .font(.caption).foregroundStyle(Theme.mist).multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .accessibilityIdentifier("login.googleHint")
         }
     }
 

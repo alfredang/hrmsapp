@@ -149,6 +149,9 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
+## 1.21 build 42 (22 Nov 2026, replaces build 41 in App Review)
+- **One-tap company Google sign-in**: `ASWebAuthenticationSession` is no longer ephemeral (shares Safari's Google sign-in); `hd=tertiaryinfotech.com` always; `login_hint` = the typed company email or the last company address used with Google (`hrms_google_company_email`), else `prompt=select_account`. The private session made people type an email each time and iOS offered the personal Gmail passkey first, which the server refuses. Caption under the button: company account; part-timers and interns use email.
+
 ## 1.21 build 41 (22 Nov 2026, replaces build 40 in App Review)
 - **Team tab = admins only** (`auth.showsAdmin`); everyone else gets an **SOP** tab (tag 3) with `SopListView` / `SopDetailView` (`Views/SopViews.swift`, `Models/SopModels.swift`) over `GET /api/mobile/sops` (any signed-in employee). More → Documents → SOP opens the same native screen. Opening web /sop in Safari failed (no web session, Google 400). The server 403s `/api/mobile/employees` for non-admins (web 22 Nov 2026). UI test `testSopTabReplacesTeamForStaff`.
 
