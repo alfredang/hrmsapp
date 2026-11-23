@@ -261,8 +261,8 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    /// Which company account Google should open on: the typed email if it is a company address,
-    /// else the one last used with Google here. nil → Google lists the company accounts.
+    /// Prefill for Google's account chooser: the typed company email, else the one last used with
+    /// Google here. Google always shows the chooser (`prompt=select_account`).
     private var googleHint: String? {
         let typed = email.trimmingCharacters(in: .whitespaces).lowercased()
         if GoogleSignInService.isCompanyEmail(typed) { return typed }

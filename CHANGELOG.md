@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.22] — 2026-11-23 (build 49, TestFlight; 1.21 train closed by Apple)
+- Continue with Google always opens Google's account chooser, listing every account on the iPhone (personal accounts included, for part-time staff and interns), instead of a type-your-email page.
+
 ## [1.21] — 2026-11-23 (build 48 replaces builds 40–47 in App Review; 1.20 build 38 is live)
 Status (23 Nov 2026, 11:47 SGT): build 48 VALID, attached, submitted: WAITING_FOR_REVIEW. Android 1.21 (42) on the Play production track the same day.
 

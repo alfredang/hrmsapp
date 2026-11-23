@@ -149,6 +149,9 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
+## 1.22 build 49 (23 Nov 2026, TestFlight)
+- **Google always shows its account chooser** (Alfred, 23 Nov 2026): `GoogleSignInService.authorize` sends `prompt=select_account` on every sign-in; `login_hint` (typed company email or `hrms_google_company_email`) only prefills; no `hd` (it hid personal accounts, which part-time staff and interns may use, and opened a type-your-email page). Gate: `~/.claude/skills/tia-frontend-design/scripts/check_google_account_chooser.sh .` must print `clean`.
+
 ## 1.21 build 45 (22 Nov 2026)
 - **Sign-in defaults** (`LoginView.emailStep`, `AuthViewModel.usesGoogleByDefault`): one first screen; a @tertiaryinfotech.com email → Continue with Google (login hint) + a full-width tinted "Email me a sign-in code" button (build 46), with "Interns and part-time staff: sign in with a code sent to your email." under it; any other email → "Email me a sign-in code". "Sign in with a password" is the last, small grey link. Only email codes exist on the server (no SMS / WhatsApp provider yet). `-uiPreviewLogin email|intern` previews both (it now wins over `-uiPreview`). UI test `testLoginDefaultsByEmail`.
 
@@ -161,7 +164,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - Tab 3 per role: admins **Team**, accountants **Expenses** (`BankTransactionsView(direction: .debit)`, the month's bank debits), everyone else **SOP**. SOP stays in More for accountants. UI test `testSopTabReplacesTeamForStaff` covers all three.
 
 ## 1.21 build 42 (22 Nov 2026, replaces build 41 in App Review)
-- **One-tap company Google sign-in**: `ASWebAuthenticationSession` is no longer ephemeral (shares Safari's Google sign-in); `hd=tertiaryinfotech.com` always; `login_hint` = the typed company email or the last company address used with Google (`hrms_google_company_email`), else `prompt=select_account`. The private session made people type an email each time and iOS offered the personal Gmail passkey first, which the server refuses. Caption under the button: company account; part-timers and interns use email.
+- **One-tap company Google sign-in**: `ASWebAuthenticationSession` is no longer ephemeral (shares Safari's Google sign-in); (`hd` and the hint-without-chooser were replaced in 1.22 build 49: see above). The private session made people type an email each time and iOS offered the personal Gmail passkey first, which the server refuses. Caption under the button: company account; part-timers and interns use email.
 
 ## 1.21 build 41 (22 Nov 2026, replaces build 40 in App Review)
 - **Team tab = admins only** (`auth.showsAdmin`); everyone else gets an **SOP** tab (tag 3) with `SopListView` / `SopDetailView` (`Views/SopViews.swift`, `Models/SopModels.swift`) over `GET /api/mobile/sops` (any signed-in employee). More → Documents → SOP opens the same native screen. Opening web /sop in Safari failed (no web session, Google 400). The server 403s `/api/mobile/employees` for non-admins (web 22 Nov 2026). UI test `testSopTabReplacesTeamForStaff`.

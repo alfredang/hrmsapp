@@ -73,8 +73,8 @@ actor GoogleSignInService {
     // MARK: - Public API
 
     /// Run the full Google sign-in and return the HRMS session user.
-    /// `hint`: the company address to sign in as (the last one used here, or the typed email). With a
-    /// hint Google goes straight to that account, so a returning user signs in with one tap.
+    /// `hint`: the address typed or last used here. Google still shows its account chooser
+    /// (`prompt=select_account`); the hint only prefills it.
     func signIn(hint: String? = nil) async throws -> SessionUser {
         guard let clientID = Self.clientID else { throw GoogleAuthError.notConfigured }
         let redirect = Self.redirectURI(for: clientID)
@@ -92,6 +92,8 @@ actor GoogleSignInService {
     }
 
     static let companyDomain = "tertiaryinfotech.com"
+    private func isEmail(_ s: String) -> Bool { s.contains("@") && s.contains(".") }
+
     static func isCompanyEmail(_ email: String) -> Bool {
         email.trimmingCharacters(in: .whitespaces).lowercased().hasSuffix("@" + companyDomain)
     }
@@ -109,15 +111,15 @@ actor GoogleSignInService {
             .init(name: "code_challenge", value: challenge),
             .init(name: "code_challenge_method", value: "S256"),
             .init(name: "state", value: state),
-            // Staff sign in with the company account (22 Nov 2026): Google lists only
-            // tertiaryinfotech.com accounts. The server still checks every address.
-            .init(name: "hd", value: Self.companyDomain),
+            // Always Google's account chooser (user rule, 23 Nov 2026): every account signed in on
+            // this iPhone is listed, plus "Use another account", so the person picks one. No `hd`:
+            // it hid personal accounts (part-time staff and interns may use them; the server checks
+            // every address) and sent people to a type-your-email page instead of the chooser.
+            .init(name: "prompt", value: "select_account"),
         ]
-        if let hint, Self.isCompanyEmail(hint) {
-            // Straight to the remembered company account: no chooser, no typing (one tap).
+        if let hint, isEmail(hint) {
+            // Only marks the expected account in the chooser / prefills "Use another account".
             comps.queryItems?.append(.init(name: "login_hint", value: hint))
-        } else {
-            comps.queryItems?.append(.init(name: "prompt", value: "select_account"))
         }
         guard let url = comps.url else { throw GoogleAuthError.notConfigured }
 
