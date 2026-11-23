@@ -383,15 +383,14 @@ struct DashboardView: View {
         .accessibilityIdentifier("home.leave.\(index)")
     }
 
-    /// Approvers: leave, MC, time off and claims waiting (→ Approvals) and missed punches
-    /// (→ the admin Timesheet). Feeds are best-effort: a failed one counts as 0, a failed
+    /// Approvers: leave, MC, time off, claims and No Pay Leave paybacks waiting (→ Approvals); no
+    /// missed punches on Home (23 Nov 2026). Feeds are best-effort: a failed one counts as 0, a failed
     /// approvals feed leaves the section out.
     private func loadPending() async {
         async let a = try? HRMSAPI.shared.approvals()
         async let t = try? HRMSAPI.shared.allTimeOff()
-        async let c = try? HRMSAPI.shared.pendingCorrections()
         guard let approvals = await a else { pending = nil; return }
-        pending = PendingApprovals(approvals: approvals, timeOff: await t ?? [], punches: (await c)?.count ?? 0)
+        pending = PendingApprovals(approvals: approvals, timeOff: await t ?? [])
     }
 
     private func pendingCard(_ p: PendingApprovals) -> some View {
@@ -400,13 +399,13 @@ struct DashboardView: View {
             ("mc", "MC", "cross.case.fill", .pink, p.mc),
             ("timeoff", "Time off", "hourglass", .orange, p.timeOff),
             ("claims", "Expense claims", "creditcard.fill", .green, p.claims),
-            ("punches", "Missed punches", "person.badge.clock.fill", .teal, p.punches),
+            ("payback", "Payback", "arrow.uturn.backward.circle.fill", .purple, p.paybacks),
         ]
         return Card(padding: 0) {
             ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
                 if i > 0 { Divider().padding(.leading, 52) }
                 NavigationLink {
-                    if r.id == "punches" { TimesheetAdminView() } else { ApprovalsView() }
+                    ApprovalsView()
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: r.icon).foregroundStyle(r.tint).frame(width: 24)

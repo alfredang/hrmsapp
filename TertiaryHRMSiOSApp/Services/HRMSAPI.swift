@@ -261,6 +261,16 @@ actor HRMSAPI {
         case leave = "api/leave"
         case claim = "api/expenses"
         case timeOff = "api/time-off"
+        case payback = "api/leave/payback"
+    }
+
+    /// Approve / reject the request a notice is about (Notifications, 23 Nov 2026).
+    func decide(_ action: NoticeAction, approve: Bool, reason: String? = nil) async throws {
+        switch action.decision {
+        case .request(let kind): try await decide(kind, id: action.requestId, approve: approve, reason: reason)
+        case .correction: try await decideCorrection(id: action.requestId, approve: approve, comment: reason)
+        case nil: throw NSError(domain: "HRMS", code: 0, userInfo: [NSLocalizedDescriptionKey: "Open the request to decide it."])
+        }
     }
 
     /// POST /api/{leave|expenses}/{id}/{approve|reject} — MANAGER/HR/ADMIN only.

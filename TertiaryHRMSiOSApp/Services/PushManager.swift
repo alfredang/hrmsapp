@@ -137,7 +137,7 @@ enum PushRoute: Identifiable, Equatable {
     static func from(link: String?, isAdmin: Bool, mustClockIn: Bool) -> PushRoute {
         let path = (link ?? "").split(separator: "?").first.map(String.init) ?? ""
         switch true {
-        case path.hasPrefix("/approvals"), path.hasPrefix("/leave/approv"):
+        case path.hasPrefix("/approvals"), path.hasPrefix("/leave/approv"), path.hasPrefix("/leave/payback") && isAdmin:
             return isAdmin ? .approvals : .tab(1)
         case path.hasPrefix("/attendance"), path.hasPrefix("/clock"):
             return .clock

@@ -164,6 +164,33 @@ struct LeaveRequest: Codable, Identifiable {
 struct ApprovalsResponse: Codable {
     let leaves: [PendingLeave]
     let claims: [PendingClaim]
+    /// No Pay Leave paybacks waiting (web 23 Nov 2026). Absent on an older server → empty.
+    var paybacks: [PendingPayback] = []
+
+    init(leaves: [PendingLeave], claims: [PendingClaim], paybacks: [PendingPayback] = []) {
+        self.leaves = leaves; self.claims = claims; self.paybacks = paybacks
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        leaves = try c.decode([PendingLeave].self, forKey: .leaves)
+        claims = try c.decode([PendingClaim].self, forKey: .claims)
+        paybacks = (try? c.decodeIfPresent([PendingPayback].self, forKey: .paybacks)) ?? []
+    }
+}
+
+/// A No Pay Leave payback waiting for approval: the person worked an off day (`workDate`) to pay
+/// back a No Pay Leave day (`nplDate`). `clocked` = their punch on the day worked, as evidence.
+/// Approve / reject: `POST /api/leave/payback/{id}/approve|reject`.
+struct PendingPayback: Codable, Identifiable, Equatable {
+    let id: String
+    let employee: String
+    let nplDate: String?
+    let workDate: String?
+    let days: Double
+    var note: String? = nil
+    var clocked: String? = nil
+    var createdAt: String? = nil
 }
 
 struct PendingLeave: Codable, Identifiable {
@@ -180,22 +207,22 @@ struct PendingLeave: Codable, Identifiable {
     let createdAt: String?
 }
 
-/// Approver Home: what is waiting for a decision, by type (the web dashboard's pending counts,
-/// less No Pay Leave payback, which the app does not handle). Built from the same feeds as
-/// Approvals and the admin Timesheet, so the Home numbers match those screens.
+/// Approver Home: what is waiting for a decision, by type: leave, MC, time off, claims and No Pay
+/// Leave payback. Missed punches are not on Home (Alfred, 23 Nov 2026: "nobody can understand";
+/// they stay in More → Timesheet). Built from the Approvals feeds, so the numbers match that screen.
 struct PendingApprovals: Equatable {
-    var leave = 0, mc = 0, timeOff = 0, claims = 0, punches = 0
-    var total: Int { leave + mc + timeOff + claims + punches }
+    var leave = 0, mc = 0, timeOff = 0, claims = 0, paybacks = 0
+    var total: Int { leave + mc + timeOff + claims + paybacks }
 
-    init(leave: Int = 0, mc: Int = 0, timeOff: Int = 0, claims: Int = 0, punches: Int = 0) {
-        self.leave = leave; self.mc = mc; self.timeOff = timeOff; self.claims = claims; self.punches = punches
+    init(leave: Int = 0, mc: Int = 0, timeOff: Int = 0, claims: Int = 0, paybacks: Int = 0) {
+        self.leave = leave; self.mc = mc; self.timeOff = timeOff; self.claims = claims; self.paybacks = paybacks
     }
 
-    init(approvals: ApprovalsResponse, timeOff: [TimeOffRequest], punches: Int) {
+    init(approvals: ApprovalsResponse, timeOff: [TimeOffRequest]) {
         let mc = approvals.leaves.filter { LeaveRules.medicalCodes.contains($0.leaveCode.uppercased()) }.count
         self.init(leave: approvals.leaves.count - mc, mc: mc,
                   timeOff: timeOff.filter { $0.status.uppercased() == "PENDING" }.count,
-                  claims: approvals.claims.count, punches: punches)
+                  claims: approvals.claims.count, paybacks: approvals.paybacks.count)
     }
 }
 
@@ -539,6 +566,19 @@ struct AppNotification: Codable, Identifiable {
     let read: Bool
     let link: String?
     let createdAt: String?
+    /// Approvers: the request a request notice is about (web 23 Nov 2026), so it can be approved or
+    /// rejected on the notice itself. Use `requestAction`, which also reads older servers' links.
+    var action: NoticeAction? = nil
+
+    /// The request this notice can act on: the server's `action`, else derived from the type and
+    /// the `?request=<id>` in the link (a server from before 23 Nov 2026). Nil for other notices.
+    var requestAction: NoticeAction? {
+        if let action, action.decision != nil { return action }
+        guard let kind = NoticeAction.kindByType[type],
+              let id = URLComponents(string: link ?? "")?.queryItems?.first(where: { $0.name == "request" })?.value,
+              !id.isEmpty else { return nil }
+        return NoticeAction(kind: kind, requestId: id)
+    }
 
     /// Only these types are relevant to a staff member's mobile view.
     static let staffTypes: Set<String> = [
@@ -551,6 +591,34 @@ struct AppNotification: Codable, Identifiable {
     /// theirs: decisions, missed clock-in/out and timesheet reminders, and (for admins) new
     /// leave / MC / time-off / expense requests awaiting approval. All of them are shown.
     var isShownInApp: Bool { true }
+}
+
+/// `kind`: leave | timeOff | expense | payback | correction (web `RequestActionKind`).
+struct NoticeAction: Codable, Equatable {
+    let kind: String
+    let requestId: String
+
+    static let kindByType: [String: String] = [
+        "LEAVE_SUBMITTED": "leave", "TIME_OFF_SUBMITTED": "timeOff", "EXPENSE_SUBMITTED": "expense",
+        "PAYBACK_SUBMITTED": "payback", "ATTENDANCE_CORRECTION_SUBMITTED": "correction",
+    ]
+
+    enum Decision: Equatable {
+        case request(HRMSAPI.ApprovalKind)
+        case correction
+    }
+
+    /// Which API decides it; nil for a kind this build does not know.
+    var decision: Decision? {
+        switch kind {
+        case "leave": return .request(.leave)
+        case "timeOff": return .request(.timeOff)
+        case "expense": return .request(.claim)
+        case "payback": return .request(.payback)
+        case "correction": return .correction
+        default: return nil
+        }
+    }
 }
 
 // MARK: - Attendance clock in/out  (/api/mobile/attendance)

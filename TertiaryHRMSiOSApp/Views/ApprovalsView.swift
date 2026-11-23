@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Approvals queue (MANAGER/HR/ADMIN): pending leave (incl. MC), hourly time off and expense
-/// claims. Leave and time off are one-line tables — name, status, type, dates, days, applied,
+/// Approvals queue (MANAGER/HR/ADMIN): pending leave (incl. MC), hourly time off, expense
+/// claims and No Pay Leave paybacks (23 Nov 2026). Leave and time off are one-line tables — name, status, type, dates, days, applied,
 /// then the reason (truncated); tap a row for the full record and Approve / Reject.
 /// Leave + claims: /api/mobile/approvals; time off: /api/time-off (approvers get everyone's).
 /// Actions call the existing web routes; the server enforces the role.
@@ -14,6 +14,7 @@ struct ApprovalsView: View {
     @State private var errorMessage: String? = nil
     @State private var openLeave: PendingLeave?
     @State private var openTimeOff: TimeOffRequest?
+    @State private var openPayback: PendingPayback?
 
     private struct RejectTarget: Identifiable {
         let kind: HRMSAPI.ApprovalKind
@@ -60,6 +61,15 @@ struct ApprovalsView: View {
                             }
                             ForEach(a.claims) { c in claimCard(c) }
                         }
+
+                        CollapsibleSection(title: "No Pay Leave payback", icon: "arrow.uturn.backward.circle.fill",
+                                           count: a.paybacks.count, countIsAttention: true) {
+                            if a.paybacks.isEmpty {
+                                emptyCard("No paybacks waiting.")
+                            } else {
+                                PaybackTable(rows: a.paybacks) { openPayback = $0 }
+                            }
+                        }
                     }
                     .padding(20)
                 }
@@ -79,6 +89,12 @@ struct ApprovalsView: View {
                         longText: r.reasonText,
                         onApprove: { await decide(.timeOff, id: r.id, approve: true, reason: nil) },
                         onReject: { reason in await decide(.timeOff, id: r.id, approve: false, reason: reason) })
+        }
+        .sheet(item: $openPayback) { r in
+            RecordSheet(title: r.employee, status: "PENDING", fields: PaybackTable.fields(r),
+                        longText: r.note,
+                        onApprove: { await decide(.payback, id: r.id, approve: true, reason: nil) },
+                        onReject: { reason in await decide(.payback, id: r.id, approve: false, reason: reason) })
         }
         .alert("Reject request", isPresented: Binding(
             get: { rejecting != nil },
@@ -285,5 +301,41 @@ struct TimeOffTable: View {
          RecordField(label: "Hours", value: r.offDay ? "Off Day (full day)" : Fmt.num(r.hours)),
          RecordField(label: "Applied", value: Fmt.date(r.createdAt))]
         + (r.rejectionReason.map { [RecordField(label: "Rejection reason", value: $0)] } ?? [])
+    }
+}
+
+/// Name · Status · No Pay Leave day · Worked · Days · Clocked · Applied · Note — one line per payback.
+struct PaybackTable: View {
+    let rows: [PendingPayback]
+    let onTap: (PendingPayback) -> Void
+
+    var body: some View {
+        OneLineTable(rows: rows, columns: [
+            OneLineColumn(id: "Status", width: 76),
+            OneLineColumn(id: "NPL", width: 84),
+            OneLineColumn(id: "Worked", width: 84),
+            OneLineColumn(id: "Days", width: 44, alignment: .trailing),
+            OneLineColumn(id: "Clocked", width: 150),
+            OneLineColumn(id: "Applied", width: 70),
+            OneLineColumn(id: "Note", width: 200),
+        ], name: \.employee) { r, col in
+            switch col.id {
+            case "Status": StatusPill(status: "PENDING")
+            case "NPL": TableText(text: Fmt.shortDay(r.nplDate))
+            case "Worked": TableText(text: Fmt.shortDay(r.workDate))
+            case "Days": TableText(text: Fmt.num(r.days), bold: true)
+            case "Clocked": TableText(text: r.clocked ?? "No punch", secondary: r.clocked == nil)
+            case "Applied": TableText(text: Fmt.shortDay(r.createdAt), secondary: true)
+            default: TableText(text: (r.note?.isEmpty == false ? r.note : nil) ?? "—", secondary: true)
+            }
+        } onTap: { onTap($0) }
+    }
+
+    static func fields(_ r: PendingPayback) -> [RecordField] {
+        [RecordField(label: "No Pay Leave", value: Fmt.date(r.nplDate)),
+         RecordField(label: "Worked on", value: "\(Fmt.date(r.workDate)) (off day)"),
+         RecordField(label: "Pays back", value: r.days == 0.5 ? "Half day" : Fmt.days(r.days)),
+         RecordField(label: "Clocked", value: r.clocked ?? "No clock-in that day"),
+         RecordField(label: "Applied", value: Fmt.date(r.createdAt))]
     }
 }

@@ -86,6 +86,7 @@ struct MainTabView: View {
                 case "clock": ClockView()
                 case "claim": NewClaimView()
                 case "approvals": ApprovalsView()
+                case "notifications": NotificationsView()
                 case "calendar": TeamCalendarView()
                 case "interns", "timesheet": TimesheetAdminView()
                 case "mytimesheet": MyTimesheetView()

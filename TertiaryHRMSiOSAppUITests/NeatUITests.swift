@@ -25,6 +25,32 @@ final class NeatUITests: XCTestCase {
         }
     }
 
+    /// An approver approves or rejects a request on the notice itself; Approvals lists paybacks (23 Nov 2026).
+    func testRequestNoticesCarryApproveAndReject() {
+        let app = launch(["-uiPreviewOpen", "notifications"])
+        let approve = app.buttons["notice.approve.n0"]
+        XCTAssertTrue(approve.waitForExistence(timeout: 10), "payback notice has Approve")
+        XCTAssertTrue(app.buttons["notice.reject.n0"].exists)
+        XCTAssertTrue(app.buttons["notice.approve.n00"].exists, "leave notice has Approve")
+        XCTAssertFalse(app.buttons["notice.approve.n1"].exists, "an info notice has no buttons")
+        snap(app, "notices-approve-reject")
+        app.buttons["notice.reject.n0"].tap()
+        XCTAssertTrue(app.alerts["Reject request"].waitForExistence(timeout: 5))
+        app.alerts.buttons["Cancel"].tap()
+
+    }
+
+    func testApprovalsListPaybacks() {
+        let app = launch(["-uiPreviewOpen", "approvals"])
+        XCTAssertTrue(app.buttons["Sarah Lim"].firstMatch.waitForExistence(timeout: 10))
+        app.swipeUp()
+        let row = app.buttons["Mei Ling Goh"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "payback row in Approvals")
+        row.tap()
+        XCTAssertTrue(app.buttons["Approve"].waitForExistence(timeout: 5))
+        snap(app, "approvals-payback")
+    }
+
     func testTrainerSearchSuggestionsBecomeTokens() {
         let app = launch(["-uiPreviewOpen", "trainers"])
         let field = app.searchFields.firstMatch
@@ -252,6 +278,8 @@ final class NeatUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["home.name"].exists)
         XCTAssertEqual(leave.value as? String, "1 waiting")
         XCTAssertEqual(app.buttons["home.pending.timeoff"].value as? String, "2 waiting")
+        XCTAssertEqual(app.buttons["home.pending.payback"].value as? String, "1 waiting")
+        XCTAssertFalse(app.buttons["home.pending.punches"].exists, "no missed punches on Home (23 Nov 2026)")
         XCTAssertEqual(app.buttons["home.kpi.pending"].value as? String, "6", "tile = sum of the card")
         snap(app, "home-admin-pending")
         let profile = launch(["-uiPreviewOpen", "profile"])
@@ -314,7 +342,7 @@ final class NeatUITests: XCTestCase {
         // Active people only, the same list as Team (no Analytics headcount since 1.20).
         XCTAssertEqual(staff.value as? String, "6")
         XCTAssertEqual(app.buttons["home.kpi.interns"].value as? String, "3")
-        // Leave + MC + time off + claims + missed punches (preview feeds), as the "Waiting" card.
+        // Leave + MC + time off + claims + paybacks (preview feeds), as the "Waiting" card.
         XCTAssertEqual(app.buttons["home.kpi.pending"].value as? String, "6")
         snap(app, "home-kpi")
         app.buttons["home.kpi.interns"].tap()

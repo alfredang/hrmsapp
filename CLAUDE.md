@@ -111,7 +111,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
   `S****567D` with a Show toggle; Call / WhatsApp / Email / Copy buttons; collapsible sections). Shown only when `summary.canManageTrainers`
   (role TRAINER_ADMIN); the server returns 403 otherwise. Models in `Models/TrainerModels.swift`,
   decoded leniently (importer-built JSON).
-- **Approvals** (approvers only) — approve/reject pending **leave, time off & expense** requests in-app
+- **Approvals** (approvers only) — approve/reject pending **leave, time off, expense & No Pay Leave payback** requests in-app
   (`GET /api/mobile/approvals` + `GET /api/time-off` (approvers get everyone's); actions
   `POST /api/leave|time-off|expenses/{id}/approve|reject`). Leave and time off are **one-line tables**
   (`OneLineTable` in `Views/Components/NeatComponents.swift`: frozen name column, the rest scrolls sideways;
@@ -152,6 +152,12 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Accounting module** entirely (bank-statement import, transaction dedupe, reconciliation, income/expense tracking) — finance/back-office only, not part of the mobile employee experience.
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
+
+## Act on notices; No Pay Leave payback (23 Nov 2026, after build 50)
+- **Approve / Reject on the notice** (Alfred: "the notice should not be just info only"): for `auth.showsAdmin`, a request notice (leave, MC, time off, claim, payback, missed punch) shows Reject / Approve (`notice.approve|reject.<id>`). `AppNotification.requestAction` = server `action {kind, requestId}` (web 23 Nov 2026) or derived from the type + `?request=` link; `HRMSAPI.decide(_ action:)` routes it (`ApprovalKind.payback` = `/api/leave/payback/{id}/approve|reject`, corrections via `decideCorrection`). Tapping the notice still opens the screen.
+- **Payback in Approvals and Home**: `/api/mobile/approvals` `paybacks` (`PendingPayback`, decoded leniently: an older server gives none) → `PaybackTable` + `RecordSheet`; Home "Waiting for approval" row **Payback** (`home.pending.payback`), counted in `PendingApprovals.total`. **No Missed punches row on Home** (Alfred, 23 Nov 2026: "nobody can understand"); punches stay in More → Timesheet and the Pending approvals tile no longer counts them. `/leave/payback` links open Approvals for approvers.
+- Why only one notice for two emails: the requester cancelled the other payback 11 s after submitting; the server hides a decided / cancelled request's notice. The web now emails the approvers "Cancelled: No Pay Leave payback …" and recreates any missing notice of a pending payback (`ensurePaybackNotices`).
+- Tests: `NoticeActionTests`; UI `testRequestNoticesCarryApproveAndReject`, `testApprovalsListPaybacks`; `-uiPreviewOpen notifications`. Android mirrors it (Approvals "Payback" tab, `NoticeActionTest`).
 
 ## 1.22 build 49 (23 Nov 2026, WAITING_FOR_REVIEW)
 - **Google always shows its account chooser** (Alfred, 23 Nov 2026): `GoogleSignInService.authorize` sends `prompt=select_account` on every sign-in; `login_hint` (typed company email or `hrms_google_company_email`) only prefills; no `hd` (it hid personal accounts, which part-time staff and interns may use, and opened a type-your-email page). Gate: `~/.claude/skills/tia-frontend-design/scripts/check_google_account_chooser.sh .` must print `clean`.

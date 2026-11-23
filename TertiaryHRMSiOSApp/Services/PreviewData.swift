@@ -73,6 +73,11 @@ enum PreviewData {
                          description: "Client visit — taxi", amount: 24.80,
                          expenseDate: "2026-07-13T00:00:00.000Z", receiptUrl: nil,
                          createdAt: "2026-07-13T09:30:00.000Z"),
+        ],
+        paybacks: [
+            PendingPayback(id: "pb31", employee: "Mei Ling Goh", nplDate: "2026-07-10T00:00:00.000Z",
+                           workDate: "2026-07-11T00:00:00.000Z", days: 1, note: nil,
+                           clocked: "9:02 am – 6:05 pm", createdAt: "2026-07-16T07:53:00.000Z"),
         ])
 
     // MARK: Leave
@@ -292,6 +297,15 @@ enum PreviewData {
 
     // MARK: Notifications
     static let notifications: [AppNotification] = [
+        AppNotification(id: "n0", title: "New No Pay Leave payback",
+                        message: "Mei Ling Goh worked Sat, 11 Jul 2026 to pay back 1 day of No Pay Leave on Fri, 10 Jul 2026.",
+                        type: "PAYBACK_SUBMITTED", read: false, link: "/leave/payback?request=pb31",
+                        createdAt: "2026-07-17T07:53:00.000Z",
+                        action: NoticeAction(kind: "payback", requestId: "pb31")),
+        AppNotification(id: "n00", title: "New Annual Leave request",
+                        message: "Sarah Lim submitted a Annual Leave request for 3 day(s).",
+                        type: "LEAVE_SUBMITTED", read: false, link: "/leave?request=pl1",
+                        createdAt: "2026-07-17T03:20:00.000Z"),
         AppNotification(id: "n1", title: "Leave approved",
                         message: "Your annual leave (22–23 Jun) was approved by Jasmine Lee.",
                         type: "LEAVE_APPROVED", read: false, link: "/leave",
