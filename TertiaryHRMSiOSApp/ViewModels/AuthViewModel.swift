@@ -184,10 +184,18 @@ final class AuthViewModel: ObservableObject {
 
     /// The default sign-in for this email (Alfred, 22 Nov 2026): a company address signs in with
     /// Google, any other address (interns, part-time staff) gets a one-time code. Password is a link.
-    var usesGoogleByDefault: Bool { googleSignInAvailable && GoogleSignInService.isCompanyEmail(email) }
+    /// No email yet also shows Continue with Google (Alfred, 23 Nov 2026: "the Google login button should appear
+    /// even without the email keyed in"); Google's account chooser then picks the account.
+    var usesGoogleByDefault: Bool {
+        googleSignInAvailable
+            && (email.trimmingCharacters(in: .whitespaces).isEmpty || GoogleSignInService.isCompanyEmail(email))
+    }
 
     func continueFromEmail() {
         errorMessage = nil; infoMessage = nil
+        if email.trimmingCharacters(in: .whitespaces).isEmpty && usesGoogleByDefault {
+            Task { await signInWithGoogle() }; return
+        }
         guard isValidEmail(email) else { errorMessage = "Enter a valid email address."; return }
         persistRememberedEmail()
         if usesGoogleByDefault { Task { await signInWithGoogle() } } else { Task { await sendOTP() } }

@@ -62,6 +62,10 @@ This native app is a **client of the existing HRMS web backend** — it has no d
      (Google)*** so the backend accepts tokens minted for the iOS client. It is stored in
      `CompanyCredential` and read live — **no redeploy needed**. (A `GOOGLE_IOS_CLIENT_ID` env var
      on Coolify still works as a fallback.)
+  **The Android app uses this same OAuth client** (its `build.gradle.kts` default since Android 1.23), so never
+  delete or rotate it without updating Android. **Continue with Google shows with no email typed** (build 50,
+  23 Nov 2026: `usesGoogleByDefault` = empty or company email). Google's account chooser picks the account. Change
+  the login on both platforms in the same turn.
 - **Expired company Google token**: the Gmail/Drive refresh token that sends OTP emails expires
   periodically. An admin renews it in one click at **Settings → Credentials → "Sign in with Google
   to renew token"** (`/api/settings/google-oauth/start`) — the OAuth Playground is only a fallback.

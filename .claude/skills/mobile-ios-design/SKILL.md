@@ -89,6 +89,7 @@ On a **deployment target < iOS 18** use the classic `.tabItem { Label(...) }` AP
 8. **`#Preview`**: add previews in light + dark and a large Dynamic Type size.
 9. **Adaptive**: use size classes / `NavigationSplitView` for iPad instead of hardcoding widths.
 10. **Google sign-in shows the account chooser**: open the handoff in a shared `ASWebAuthenticationSession` (`prefersEphemeralWebBrowserSession = false`) and send `prompt=select_account` on **every** sign-in, also when a `login_hint` is known (the hint only prefills), and no `hd` (it hides personal accounts and opens a type-your-email page); an ephemeral session, a missing or conditional prompt signs the user straight into the wrong account. Gate: `~/.claude/skills/tia-frontend-design/scripts/check_google_account_chooser.sh <app> <backend>`.
+11. **Google sign-in without typing an email** (Alfred, 23 Nov 2026): Continue with Google shows on the first login screen while the email is empty (and for company emails); it opens Google's account chooser (`prompt=select_account`) and the person picks the account. The code button stays disabled until an email is typed. The **login screen is always light**. The Android twin uses this app's OAuth client id with the same flow, so when the login changes here, change it on Android in the same turn.
 
 ## Common Issues
 

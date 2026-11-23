@@ -1,6 +1,10 @@
 # Changelog
 
-## [1.22] — 2026-11-23 (build 49; 1.21 build 48 is live)
+## [1.22] — 2026-11-23 (build 50 replaces build 49 in App Review; 1.21 build 48 is live)
+### Build 50
+- Continue with Google shows before an email is typed: tap it and pick your account from Google's chooser. "Email me a sign-in code" is enabled once an email is typed. Android 1.23 (44) the same day: Android now has Google sign-in too, with the same OAuth client and flow.
+
+### Build 49
 Status (23 Nov 2026): build 49 attached and submitted: WAITING_FOR_REVIEW. Android 1.22 (43) on the Play production track (corporate account) the same day.
 - Continue with Google always opens Google's account chooser, listing every account on the iPhone (personal accounts included, for part-time staff and interns), instead of a type-your-email page.
 

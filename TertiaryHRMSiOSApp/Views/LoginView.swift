@@ -86,7 +86,7 @@ struct LoginView: View {
                     .overlay(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
                         .stroke(Theme.sky.opacity(0.35), lineWidth: 1))
                 }
-                .disabled(auth.isWorking)
+                .disabled(auth.isWorking || auth.email.trimmingCharacters(in: .whitespaces).isEmpty)
                 .accessibilityIdentifier("login.codeInstead")
             }
             Label("Interns and part-time staff: sign in with a code sent to your email.", systemImage: "graduationcap.fill")
