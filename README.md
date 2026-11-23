@@ -60,7 +60,7 @@ business rules locally; the server remains the single source of truth.
 
 | Module | What you get |
 |---|---|
-| 🔐 **Sign-in** | One screen under the **Tertiary Infotech Academy** logo: a **@tertiaryinfotech.com** email gets **Continue with Google** (one tap with the remembered company account) plus **Email me a sign-in code**; any other email (interns, part-time staff) gets the emailed code first; **Sign in with a password** is the last, small link. The code screen has **Back to sign in**. Personal email is allowed only for part-time staff and interns (enforced by the server); session persists across launches |
+| 🔐 **Sign-in** | One screen under the **Tertiary Infotech Academy** logo: a **@tertiaryinfotech.com** email gets **Continue with Google** (always Google's account chooser, listing every account on the phone) plus **Email me a sign-in code**; any other email (interns, part-time staff) gets the emailed code first; **Sign in with a password** is the last, small link. The code screen has **Back to sign in**. Personal email is allowed only for part-time staff and interns (enforced by the server); session persists across launches |
 | 🧭 **Tabs per role** | Admins: Home · Leave · Calendar · Team · More. Staff and interns: Home · Leave · Calendar · **SOP** · More. Accountants: Home · **Income** · **Expenses** · More. Trainer Admin view: Home · Trainers · More |
 | 🏠 **Home (per role)** | **Staff:** annual leave and MC left with **Apply for leave / Apply for MC**, own leave tiles. **Interns** (and accountants who must clock in): a **Clock in / out** card at the top. **Admins:** active staff and interns, Pending approvals and a **Waiting for approval** card (leave, MC, time off, claims, missed punches). **Accountants:** finance only: pending claims, income and expenses with credit / debit counts, bank statements, bank reconciliation, **each row opening its detail** (the month's bank credits or debits with search, every statement import, the latest reconciliation's lines to review). **Trainer Admins:** trainer counts and a **search** for trainers, skills and certifications. The Welcome card opens My Profile |
 | 🗓️ **Leave** | Balances (including the **No Pay Leave** cap and days left), full request history, and **apply for leave** — with a **live working-days preview** (weekends & SG public holidays auto-excluded) and MC-photo attach for medical leave. Annual leave beyond the balance offers **Apply as No Pay Leave instead**; interns' MC goes in as No Pay Leave with the certificate attached |
@@ -138,7 +138,7 @@ TertiaryHRMSiOSApp/
 ## App Store
 
 Bundle id `com.tertiaryinfotech.hrportal` → the existing **Tertiary HRMS** App Store record
-(ASC app `6759821144`). **Status: v1.19 (build 35) is the released version; v1.20 (build 38 — Home per role, View As previews, admin Leave & MC tab, accountant finance Home, More = web sidebar, Edit Profile fix, force update) was submitted for review on 2026-11-22 and is WAITING_FOR_REVIEW:
+(ASC app `6759821144`). **Status: v1.21 (build 48) is the released version; v1.22 (build 49 — Continue with Google always shows Google's account chooser) was submitted for review on 2026-11-23 and is WAITING_FOR_REVIEW:
 [apps.apple.com/sg/app/tertiary-hrms/id6759821144](https://apps.apple.com/sg/app/tertiary-hrms/id6759821144).** Submission is automated via the bundled `app-store-submission` skill and
 its bundled `asc_submit.py` (App Store Connect API); `ios-auto-release` wires up CI/CD for
 future builds. Credentials live in a gitignored `.env`; the `.p8` key never enters the repo.
