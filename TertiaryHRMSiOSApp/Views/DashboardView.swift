@@ -10,6 +10,7 @@ struct DashboardView: View {
     @State private var headcount: (staff: Int, interns: Int)?
     /// Approvers: what is waiting, by type. nil until loaded (the tile then uses the summary counts).
     @State private var pending: PendingApprovals?
+    @State private var refreshingPending = false
     /// The leave form opened from the balance card, with the types loaded at tap time.
     @State private var applySheet: ApplySheet?
     @State private var openingApply: String?
@@ -52,7 +53,25 @@ struct DashboardView: View {
                                     waiting > 0 ? Theme.gold600 : Theme.sky, id: "pending") { ApprovalsView() }
                             }
                             if let pending {
-                                sectionTitle("Waiting for approval")
+                                HStack {
+                                    sectionTitle("Waiting for approval")
+                                    Spacer()
+                                    Button {
+                                        Task { await refreshPending() }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            if refreshingPending { ProgressView().scaleEffect(0.7) }
+                                            else { Image(systemName: "arrow.clockwise") }
+                                            Text("Refresh")
+                                        }
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Theme.sky)
+                                        .frame(minHeight: 44)
+                                        .contentShape(Rectangle())
+                                    }
+                                    .disabled(refreshingPending)
+                                    .accessibilityIdentifier("home.pending.refresh")
+                                }
                                 pendingCard(pending)
                             }
                         }
@@ -389,8 +408,19 @@ struct DashboardView: View {
     private func loadPending() async {
         async let a = try? HRMSAPI.shared.approvals()
         async let t = try? HRMSAPI.shared.allTimeOff()
-        guard let approvals = await a else { pending = nil; return }
+        // A failed or cancelled refresh keeps the last numbers: dropping them made the whole
+        // section vanish (Alfred, 23 Nov 2026). Only a first load that fails leaves it out.
+        guard let approvals = await a else { return }
         pending = PendingApprovals(approvals: approvals, timeOff: await t ?? [])
+    }
+
+    /// The section's Refresh button: the approval counts and the notices (badge) together.
+    private func refreshPending() async {
+        refreshingPending = true
+        async let notices: Void = NotificationStore.shared.refresh()
+        await loadPending()
+        _ = await notices
+        refreshingPending = false
     }
 
     private func pendingCard(_ p: PendingApprovals) -> some View {

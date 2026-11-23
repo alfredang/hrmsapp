@@ -280,6 +280,10 @@ final class NeatUITests: XCTestCase {
         XCTAssertEqual(app.buttons["home.pending.timeoff"].value as? String, "2 waiting")
         XCTAssertEqual(app.buttons["home.pending.payback"].value as? String, "1 waiting")
         XCTAssertFalse(app.buttons["home.pending.punches"].exists, "no missed punches on Home (23 Nov 2026)")
+        let refresh = app.buttons["home.pending.refresh"]
+        XCTAssertTrue(refresh.exists, "Refresh on Waiting for approval")
+        refresh.tap()
+        XCTAssertTrue(app.buttons["home.pending.payback"].waitForExistence(timeout: 5), "section stays after a refresh")
         XCTAssertEqual(app.buttons["home.kpi.pending"].value as? String, "6", "tile = sum of the card")
         snap(app, "home-admin-pending")
         let profile = launch(["-uiPreviewOpen", "profile"])
