@@ -1,6 +1,11 @@
 # Changelog
 
-## [1.21] — 2026-11-22 (build 47 replaces builds 40–46 in App Review; 1.20 build 38 is live)
+## [1.21] — 2026-11-23 (build 48 replaces builds 40–47 in App Review; 1.20 build 38 is live)
+Status (23 Nov 2026, 11:47 SGT): build 48 VALID, attached, submitted: WAITING_FOR_REVIEW. Android 1.21 (42) on the Play production track the same day.
+
+### Build 48
+- More: the Accounting section comes before Finance, and Finance lists Claims before Payslips, as the web sidebar now does (Accounting, Claim Management, Payroll Management).
+
 ### Build 47
 - Sign-in shows the Tertiary Infotech Academy logo with "Tertiary Infotech Academy" and "HRMS"; the code screen has Back to sign in.
 

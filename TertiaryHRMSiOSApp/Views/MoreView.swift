@@ -86,13 +86,15 @@ struct MoreView: View {
             processes.append(.push("offinlieu", "Off In Lieu", "calendar.badge.plus", .teal, WeeklyTimesheetView()))
         }
 
+        // Same order as the web sidebar's Finance section (Alfred, 23 Nov 2026):
+        // Accounting, then Claim Management, then Payroll (Payslips).
         var finance: [Row] = []
-        if !intern { finance.append(.push("payslips", "Payslips", "doc.text.fill", Theme.success, PayslipsView())) }
         if admin {
             finance.append(.push("claims", "Claim Management", "creditcard.fill", .orange, ApprovalsView()))
         } else if !accountant {
             finance.append(.push("claims", "Expense Claims", "creditcard.fill", .orange, ExpensesView()))
         }
+        if !intern { finance.append(.push("payslips", "Payslips", "doc.text.fill", Theme.success, PayslipsView())) }
 
         var accounting: [Row] = []
         if admin || accountant {
@@ -110,8 +112,8 @@ struct MoreView: View {
                 + (accountant ? [] : [.push("calendar", "Calendar", "calendar", Theme.sky, CalendarListView())])),
             ("People", people),
             ("Processes", processes),
-            ("Finance", finance),
             ("Accounting", accounting),
+            ("Finance", finance),
             ("Documents", [.push("sop", "SOP", "book.fill", Theme.sky, SopListView())]),
             ("System", admin ? [Row("settings", "Settings", "gearshape.fill", Theme.mist, .web("settings"))] : []),
         ]
