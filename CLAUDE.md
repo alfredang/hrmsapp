@@ -149,7 +149,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
-## 1.22 build 49 (23 Nov 2026, TestFlight)
+## 1.22 build 49 (23 Nov 2026, WAITING_FOR_REVIEW)
 - **Google always shows its account chooser** (Alfred, 23 Nov 2026): `GoogleSignInService.authorize` sends `prompt=select_account` on every sign-in; `login_hint` (typed company email or `hrms_google_company_email`) only prefills; no `hd` (it hid personal accounts, which part-time staff and interns may use, and opened a type-your-email page). Gate: `~/.claude/skills/tia-frontend-design/scripts/check_google_account_chooser.sh .` must print `clean`.
 
 ## 1.21 build 45 (22 Nov 2026)
