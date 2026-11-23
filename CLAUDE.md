@@ -153,7 +153,7 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
-## 1.22 build 53 (23 Nov 2026): SOP areas collapse
+## 1.22 build 53 (23 Nov 2026, WAITING_FOR_REVIEW, replaced 52): SOP areas collapse
 - `SopListView`: every area is a collapsible header (`sop.area.<name>`, SOP count, chevron), all collapsed at first; a non-empty search opens every area with a match. Android 1.25 (46) mirrors it.
 
 ## 1.22 build 52 (23 Nov 2026, replaced build 49 in review): act on notices; No Pay Leave payback
