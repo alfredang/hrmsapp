@@ -97,6 +97,12 @@ final class NeatUITests: XCTestCase {
         XCTAssertTrue(tabs.buttons["SOP"].waitForExistence(timeout: 10))
         XCTAssertFalse(tabs.buttons["Team"].exists, "staff do not see the full team")
         tabs.buttons["SOP"].tap()
+        // Every area starts collapsed (23 Nov 2026); tap one to open it.
+        let area = app.buttons["sop.area.Human Resources"]
+        XCTAssertTrue(area.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["sop.row.apply-leave"].exists, "areas start collapsed")
+        snap(app, "sop-list-collapsed")
+        area.tap()
         let row = app.buttons["sop.row.apply-leave"]
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         snap(app, "sop-list")

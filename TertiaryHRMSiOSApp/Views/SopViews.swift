@@ -6,6 +6,13 @@ import SwiftUI
 struct SopListView: View {
     @State private var state: LoadState<[Sop]> = .idle
     @State private var query = ""
+    /// Areas the user opened. Every area starts collapsed (Alfred, 23 Nov 2026); while searching,
+    /// every area with a match is open.
+    @State private var open: Set<String> = []
+
+    private func isOpen(_ cat: String) -> Bool {
+        !query.trimmingCharacters(in: .whitespaces).isEmpty || open.contains(cat)
+    }
 
     var body: some View {
         GradientScreen {
@@ -24,16 +31,18 @@ struct SopListView: View {
                             EmptyHint(icon: "magnifyingglass", text: "No SOP matches “\(query)”.")
                         }
                         ForEach(categories, id: \.self) { cat in
+                            let items = shown.filter { $0.category == cat }
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(cat).font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
-                                Card(padding: 0) {
-                                    LazyVStack(spacing: 0) {
-                                        let items = shown.filter { $0.category == cat }
-                                        ForEach(Array(items.enumerated()), id: \.element.id) { i, sop in
-                                            if i > 0 { Divider().padding(.leading, 14) }
-                                            NavigationLink { SopDetailView(sop: sop) } label: { row(sop) }
-                                                .buttonStyle(.plain)
-                                                .accessibilityIdentifier("sop.row.\(sop.slug)")
+                                areaHeader(cat, count: items.count)
+                                if isOpen(cat) {
+                                    Card(padding: 0) {
+                                        LazyVStack(spacing: 0) {
+                                            ForEach(Array(items.enumerated()), id: \.element.id) { i, sop in
+                                                if i > 0 { Divider().padding(.leading, 14) }
+                                                NavigationLink { SopDetailView(sop: sop) } label: { row(sop) }
+                                                    .buttonStyle(.plain)
+                                                    .accessibilityIdentifier("sop.row.\(sop.slug)")
+                                            }
                                         }
                                     }
                                 }
@@ -48,6 +57,38 @@ struct SopListView: View {
         .brandBar(bell: true)
         .searchable(text: $query, prompt: "Search SOPs")
         .autocorrectionDisabled()
+    }
+
+    /// Tap to open or close an area: its name, how many SOPs it holds and a chevron.
+    private func areaHeader(_ cat: String, count: Int) -> some View {
+        let expanded = isOpen(cat)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if open.contains(cat) { open.remove(cat) } else { open.insert(cat) }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text(cat).font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
+                Text("\(count)")
+                    .font(.caption.weight(.bold)).monospacedDigit()
+                    .padding(.horizontal, 8).padding(.vertical, 2)
+                    .foregroundStyle(Theme.sky)
+                    .background(Theme.sky.opacity(0.12))
+                    .clipShape(Capsule())
+                Spacer()
+                Image(systemName: "chevron.down")
+                    .font(.footnote.weight(.semibold)).foregroundStyle(Theme.mist)
+                    .rotationEffect(.degrees(expanded ? 0 : -90))
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(cat)
+        .accessibilityValue("\(count) SOP\(count == 1 ? "" : "s"), \(expanded ? "expanded" : "collapsed")")
+        .accessibilityAddTraits([.isHeader, .isButton])
+        .accessibilityIdentifier("sop.area.\(cat)")
     }
 
     private func row(_ sop: Sop) -> some View {
