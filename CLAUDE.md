@@ -153,6 +153,9 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
+## 1.23 build 54 (25 Nov 2026, WAITING_FOR_REVIEW; 1.22 build 53 is live): person records
+- Team → a person (`EmployeeRecordsView`): **Leave / MC / No Pay Leave tiles** ("5 taken", "7/12 balance": `RecordsBalance`, `BalanceTile`, `records.balance.<code>`) replace Days clocked / MC days / Leave days. **Clock-in history only when `mustClockIn`** (interns, accountants without an approver role; staff have none, Alfred 25 Nov 2026). **Payback history** (`RecordsPayback`, `PaybackRow`) and **Expense claim history** (shared `ExpenseClaimRow`). Server web 796793a adds `balances`, `intern`, `mustClockIn`, `paybacks`, `claims` to `/api/mobile/employees/{id}/records` (allowance = earned-to-date + carried over, as the Leave tab); an older server keeps the old tiles. Tests `RecordsBalanceTests`, UI `testRecordsShowBalancesAndClockOnlyForInterns`. Android 1.26 (47) mirrors it.
+
 ## 1.22 build 53 (23 Nov 2026, WAITING_FOR_REVIEW, replaced 52): SOP areas collapse
 - `SopListView`: every area is a collapsible header (`sop.area.<name>`, SOP count, chevron), all collapsed at first; a non-empty search opens every area with a match. Android 1.25 (46) mirrors it.
 

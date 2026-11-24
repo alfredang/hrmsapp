@@ -360,6 +360,37 @@ final class NeatUITests: XCTestCase {
         XCTAssertTrue(app.segmentedControls["team.group"].buttons["Interns 3"].isSelected)
     }
 
+    /// Team → a person (25 Nov 2026): Leave / MC / No Pay Leave tiles show taken and balance;
+    /// clock-in history only for interns (staff do not clock in).
+    func testRecordsShowBalancesAndClockOnlyForInterns() {
+        let app = launch(["-uiPreviewTab", "3"])
+        let staff = app.staticTexts["Jasmine Lee"]
+        XCTAssertTrue(staff.waitForExistence(timeout: 10))
+        staff.tap()
+        let al = app.buttons["records.balance.AL"]
+        XCTAssertTrue(al.waitForExistence(timeout: 10))
+        XCTAssertTrue(al.label.contains("5 taken"), al.label)
+        XCTAssertTrue(al.label.contains("7/12 balance"), al.label)
+        XCTAssertTrue(app.buttons["records.balance.MC"].exists)
+        XCTAssertTrue(app.buttons["records.balance.NPL"].exists)
+        XCTAssertFalse(app.staticTexts["Clock-in history"].exists)
+        snap(app, "records-staff")
+        // Payback and expense claim history (25 Nov 2026), below leave history.
+        app.swipeUp(); app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Payback history"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Expense claim history"].exists)
+        snap(app, "records-staff-claims")
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.segmentedControls["team.group"].buttons["Interns 3"].tap()
+        let intern = app.staticTexts["Amanda Halim"]
+        XCTAssertTrue(intern.waitForExistence(timeout: 5))
+        intern.tap()
+        XCTAssertTrue(app.buttons["records.balance.AL"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Clock-in history"].waitForExistence(timeout: 5))
+        snap(app, "records-intern")
+    }
+
     /// Each role has its own Home (1.20): interns clock in from Home; staff see AL / MC left with
     /// Apply for leave / MC; admins see the workforce tiles and never a clock or apply buttons.
     func testHomeFollowsRole() {

@@ -352,7 +352,21 @@ enum PreviewData {
                                       department: person?.department, employmentType: person?.employmentType),
             attendance: RecordsAttendance(days: days, totalHours: thisMonth.totalHours + lastMonth.totalHours,
                                           daysWorked: thisMonth.daysWorked + lastMonth.daysWorked),
-            leave: leave.requests)
+            leave: leave.requests,
+            intern: person?.intern ?? false,
+            mustClockIn: person?.intern ?? false,
+            balances: [
+                RecordsBalance(code: "AL", name: "Annual Leave", taken: 5, available: 7, allowance: 12),
+                RecordsBalance(code: "MC", name: "MC", taken: 2, available: 12, allowance: 14),
+                RecordsBalance(code: "NPL", name: "No Pay Leave", taken: 0, available: 14, allowance: 14),
+            ],
+            paybacks: [
+                RecordsPayback(id: "pb1", nplDate: "2026-11-11T00:00:00Z", workDate: "2026-11-22T00:00:00Z",
+                               days: 1, note: "Worked the Saturday roadshow", status: "PENDING"),
+                RecordsPayback(id: "pb2", nplDate: "2026-10-01T00:00:00Z", workDate: "2026-10-11T00:00:00Z",
+                               days: 1, status: "APPROVED", approver: "Alfred Ang"),
+            ],
+            claims: expenses.claims)
     }
 
     static func attendanceHistory(month: String) -> AttendanceHistory {

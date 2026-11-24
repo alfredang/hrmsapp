@@ -671,6 +671,29 @@ struct EmployeeRecords: Codable {
     let employee: RecordsEmployee
     let attendance: RecordsAttendance
     let leave: [LeaveRequest]
+    /// Web 25 Nov 2026; nil on an older server.
+    var intern: Bool? = nil
+    /// Interns and accountants without an approver role (web `mustClockIn`). Staff do not clock in.
+    var mustClockIn: Bool? = nil
+    /// Annual Leave, MC and No Pay Leave: taken and the balance out of the allowance.
+    var balances: [RecordsBalance]? = nil
+    /// No Pay Leave paybacks, newest first (web 25 Nov 2026; nil on an older server).
+    var paybacks: [RecordsPayback]? = nil
+    /// Expense claims, newest first (web 25 Nov 2026; nil on an older server).
+    var claims: [ExpenseClaim]? = nil
+
+    /// Clock-in history only for people who clock in (Alfred, 25 Nov 2026: staff have none).
+    /// `listIntern` is the Team list's flag, used on an older server.
+    func showsClock(listIntern: Bool?) -> Bool { mustClockIn ?? intern ?? listIntern ?? true }
+
+    /// The requests behind one balance tile.
+    func requests(for b: RecordsBalance) -> [LeaveRequest] {
+        switch b.kind {
+        case .mc: return medical
+        case .npl: return leave.filter { $0.leaveCode.uppercased() == "NPL" }
+        case .al, .other: return leave.filter { $0.leaveCode.uppercased() == b.code.uppercased() }
+        }
+    }
 
     /// Medical leave (MC / sick leave) — shown apart from other leave.
     var medical: [LeaveRequest] { leave.filter { Self.medicalCodes.contains($0.leaveCode.uppercased()) } }
@@ -685,6 +708,49 @@ struct RecordsEmployee: Codable {
     let position: String?
     let department: String?
     let employmentType: String?
+}
+
+/// A No Pay Leave payback: an off day worked (`workDate`) to pay back an NPL day (`nplDate`).
+struct RecordsPayback: Codable, Identifiable {
+    let id: String
+    let nplDate: String?
+    let workDate: String?
+    let days: Double
+    var note: String? = nil
+    let status: String
+    var approver: String? = nil
+    var approvedAt: String? = nil
+    var rejectionReason: String? = nil
+    var createdAt: String? = nil
+}
+
+/// One leave balance on a person's records: days taken, and `available` of `allowance` left.
+struct RecordsBalance: Codable, Identifiable, Equatable {
+    let code: String
+    let name: String
+    let taken: Double
+    var pending: Double = 0
+    let available: Double
+    let allowance: Double
+    var id: String { code }
+
+    enum Kind { case al, mc, npl, other }
+    var kind: Kind {
+        switch code.uppercased() {
+        case "AL": return .al
+        case "MC", "SL": return .mc
+        case "NPL": return .npl
+        default: return .other
+        }
+    }
+    /// "5 taken"
+    var takenText: String { "\(Self.days(taken)) taken" }
+    /// "7/12 balance"
+    var balanceText: String { "\(Self.days(available))/\(Self.days(allowance)) balance" }
+
+    static func days(_ v: Double) -> String {
+        v.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", v) : String(format: "%.1f", v)
+    }
 }
 
 /// Every punch on record, newest first, with all-time totals.

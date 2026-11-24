@@ -43,7 +43,22 @@ struct ExpensesView: View {
         }
     }
 
-    private func row(_ c: ExpenseClaim) -> some View {
+    private func row(_ c: ExpenseClaim) -> some View { ExpenseClaimRow(claim: c) }
+
+    private func load() async {
+        state = .loading
+        do { state = .loaded(try await HRMSAPI.shared.expenses()) }
+        catch { state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load.") }
+    }
+}
+
+/// One expense claim card: description, category · date, amount and status. Shared by My
+/// expenses and a person's records (Team).
+struct ExpenseClaimRow: View {
+    let claim: ExpenseClaim
+    private var c: ExpenseClaim { claim }
+
+    var body: some View {
         Card {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -61,11 +76,5 @@ struct ExpensesView: View {
                 }
             }
         }
-    }
-
-    private func load() async {
-        state = .loading
-        do { state = .loaded(try await HRMSAPI.shared.expenses()) }
-        catch { state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load.") }
     }
 }

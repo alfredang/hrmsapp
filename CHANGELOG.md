@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23] — 2026-11-25 (build 54; 1.22 build 53 is live)
+**What's New (user-facing):**
+> Team: each person's page shows Annual Leave, MC and No Pay Leave taken and the balance left, plus their No Pay Leave payback history and expense claim history. Clock-in history shows only for interns and others who clock in.
+
+### Build 54
+- `EmployeeRecordsView`: balance tiles (`RecordsBalance`: "5 taken", "7/12 balance") replace Days clocked / MC days / Leave days; clock-in section only when `mustClockIn` (staff have none); Payback history (`PaybackRow`) and Expense claim history (`ExpenseClaimRow`) sections. Server: web 796793a adds `balances`, `intern`, `mustClockIn`, `paybacks`, `claims` to `/api/mobile/employees/{id}/records`; an older server keeps the old tiles. Android 1.26 (47) mirrors it.
+
 ## [1.22] — 2026-11-23 (build 50 replaces build 49 in App Review; 1.21 build 48 is live)
 ### Build 50
 - Continue with Google shows before an email is typed: tap it and pick your account from Google's chooser. "Email me a sign-in code" is enabled once an email is typed. Android 1.23 (44) the same day: Android now has Google sign-in too, with the same OAuth client and flow.

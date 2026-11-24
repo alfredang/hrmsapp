@@ -18,35 +18,31 @@ struct EmployeeRecordsView: View {
                         header(data.employee)
 
                         // Each tile opens its full history.
-                        HStack(spacing: 10) {
-                            NavigationLink {
-                                ClockHistoryView(name: data.employee.name, attendance: data.attendance)
-                            } label: {
-                                StatTile(value: "\(data.attendance.daysWorked)", label: "Days clocked",
-                                         icon: "clock.fill", tint: .teal)
-                            }
-                            NavigationLink {
-                                LeaveHistoryListView(title: "MC history", name: data.employee.name,
-                                                     rows: data.medical, empty: "No medical leave on record.")
-                            } label: {
-                                StatTile(value: approvedDays(data.medical), label: "MC days",
-                                         icon: "cross.case.fill", tint: .pink)
-                            }
-                            NavigationLink {
-                                LeaveHistoryListView(title: "Leave history", name: data.employee.name,
-                                                     rows: data.otherLeave, empty: "No leave on record.")
-                            } label: {
-                                StatTile(value: approvedDays(data.otherLeave), label: "Leave days",
-                                         icon: "airplane", tint: Theme.sky)
-                            }
+                        if let balances = data.balances, !balances.isEmpty {
+                            balanceTiles(data, balances)
+                        } else {
+                            legacyTiles(data)
                         }
-                        .buttonStyle(.plain)
 
-                        clockSection(data)
+                        if data.showsClock(listIntern: employee.intern) {
+                            clockSection(data)
+                        }
                         leaveSection(title: "MC history", icon: "cross.case",
                                      empty: "No medical leave on record.", rows: data.medical, name: data.employee.name)
                         leaveSection(title: "Leave history", icon: "calendar",
                                      empty: "No leave on record.", rows: data.otherLeave, name: data.employee.name)
+                        if let paybacks = data.paybacks {
+                            historySection(title: "Payback history", icon: "arrow.uturn.backward.circle",
+                                           empty: "No paybacks on record.", rows: paybacks, id: "records.paybacks") {
+                                PaybackHistoryListView(name: data.employee.name, rows: paybacks)
+                            } row: { PaybackRow(payback: $0) }
+                        }
+                        if let claims = data.claims {
+                            historySection(title: "Expense claim history", icon: "creditcard",
+                                           empty: "No expense claims on record.", rows: claims, id: "records.claims") {
+                                ClaimHistoryListView(name: data.employee.name, rows: claims)
+                            } row: { ExpenseClaimRow(claim: $0) }
+                        }
                     }
                     .padding(20)
                 }
@@ -67,6 +63,53 @@ struct EmployeeRecordsView: View {
                     .font(.caption).foregroundStyle(Theme.sky)
             }
         }
+    }
+
+    // MARK: KPI tiles
+
+    /// Annual Leave, MC and No Pay Leave: "5 taken" and "7/12 balance" (Alfred, 25 Nov 2026).
+    private func balanceTiles(_ data: EmployeeRecords, _ balances: [RecordsBalance]) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            ForEach(balances) { b in
+                NavigationLink {
+                    LeaveHistoryListView(title: "\(b.name) history", name: data.employee.name,
+                                         rows: data.requests(for: b), empty: "No \(b.name) on record.")
+                } label: {
+                    BalanceTile(balance: b)
+                }
+                .accessibilityIdentifier("records.balance.\(b.code)")
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Older server (no balances): days clocked, MC days and leave days.
+    private func legacyTiles(_ data: EmployeeRecords) -> some View {
+        HStack(spacing: 10) {
+            if data.showsClock(listIntern: employee.intern) {
+                NavigationLink {
+                    ClockHistoryView(name: data.employee.name, attendance: data.attendance)
+                } label: {
+                    StatTile(value: "\(data.attendance.daysWorked)", label: "Days clocked",
+                             icon: "clock.fill", tint: .teal)
+                }
+            }
+            NavigationLink {
+                LeaveHistoryListView(title: "MC history", name: data.employee.name,
+                                     rows: data.medical, empty: "No medical leave on record.")
+            } label: {
+                StatTile(value: approvedDays(data.medical), label: "MC days",
+                         icon: "cross.case.fill", tint: .pink)
+            }
+            NavigationLink {
+                LeaveHistoryListView(title: "Leave history", name: data.employee.name,
+                                     rows: data.otherLeave, empty: "No leave on record.")
+            } label: {
+                StatTile(value: approvedDays(data.otherLeave), label: "Leave days",
+                         icon: "airplane", tint: Theme.sky)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Clock-in history
@@ -125,6 +168,32 @@ struct EmployeeRecordsView: View {
         }
     }
 
+    /// A history section: up to three rows, then "See all" for the full list.
+    @ViewBuilder
+    private func historySection<Item: Identifiable, Full: View, RowView: View>(
+        title: String, icon: String, empty: String, rows: [Item], id: String,
+        @ViewBuilder full: @escaping () -> Full, @ViewBuilder row: @escaping (Item) -> RowView
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                sectionTitle(title, icon: icon)
+                Spacer()
+                if rows.count > previewCount {
+                    NavigationLink { full() } label: {
+                        Text("See all \(rows.count)").font(.caption.weight(.semibold)).foregroundStyle(Theme.sky)
+                    }
+                }
+            }
+            if rows.isEmpty {
+                Card { Text(empty).font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7)) }
+            } else {
+                ForEach(rows.prefix(previewCount)) { row($0) }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(id)
+    }
+
     private func sectionTitle(_ title: String, icon: String) -> some View {
         Label(title, systemImage: icon).font(.headline).foregroundStyle(Theme.ink.opacity(0.9))
     }
@@ -139,6 +208,46 @@ struct EmployeeRecordsView: View {
         if case .loaded = state {} else { state = .loading }
         do { state = .loaded(try await HRMSAPI.shared.employeeRecords(id: employee.id)) }
         catch { state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load records.") }
+    }
+}
+
+/// One balance KPI: the leave name, days taken, and the balance out of the allowance.
+struct BalanceTile: View {
+    let balance: RecordsBalance
+
+    private var icon: String {
+        switch balance.kind {
+        case .mc: return "cross.case.fill"
+        case .npl: return "banknote"
+        default: return "airplane"
+        }
+    }
+    private var tint: Color {
+        switch balance.kind {
+        case .mc: return .pink
+        case .npl: return Theme.warning
+        default: return Theme.sky
+        }
+    }
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 6) {
+                Label(balance.kind == .al ? "Leave" : balance.name, systemImage: icon)
+                    .font(.caption.weight(.semibold)).foregroundStyle(tint)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                Text(RecordsBalance.days(balance.taken))
+                    .font(.title2.weight(.bold)).monospacedDigit().foregroundStyle(Theme.ink)
+                Text("taken").font(.caption).foregroundStyle(Theme.mist)
+                Divider().overlay(Theme.ink.opacity(0.12))
+                Text("\(RecordsBalance.days(balance.available))/\(RecordsBalance.days(balance.allowance))")
+                    .font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Theme.success)
+                Text("balance").font(.caption).foregroundStyle(Theme.mist)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(balance.name): \(balance.takenText), \(balance.balanceText)")
     }
 }
 
@@ -217,6 +326,74 @@ struct LeaveHistoryListView: View {
             }
         }
         .brandBar()
+    }
+}
+
+/// Every No Pay Leave payback on record for one person.
+struct PaybackHistoryListView: View {
+    let name: String
+    let rows: [RecordsPayback]
+
+    var body: some View {
+        GradientScreen {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    Text("\(name) · Payback history").font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
+                    if rows.isEmpty { EmptyHint(icon: "tray", text: "No paybacks on record.") }
+                    ForEach(rows) { PaybackRow(payback: $0) }
+                }
+                .padding(20)
+            }
+        }
+        .brandBar()
+    }
+}
+
+/// Every expense claim on record for one person.
+struct ClaimHistoryListView: View {
+    let name: String
+    let rows: [ExpenseClaim]
+
+    var body: some View {
+        GradientScreen {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    Text("\(name) · Expense claim history").font(.subheadline).foregroundStyle(Theme.ink.opacity(0.7))
+                    if rows.isEmpty { EmptyHint(icon: "tray", text: "No expense claims on record.") }
+                    ForEach(rows) { ExpenseClaimRow(claim: $0) }
+                }
+                .padding(20)
+            }
+        }
+        .brandBar()
+    }
+}
+
+/// A payback card: the No Pay Leave day paid back, the off day worked, status and days.
+struct PaybackRow: View {
+    let payback: RecordsPayback
+
+    var body: some View {
+        Card {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("No Pay Leave \(Fmt.date(payback.nplDate))")
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                    Text("Worked \(Fmt.date(payback.workDate))")
+                        .font(.caption).foregroundStyle(Theme.ink.opacity(0.7))
+                    if let r = payback.rejectionReason, !r.isEmpty {
+                        Text(r).font(.caption2).foregroundStyle(Theme.danger).lineLimit(2)
+                    } else if let note = payback.note, !note.isEmpty {
+                        Text(note).font(.caption2).foregroundStyle(Theme.ink.opacity(0.55)).lineLimit(2)
+                    }
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 6) {
+                    StatusPill(status: payback.status)
+                    Text(Fmt.days(payback.days)).font(.caption2).foregroundStyle(Theme.ink.opacity(0.7))
+                }
+            }
+        }
     }
 }
 
