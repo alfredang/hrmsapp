@@ -108,6 +108,7 @@ struct MainTabView: View {
                 case "records": EmployeeRecordsView(employee: PreviewData.employees.employees[0])
                 case "leave": LeaveView()
                 case "payslips": PayslipsView()
+                case "cpfsubmissions": CpfSubmissionsView()
                 case "expenses": ExpensesView()
                 case "more": MoreView()
                 case "profile": ProfileView()

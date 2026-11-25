@@ -130,6 +130,17 @@ actor HRMSAPI {
         return try await get(url: comps.url!)
     }
 
+    /// Past CPF EZPay submission statements, latest first (server order). Admins and accountants
+    /// only: a 403 is `APIError.forbidden`, not an expired session. Download each with
+    /// `downloadPDF(path: $0.downloadPath)`.
+    func cpfSubmissions() async throws -> [CpfSubmission] {
+        if isPreview { return PreviewData.cpfSubmissions }
+        let r: CpfSubmissionsResponse = try await get(
+            url: base.appendingPathComponent("api/mobile/cpf-submissions"),
+            forbidden: .forbidden("CPF submissions are for admins and accountants only."))
+        return r.cpfSubmissions
+    }
+
     /// Every bank statement import, newest first.
     func statementImports() async throws -> [StatementImport] {
         if isPreview { return PreviewData.statementImports }

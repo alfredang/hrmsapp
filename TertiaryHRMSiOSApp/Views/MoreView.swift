@@ -95,6 +95,10 @@ struct MoreView: View {
             finance.append(.push("claims", "Expense Claims", "creditcard.fill", .orange, ExpensesView()))
         }
         if !intern { finance.append(.push("payslips", "Payslips", "doc.text.fill", Theme.success, PayslipsView())) }
+        // CPF EZPay statements (web 26 Nov 2026): admin and accountant views only, never staff or interns.
+        if auth.showsCpfSubmissions {
+            finance.append(.push("cpfsubmissions", "CPF Submissions", "building.columns.fill", Theme.sky, CpfSubmissionsView()))
+        }
 
         var accounting: [Row] = []
         if admin || accountant {

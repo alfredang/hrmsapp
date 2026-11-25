@@ -183,19 +183,75 @@ enum PreviewData {
         ])
 
     // MARK: Payslips
-    static let payslips = PayslipsResponse(payslips: [
-        payslip("p1", "2026-05-01T09:00:00Z", "2026-05-31T09:00:00Z", "2026-05-28T09:00:00Z"),
-        payslip("p2", "2026-04-01T09:00:00Z", "2026-04-30T09:00:00Z", "2026-04-28T09:00:00Z"),
+    /// Staff payslips (May: a payback added back; April: No Pay Leave). `-uiPreviewIntern`: an
+    /// intern's flat salary with no CPF (May: MC / No Pay Leave deducted).
+    static var payslips: PayslipsResponse {
+        ProcessInfo.processInfo.arguments.contains("-uiPreviewIntern") ? internPayslips : staffPayslips
+    }
+
+    static let staffPayslips = PayslipsResponse(payslips: [
+        payslip("p1", "2026-05-01T09:00:00Z", "2026-05-31T09:00:00Z", "2026-05-28T09:00:00Z",
+                gross: 9492.31, net: 8472.31, paybackDays: 1, paybackAmount: 392.31),
+        payslip("p2", "2026-04-01T09:00:00Z", "2026-04-30T09:00:00Z", "2026-04-28T09:00:00Z",
+                gross: 8315, net: 7295, unpaidDays: 2, unpaidDeduction: 785),
         payslip("p3", "2026-03-01T09:00:00Z", "2026-03-31T09:00:00Z", "2026-03-28T09:00:00Z"),
         payslip("p4", "2026-02-01T09:00:00Z", "2026-02-28T09:00:00Z", "2026-02-26T09:00:00Z"),
         payslip("p5", "2026-01-01T09:00:00Z", "2026-01-31T09:00:00Z", "2026-01-29T09:00:00Z"),
     ])
 
-    private static func payslip(_ id: String, _ start: String, _ end: String, _ pay: String) -> Payslip {
+    static let internPayslips = PayslipsResponse(payslips: [
+        internPayslip("i1", "2026-05-01T09:00:00Z", "2026-05-31T09:00:00Z", "2026-05-28T09:00:00Z",
+                      net: 1636.36, unpaidDays: 1.5, unpaidDeduction: 163.64),
+        internPayslip("i2", "2026-04-01T09:00:00Z", "2026-04-30T09:00:00Z", "2026-04-28T09:00:00Z", net: 1800),
+    ])
+
+    private static func payslip(_ id: String, _ start: String, _ end: String, _ pay: String,
+                                gross: Double = 9100, net: Double = 8080,
+                                unpaidDays: Double = 0, unpaidDeduction: Double = 0,
+                                paybackDays: Double = 0, paybackAmount: Double = 0) -> Payslip {
         Payslip(id: id, payPeriodStart: start, payPeriodEnd: end, paymentDate: pay,
                 basicSalary: 8500, allowances: 600, overtime: 0, bonus: 0,
-                grossSalary: 9100, cpfEmployee: 1020, totalDeductions: 1020, netSalary: 8080,
-                status: "PAID", pdfPath: "api/payroll/payslip/\(id)/pdf")
+                grossSalary: gross, cpfEmployee: 1020, totalDeductions: 1020 + unpaidDeduction, netSalary: net,
+                status: "PAID", pdfPath: "api/payroll/payslip/\(id)/pdf",
+                cpfSubmission: cpfRef(start), cpfEmployer: 1258, intern: false,
+                unpaidLeaveDays: unpaidDays, unpaidLeaveDeduction: unpaidDeduction,
+                paybackDays: paybackDays, paybackAmount: paybackAmount)
+    }
+
+    private static func internPayslip(_ id: String, _ start: String, _ end: String, _ pay: String, net: Double,
+                                      unpaidDays: Double = 0, unpaidDeduction: Double = 0) -> Payslip {
+        Payslip(id: id, payPeriodStart: start, payPeriodEnd: end, paymentDate: pay,
+                basicSalary: 1800, allowances: 0, overtime: 0, bonus: 0,
+                grossSalary: 1800, cpfEmployee: 0, totalDeductions: unpaidDeduction, netSalary: net,
+                status: "PAID", pdfPath: "api/payroll/payslip/\(id)/pdf",
+                intern: true, unpaidLeaveDays: unpaidDays, unpaidLeaveDeduction: unpaidDeduction)
+    }
+
+    // MARK: CPF submissions (admins and accountants)
+    static let cpfSubmissions: [CpfSubmission] = [
+        cpf("cpf5", 5, 2026, "2026-06-10T03:12:00Z", 184_320),
+        cpf("cpf4", 4, 2026, "2026-05-11T02:40:00Z", 181_002),
+        cpf("cpf3", 3, 2026, "2026-04-09T06:05:00Z", 179_880),
+        cpf("cpf2", 2, 2026, "2026-03-10T01:55:00Z", 176_544),
+        CpfSubmission(id: "cpfx", name: "EZPay statement (scanned).pdf", sizeBytes: 912_400,
+                      uploadedAt: "2026-02-12T08:30:00Z",
+                      downloadPath: "/api/payroll/cpf-submission/files/cpfx"),
+    ]
+
+    private static func cpf(_ id: String, _ month: Int, _ year: Int, _ uploaded: String, _ size: Int) -> CpfSubmission {
+        let label = ["January", "February", "March", "April", "May", "June", "July", "August", "September",
+                     "October", "November", "December"][month - 1] + " \(year)"
+        return CpfSubmission(id: id, name: String(format: "CPF-Submission-%02d-%d__EZPay.pdf", month, year),
+                             month: month, year: year, periodLabel: label, sizeBytes: size,
+                             uploadedAt: uploaded, downloadPath: "/api/payroll/cpf-submission/files/\(id)")
+    }
+
+    /// The statement for a payslip's month, as the server pairs them (none before February here).
+    private static func cpfRef(_ periodStart: String) -> CpfSubmissionRef? {
+        guard let d = Fmt.dateObj(periodStart) else { return nil }
+        let m = Calendar(identifier: .gregorian).component(.month, from: d)
+        guard let s = cpfSubmissions.first(where: { $0.month == m }) else { return nil }
+        return CpfSubmissionRef(id: s.id, name: s.name, periodLabel: s.periodLabel, downloadPath: s.downloadPath)
     }
 
     // MARK: Calendar

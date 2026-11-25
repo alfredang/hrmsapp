@@ -334,6 +334,99 @@ struct Payslip: Codable, Identifiable {
     let netSalary: Double
     let status: String
     let pdfPath: String
+    /// The CPF EZPay statement this payslip was generated from (web 26 Nov 2026). Admins and
+    /// accountants only; nil for staff, when none is on file, or from an older server.
+    var cpfSubmission: CpfSubmissionRef? = nil
+    // Pay breakdown (web 26 Nov 2026). Missing on an older server → 0 / false.
+    /// Employer CPF (paid by the company, not out of take-home pay).
+    var cpfEmployer: Double = 0
+    /// Interns are on a flat salary with no CPF (both CPF figures are 0).
+    var intern: Bool = false
+    /// Unpaid days that month (No Pay Leave; for interns also MC) and the amount deducted.
+    var unpaidLeaveDays: Double = 0
+    var unpaidLeaveDeduction: Double = 0
+    /// Approved paybacks (off days worked) added back; already included in `grossSalary`.
+    var paybackDays: Double = 0
+    var paybackAmount: Double = 0
+}
+
+/// One line of a payslip's pay breakdown (`Payslip.breakdown`), shown on the list rows and the
+/// payslip screen. Mirrors the web payslip email (`src/lib/payslip-email.ts`).
+struct PayslipLine: Identifiable, Equatable {
+    enum Style: Equatable { case plain, addition, deduction, info, total }
+    let id: String
+    let label: String
+    /// Already formatted ("+ S$120.00", "− S$300.00", "S$1,700.00"); nil for a text-only line.
+    let value: String?
+    var note: String? = nil
+    let style: Style
+}
+
+extension Payslip {
+    /// Employee + employer CPF.
+    var totalCpf: Double { cpfEmployee + cpfEmployer }
+
+    /// Gross pay, payback added back, unpaid leave, CPF (staff) or "None" (interns), take-home pay.
+    var breakdown: [PayslipLine] {
+        func days(_ n: Double) -> String { "\(Fmt.num(n)) day\(n == 1 ? "" : "s")" }
+        var lines = [PayslipLine(id: "gross", label: "Gross pay", value: Fmt.sgd(grossSalary), style: .plain)]
+        if paybackDays > 0 {
+            lines.append(PayslipLine(id: "payback", label: "Payback added back (\(days(paybackDays)) worked)",
+                                     value: "+ \(Fmt.sgd(paybackAmount))", note: "Included in gross pay",
+                                     style: .addition))
+        }
+        if unpaidLeaveDays > 0 {
+            let kind = intern ? "MC / No Pay Leave" : "No Pay Leave"
+            lines.append(PayslipLine(id: "unpaid", label: "\(kind) (\(days(unpaidLeaveDays)))",
+                                     value: "− \(Fmt.sgd(unpaidLeaveDeduction))", style: .deduction))
+        }
+        if intern {
+            lines.append(PayslipLine(id: "cpf.none", label: "CPF: None (interns have no CPF)", value: nil, style: .info))
+        } else {
+            lines.append(PayslipLine(id: "cpf.employee", label: "CPF (Employee)",
+                                     value: "− \(Fmt.sgd(cpfEmployee))", style: .deduction))
+            lines.append(PayslipLine(id: "cpf.employer", label: "CPF (Employer)", value: Fmt.sgd(cpfEmployer),
+                                     note: "Paid by the company, not from your pay", style: .info))
+            lines.append(PayslipLine(id: "cpf.total", label: "Total CPF", value: Fmt.sgd(totalCpf), style: .info))
+        }
+        lines.append(PayslipLine(id: "takehome", label: "Take-home pay", value: Fmt.sgd(netSalary), style: .total))
+        return lines
+    }
+}
+
+extension Payslip {
+    private enum K: String, CodingKey {
+        case id, payPeriodStart, payPeriodEnd, paymentDate, basicSalary, allowances, overtime, bonus,
+             grossSalary, cpfEmployee, totalDeductions, netSalary, status, pdfPath, cpfSubmission,
+             cpfEmployer, intern, unpaidLeaveDays, unpaidLeaveDeduction, paybackDays, paybackAmount
+    }
+
+    /// As the synthesized decoder, except `cpfSubmission`: missing, null or malformed → nil, so an
+    /// odd statement reference never hides the payslips.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: K.self)
+        id = try c.decode(String.self, forKey: .id)
+        payPeriodStart = try c.decodeIfPresent(String.self, forKey: .payPeriodStart)
+        payPeriodEnd = try c.decodeIfPresent(String.self, forKey: .payPeriodEnd)
+        paymentDate = try c.decodeIfPresent(String.self, forKey: .paymentDate)
+        basicSalary = try c.decode(Double.self, forKey: .basicSalary)
+        allowances = try c.decode(Double.self, forKey: .allowances)
+        overtime = try c.decode(Double.self, forKey: .overtime)
+        bonus = try c.decode(Double.self, forKey: .bonus)
+        grossSalary = try c.decode(Double.self, forKey: .grossSalary)
+        cpfEmployee = try c.decode(Double.self, forKey: .cpfEmployee)
+        totalDeductions = try c.decode(Double.self, forKey: .totalDeductions)
+        netSalary = try c.decode(Double.self, forKey: .netSalary)
+        status = try c.decode(String.self, forKey: .status)
+        pdfPath = try c.decode(String.self, forKey: .pdfPath)
+        cpfSubmission = (try? c.decodeIfPresent(CpfSubmissionRef.self, forKey: .cpfSubmission)) ?? nil
+        cpfEmployer = (try? c.decodeIfPresent(Double.self, forKey: .cpfEmployer)) ?? 0
+        intern = (try? c.decodeIfPresent(Bool.self, forKey: .intern)) ?? false
+        unpaidLeaveDays = (try? c.decodeIfPresent(Double.self, forKey: .unpaidLeaveDays)) ?? 0
+        unpaidLeaveDeduction = (try? c.decodeIfPresent(Double.self, forKey: .unpaidLeaveDeduction)) ?? 0
+        paybackDays = (try? c.decodeIfPresent(Double.self, forKey: .paybackDays)) ?? 0
+        paybackAmount = (try? c.decodeIfPresent(Double.self, forKey: .paybackAmount)) ?? 0
+    }
 }
 
 // MARK: - Calendar  (/api/mobile/calendar)

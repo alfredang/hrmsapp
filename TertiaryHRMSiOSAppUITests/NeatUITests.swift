@@ -167,6 +167,68 @@ final class NeatUITests: XCTestCase {
         snap(app, "finance-reconciliation")
     }
 
+    /// CPF EZPay submissions (26 Nov 2026): admins and accountants get the list (Payslips, More →
+    /// Finance) and a payslip's "CPF statement"; staff and interns see neither.
+    func testCpfSubmissionsForAdminsAndAccountantsOnly() {
+        var app = launch(["-uiPreviewOpen", "payslips"])
+        let entry = app.buttons["payslips.cpfSubmissions"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 10))
+        entry.tap()
+        XCTAssertTrue(app.buttons["cpf.row.cpf5"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["cpf.row.cpfx"].exists, "a file without a period is listed by name")
+        XCTAssertTrue(app.staticTexts["May 2026"].exists)
+        snap(app, "cpf-submissions")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let may = app.buttons["payslip.row.p1"]
+        XCTAssertTrue(may.waitForExistence(timeout: 5))
+        may.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["payslip.cpfStatement"].waitForExistence(timeout: 5))
+        app.terminate()
+
+        app = launch(["-uiPreviewViewAs", "accountant", "-uiPreviewOpen", "more"])
+        XCTAssertTrue(app.buttons["more.row.cpfsubmissions"].waitForExistence(timeout: 10))
+        app.terminate()
+
+        for role in ["-uiPreviewStaff", "-uiPreviewIntern"] {
+            app = launch([role, "-uiPreviewOpen", "more"])
+            XCTAssertTrue(app.buttons["more.row.profile"].waitForExistence(timeout: 10))
+            XCTAssertFalse(app.buttons["more.row.cpfsubmissions"].exists, "\(role): no CPF Submissions")
+            app.terminate()
+        }
+        app = launch(["-uiPreviewStaff", "-uiPreviewOpen", "payslips"])
+        let p1 = app.buttons["payslip.row.p1"]
+        XCTAssertTrue(p1.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["payslips.cpfSubmissions"].exists)
+        p1.tap()
+        XCTAssertTrue(app.navigationBars["Payslip"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.descendants(matching: .any)["payslip.cpfStatement"].exists, "staff: no CPF statement link")
+    }
+
+    /// Payslip figures (26 Nov 2026): gross, payback added back, unpaid leave, CPF (staff: employee,
+    /// employer, total; interns: none), take-home, on the list rows and the payslip screen.
+    func testPayslipShowsPayBreakdown() {
+        var app = launch(["-uiPreviewStaff", "-uiPreviewOpen", "payslips"])
+        let may = app.buttons["payslip.row.p1"]
+        XCTAssertTrue(may.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Payback added back (1 day worked)"].exists)
+        XCTAssertTrue(app.staticTexts["No Pay Leave (2 days)"].exists)
+        XCTAssertTrue(app.staticTexts["CPF (Employer)"].exists)
+        snap(app, "payslips-staff")
+        may.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["payslip.breakdown"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Take-home pay"].exists)
+        XCTAssertTrue(app.staticTexts["Total CPF"].exists)
+        snap(app, "payslip-staff-detail")
+        app.terminate()
+
+        app = launch(["-uiPreviewIntern", "-uiPreviewOpen", "payslips"])
+        XCTAssertTrue(app.buttons["payslip.row.i1"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["MC / No Pay Leave (1.5 days)"].exists)
+        XCTAssertTrue(app.staticTexts["CPF: None (interns have no CPF)"].exists)
+        XCTAssertFalse(app.staticTexts["CPF (Employee)"].exists)
+        snap(app, "payslips-intern")
+    }
+
     /// Trainer Admin Home: the switcher sits under the name, and the search finds trainers and skills.
     func testTrainerHomeSearch() {
         let app = launch(["-uiPreviewViewAs", "trainer"])

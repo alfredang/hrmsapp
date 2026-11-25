@@ -40,6 +40,16 @@ enum Fmt {
         return f.string(from: NSNumber(value: v)) ?? String(format: "%.2f", v)
     }
 
+    /// Singapore dollars with the S$ sign whatever the phone's region: 1700 → "S$1,700.00",
+    /// -5 → "-S$5.00". Used on the payslip figures.
+    static func sgd(_ v: Double) -> String {
+        let f = NumberFormatter(); f.numberStyle = .decimal
+        f.locale = Locale(identifier: "en_SG")
+        f.minimumFractionDigits = 2; f.maximumFractionDigits = 2
+        let body = f.string(from: NSNumber(value: abs(v))) ?? String(format: "%.2f", abs(v))
+        return (v < 0 ? "-" : "") + "S$" + body
+    }
+
     /// 12 → "12", 12.5 → "12.5".
     static func num(_ v: Double) -> String {
         v.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", v) : String(format: "%.1f", v)

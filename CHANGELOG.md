@@ -1,8 +1,17 @@
 # Changelog
 
-## [1.24] — 2026-11-25 (build 55, WAITING_FOR_REVIEW; 1.23 build 54 is live)
+## [1.24] — 2026-11-26 (build 56 replaces build 55 in App Review; 1.23 build 54 is live)
 **What's New (user-facing):**
-> Admins: the tab bar now has SOP after Team, and leave management moves to Home (Leave & MC) and More. Trainer Admins get an SOP tab too.
+> Payslips now show your gross pay, any No Pay Leave payback added back, MC / No Pay Leave deductions, your CPF and the company's CPF (interns have no CPF) and your take-home pay. Admins and accountants can see and open past CPF submission statements, and each payslip links to its CPF statement. Admins: the tab bar now has SOP after Team, and leave management moves to Home (Leave & MC) and More. Trainer Admins get an SOP tab too.
+
+### Build 56
+- **Payslip figures** (web 26 Nov 2026 adds `cpfEmployer`, `intern`, `unpaidLeaveDays`, `unpaidLeaveDeduction`, `paybackDays`, `paybackAmount` to `/api/mobile/payslips`; decoded as optional, default 0 / false): `Payslip.breakdown` (`PayslipLine`, mirrors the web payslip email) drawn by `PayslipBreakdownView` on every Payslips row and above the PDF on the payslip screen: Gross pay; "Payback added back (N days worked) + …" (included in gross); "No Pay Leave (N days) − …" (interns "MC / No Pay Leave"); staff CPF (Employee) −, CPF (Employer) (paid by the company), Total CPF; interns "CPF: None (interns have no CPF)"; Take-home pay emphasised. Money as `Fmt.sgd` ("S$1,700.00" whatever the phone region). Tests `PayslipBreakdownTests`, UI `testPayslipShowsPayBreakdown` (`-uiPreviewIntern` previews an intern's payslips).
+- `CpfSubmissionsView` (More → Finance → CPF Submissions, and a row at the top of Payslips) over `GET /api/mobile/cpf-submissions` (web 26 Nov 2026), server order kept; row = period label (file name when null), then file name · uploaded date · size. Pull to refresh, loading, empty ("No CPF submissions yet"), 403 (polite note), 502 (Drive unreachable) states.
+- `CpfStatementPDFView`: downloads `downloadPath` with `HRMSAPI.downloadPDF` (same session as a payslip's `pdfPath`), PDFKit viewer, ShareLink from a temporary copy removed on close.
+- `PayslipPDFView`: "CPF statement" toolbar link when `Payslip.cpfSubmission` is set (new optional field, decoded leniently: missing, null or malformed → nil).
+- Gate `AuthViewModel.showsCpfSubmissions` = admin or accountant view (not the Trainer Admin view, not a Staff / Intern preview); the server 403s and sends `cpfSubmission: null` for staff anyway.
+- Tests: `CpfSubmissionDecodingTests`; UI `testCpfSubmissionsForAdminsAndAccountantsOnly`; preview `-uiPreviewOpen cpfsubmissions`.
+- Server: web e48c675 (CPF statement list, payslip pay figures).
 
 ### Build 55
 - `MainTabView`: admins Home / Calendar / Team / SOP / More (no Leave tab, Alfred 25 Nov 2026; `LeaveSummaryView` stays on Home "Leave & MC" and More → Leave Management; a `/leave` push opens it as a sheet). Trainer Admin view Home / Trainers / SOP / More. The extra SOP tab is `MainTabView.sopTab` (6); staff and interns keep SOP at tag 3. UI tests `testSopTabReplacesTeamForStaff`, `testTrainerAdminViewAs`, `testApproverViewAsPreviewsRoles`. Android 1.27 (48) mirrors it.

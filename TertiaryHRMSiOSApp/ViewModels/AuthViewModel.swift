@@ -92,6 +92,10 @@ final class AuthViewModel: ObservableObject {
     var showsMustClockIn: Bool { isRolePreview ? (viewAs == .intern || viewAs == .accountant) : mustClockIn }
     /// Accountant screens: no leave, MC or time off (no Leave tab, no balances, no Apply).
     var showsAccountant: Bool { isRolePreview ? viewAs == .accountant : LeaveRules.isAccountant(roles: user?.roles) }
+    /// CPF EZPay submissions (More → Finance, the Payslips screen, a payslip's "CPF statement"): the
+    /// admin and accountant views only, never staff or interns (each statement lists everyone's NRIC
+    /// and wages). The server enforces it too (403; `cpfSubmission` null for staff).
+    var showsCpfSubmissions: Bool { !isTrainerView && (showsAdmin || showsAccountant) }
 
     /// Apply the server's `canManageTrainers`; a view that is no longer allowed falls back to "mine".
     func applyTrainerCapability(_ can: Bool) {
