@@ -112,9 +112,16 @@ final class NeatUITests: XCTestCase {
         snap(app, "sop-detail")
         app.terminate()
 
+        // Admins: Home / Calendar / Team / SOP / More, no Leave tab (25 Nov 2026).
         let admin = launch([])
-        XCTAssertTrue(admin.tabBars.firstMatch.buttons["Team"].waitForExistence(timeout: 10))
-        XCTAssertFalse(admin.tabBars.firstMatch.buttons["SOP"].exists)
+        let adminTabs = admin.tabBars.firstMatch
+        XCTAssertTrue(adminTabs.buttons["Team"].waitForExistence(timeout: 10))
+        XCTAssertTrue(adminTabs.buttons["SOP"].exists, "admins get SOP after Team")
+        XCTAssertFalse(adminTabs.buttons["Leave"].exists, "no Leave tab for admins")
+        XCTAssertLessThan(adminTabs.buttons["Team"].frame.minX, adminTabs.buttons["SOP"].frame.minX)
+        adminTabs.buttons["SOP"].tap()
+        XCTAssertTrue(admin.buttons["sop.area.Human Resources"].waitForExistence(timeout: 10))
+        snap(admin, "admin-tabs-sop")
         admin.terminate()
 
         // Accountants get Expenses there instead (22 Nov 2026).
@@ -183,6 +190,7 @@ final class NeatUITests: XCTestCase {
         XCTAssertFalse(app.buttons["home.kpi.pending"].exists, "no admin tiles")
         XCTAssertFalse(app.staticTexts["Quick actions"].exists, "no quick actions")
         XCTAssertTrue(tabs.buttons["Trainers"].exists)
+        XCTAssertTrue(tabs.buttons["SOP"].exists, "Trainer Admin view: SOP after Trainers (25 Nov 2026)")
         XCTAssertFalse(tabs.buttons["Leave"].exists)
         XCTAssertFalse(tabs.buttons["Team"].exists)
         snap(app, "trainer-view-home")
@@ -203,8 +211,9 @@ final class NeatUITests: XCTestCase {
 
         viewAs.tap()
         app.buttons["viewAs.mine"].tap()
-        XCTAssertTrue(tabs.buttons["Leave"].waitForExistence(timeout: 5))
-        XCTAssertTrue(tabs.buttons["Team"].exists)
+        XCTAssertTrue(tabs.buttons["Team"].waitForExistence(timeout: 5))
+        XCTAssertTrue(tabs.buttons["SOP"].exists)
+        XCTAssertFalse(tabs.buttons["Leave"].exists, "no Leave tab for admins")
         XCTAssertFalse(tabs.buttons["Trainers"].exists)
         XCTAssertTrue(tabs.buttons["Home"].isSelected, "back to Home")
         XCTAssertTrue(app.buttons["home.kpi.pending"].waitForExistence(timeout: 10))
@@ -474,11 +483,13 @@ final class NeatUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["more.row.settings"].exists)
         XCTAssertFalse(app.buttons["more.row.clock"].exists)
         XCTAssertFalse(app.buttons["more.apply.MC"].exists, "admins do not apply for MC")
-        // Admin Leave tab: leave management, no Apply button or own balances.
-        app.tabBars.buttons["Leave"].tap()
+        // Admins have no Leave tab (25 Nov 2026); More → Leave Management is leave management,
+        // with no Apply button or own balances.
+        XCTAssertFalse(app.tabBars.buttons["Leave"].exists, "no Leave tab for admins")
+        app.buttons["more.row.leavemgmt"].tap()
         XCTAssertTrue(app.segmentedControls.firstMatch.waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["Apply for Leave"].exists)
-        snap(app, "admin-leave-tab")
+        snap(app, "admin-leave-management")
     }
 
     /// Home → My Profile → Edit profile shows the form (1.20: it was a blank sheet).

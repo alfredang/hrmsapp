@@ -153,7 +153,10 @@ This native app is a **client of the existing HRMS web backend** — it has no d
 - **Admin authoring/management** flows that are heavy form/desktop work (creating employees, generating payroll, editing company settings, credential management, email templates). Approvals counts are surfaced on the dashboard, but bulk admin is done on the web.
 - **Woods Square building access** — not part of the mobile employee experience (product decision).
 
-## 1.23 build 54 (25 Nov 2026, WAITING_FOR_REVIEW; 1.22 build 53 is live): person records
+## 1.24 build 55 (25 Nov 2026, WAITING_FOR_REVIEW; 1.23 build 54 is live): tab bars
+- **Admins**: Home / Calendar / Team / SOP / More. **No Leave tab** (Alfred, 25 Nov 2026); leave management (`LeaveSummaryView`) stays on Home "Leave & MC" and More → Leave Management, and a `/leave` push opens it as a sheet. **Trainer Admin view**: Home / Trainers / SOP / More. The extra SOP tab has tag `MainTabView.sopTab` (6); staff and interns keep SOP at tag 3. UI tests `testSopTabReplacesTeamForStaff`, `testTrainerAdminViewAs`, `testApproverViewAsPreviewsRoles`. Android 1.27 (48) mirrors it (`MainTabs.routes`).
+
+## 1.23 build 54 (25 Nov 2026, live): person records
 - Team → a person (`EmployeeRecordsView`): **Leave / MC / No Pay Leave tiles** ("5 taken", "7/12 balance": `RecordsBalance`, `BalanceTile`, `records.balance.<code>`) replace Days clocked / MC days / Leave days. **Clock-in history only when `mustClockIn`** (interns, accountants without an approver role; staff have none, Alfred 25 Nov 2026). **Payback history** (`RecordsPayback`, `PaybackRow`) and **Expense claim history** (shared `ExpenseClaimRow`). Server web 796793a adds `balances`, `intern`, `mustClockIn`, `paybacks`, `claims` to `/api/mobile/employees/{id}/records` (allowance = earned-to-date + carried over, as the Leave tab); an older server keeps the old tiles. Tests `RecordsBalanceTests`, UI `testRecordsShowBalancesAndClockOnlyForInterns`. Android 1.26 (47) mirrors it.
 
 ## 1.22 build 53 (23 Nov 2026, WAITING_FOR_REVIEW, replaced 52): SOP areas collapse
@@ -294,7 +297,7 @@ Single-coordinator MVVM around `AuthViewModel` (`@MainActor`). Networking is two
 `AuthService` (NextAuth sign-in) and `HRMSAPI` (typed reads + writes — apply-leave, submit-claim,
 clock, approve/reject, upload, notifications, profile update, change password, public holidays —
 plus PDF download), both riding the shared cookie store. `RootView` routes loading → `LoginView`
-→ `MainTabView` (Home / Leave / Calendar / Team / More). Reusable TIA premium-blue controls live in `Views/Components/`.
+→ `MainTabView` (per role: admins Home / Calendar / Team / SOP / More; staff and interns Home / Leave / Calendar / SOP / More; accountants Home / Income / Expenses / More; Trainer Admin view Home / Trainers / SOP / More). Reusable TIA premium-blue controls live in `Views/Components/`.
 
 **Security model — the app holds NO secrets.** It ships zero API keys/credentials; every call
 rides the user's own NextAuth session cookie, and all RBAC/validation stays on the server (the

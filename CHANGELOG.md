@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.24] — 2026-11-25 (build 55, WAITING_FOR_REVIEW; 1.23 build 54 is live)
+**What's New (user-facing):**
+> Admins: the tab bar now has SOP after Team, and leave management moves to Home (Leave & MC) and More. Trainer Admins get an SOP tab too.
+
+### Build 55
+- `MainTabView`: admins Home / Calendar / Team / SOP / More (no Leave tab, Alfred 25 Nov 2026; `LeaveSummaryView` stays on Home "Leave & MC" and More → Leave Management; a `/leave` push opens it as a sheet). Trainer Admin view Home / Trainers / SOP / More. The extra SOP tab is `MainTabView.sopTab` (6); staff and interns keep SOP at tag 3. UI tests `testSopTabReplacesTeamForStaff`, `testTrainerAdminViewAs`, `testApproverViewAsPreviewsRoles`. Android 1.27 (48) mirrors it.
+
 ## [1.23] — 2026-11-25 (build 54; 1.22 build 53 is live)
 **What's New (user-facing):**
 > Team: each person's page shows Annual Leave, MC and No Pay Leave taken and the balance left, plus their No Pay Leave payback history and expense claim history. Clock-in history shows only for interns and others who clock in.

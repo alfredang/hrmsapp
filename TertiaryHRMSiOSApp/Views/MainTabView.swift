@@ -34,12 +34,12 @@ struct MainTabView: View {
             if auth.isTrainerView {
                 NavigationStack { TrainersView() }
                     .tabItem { Label("Trainers", systemImage: "person.text.rectangle.fill") }.tag(Self.trainersTab)
-            } else if !auth.showsAccountant {
+            } else if !auth.showsAccountant && !auth.showsAdmin {
                 // Accountants have no leave or MC (Alfred, 22 Nov 2026): no Leave tab.
-                // Admins do not apply for leave or MC (Alfred, 22 Nov 2026): their Leave tab is
-                // leave management (everyone's leave and MC). Staff, interns, accountants and an
-                // approver previewing those roles keep their own leave with Apply.
-                NavigationStack { if auth.showsAdmin { LeaveSummaryView() } else { LeaveView() } }
+                // Admins have no Leave tab either (Alfred, 25 Nov 2026): leave management stays on
+                // Home ("Leave & MC") and More → Leave Management. Staff, interns and an approver
+                // previewing those roles keep their own leave with Apply.
+                NavigationStack { LeaveView() }
                     .tabItem { Label("Leave", systemImage: "calendar.badge.clock") }.tag(1)
             }
             if auth.isTrainerView {
@@ -64,13 +64,24 @@ struct MainTabView: View {
                 NavigationStack { SopListView() }
                     .tabItem { Label("SOP", systemImage: "book.fill") }.tag(3)
             }
+            // Admins: SOP after Team; Trainer Admin view: SOP after Trainers (Alfred, 25 Nov 2026).
+            if auth.showsAdmin || auth.isTrainerView {
+                NavigationStack { SopListView() }
+                    .tabItem { Label("SOP", systemImage: "book.fill") }.tag(Self.sopTab)
+            }
             NavigationStack { MoreView() }
                 .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }.tag(4)
         }
         .tint(Theme.sky)
         // Switching View As lands on the directory (the web opens /trainers) or back on Home.
         .onChange(of: auth.viewAs) { v in tab = v == .trainerAdmin && auth.canManageTrainers ? Self.trainersTab : 0 }
-        .onChange(of: auth.isTrainerView) { on in if !on && tab == Self.trainersTab { tab = 0 } }
+        .onChange(of: auth.isTrainerView) { on in
+            if !on && (tab == Self.trainersTab || (tab == Self.sopTab && !auth.showsAdmin)) { tab = 0 }
+        }
+        // The selected tab can vanish when the admin view turns on (Leave) or off (the extra SOP tab).
+        .onChange(of: auth.showsAdmin) { admin in
+            if (admin && tab == 1) || (!admin && tab == Self.sopTab && !auth.isTrainerView) { tab = 0 }
+        }
         .onChange(of: push.pendingLink) { _ in openPendingLink() }
         .onAppear { openPendingLink() }   // cold start from a tapped push
         .sheet(item: $pushSheet) { route in
@@ -115,14 +126,18 @@ struct MainTabView: View {
     private var isAdmin: Bool { ["ADMIN", "HR", "MANAGER"].contains(auth.user?.primaryRole.uppercased() ?? "") }
     /// Tag of the Trainers tab, shown only in the Trainer Admin view.
     static let trainersTab = 5
+    /// Tag of the SOP tab that admins (after Team) and the Trainer Admin view (after Trainers) get.
+    /// Staff and interns have SOP in tag 3's place.
+    static let sopTab = 6
 
     /// Route a tapped push (its web `link`) to a tab or a sheet, then clear it.
     private func openPendingLink() {
         guard let link = push.pendingLink else { return }
         push.pendingLink = nil
         switch PushRoute.from(link: link, isAdmin: isAdmin, mustClockIn: auth.mustClockIn) {
-        case .tab(let i) where (auth.isTrainerView && (1...3).contains(i)) || (auth.showsAccountant && (i == 1 || i == 2)):
-            pushSheet = .tab(i)   // a hidden tab (Trainer Admin view: Leave / Team; accountants: Leave / Calendar) opens as a sheet
+        case .tab(let i) where (auth.isTrainerView && (1...3).contains(i)) || (auth.showsAccountant && (i == 1 || i == 2))
+                                || (auth.showsAdmin && i == 1):
+            pushSheet = .tab(i)   // a hidden tab (Trainer Admin view: Leave / Team; accountants: Leave / Calendar; admins: Leave) opens as a sheet
         case .tab(let i): pushSheet = nil; tab = i
         case let route: pushSheet = route
         }
@@ -136,7 +151,7 @@ struct MainTabView: View {
         case .timeOff: TimeOffView()
         case .adminTimesheet: TimesheetAdminView()
         case .myTimesheet: MyTimesheetView()
-        case .tab(1): LeaveView()
+        case .tab(1): if auth.showsAdmin { LeaveSummaryView() } else { LeaveView() }
         case .tab(2): TeamCalendarView()   // accountants: Calendar is not a tab
         case .tab(3):
             if auth.showsAdmin { TeamView() }
