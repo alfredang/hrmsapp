@@ -154,8 +154,8 @@ struct TeamCalendarView: View {
         .padding(.bottom, 8)
     }
 
-    /// Approvers with a person picked: that person's leave and time off in the month shown, the
-    /// web calendar's chips ("Annual Leave 2 days", "Time Off 3.5 h + 1 off day").
+    /// Approvers with a person picked: that person's leave and paybacks in the month shown, the
+    /// web calendar's chips ("Annual Leave 2 days", "Payback 1 day").
     private func monthTotals(_ data: TeamCalendarResponse, _ person: TeamCalendarPeople.Option,
                              _ legend: CalendarLegendTable) -> some View {
         let c = cal.dateComponents([.year, .month], from: month)

@@ -82,6 +82,15 @@ actor HRMSAPI {
         if isPreview { return PreviewData.employeeRecords(id: id) }
         return try await get("api/mobile/employees/\(id)/records")
     }
+    /// One person's month for working out their pay (approvers, or self): Annual Leave, No Pay Leave,
+    /// MC (No Pay MC for interns, Paid MC for staff) and Payback. `month` is "YYYY-MM".
+    func payMonth(employeeId: String, month: String) async throws -> PayMonthSummary {
+        if isPreview { return PreviewData.payMonth(month: month) }
+        var comps = URLComponents(url: base.appendingPathComponent("api/mobile/employees/\(employeeId)/pay-month"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "month", value: month)]
+        return try await get(url: comps.url!)
+    }
     /// One month of daily check-in/out history. Without `employeeId` the
     /// server returns the signed-in user's own; admins may pass anyone's.
     func attendanceHistory(month: String, employeeId: String? = nil) async throws -> AttendanceHistory {

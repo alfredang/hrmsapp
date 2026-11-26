@@ -17,6 +17,10 @@ struct EmployeeRecordsView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         header(data.employee)
 
+                        // The month's Annual Leave, No Pay Leave, MC and Payback, with a month
+                        // filter, for working out the pay (Alfred, 26 Nov 2026).
+                        PayMonthSection(employeeId: employee.id)
+
                         // Each tile opens its full history.
                         if let balances = data.balances, !balances.isEmpty {
                             balanceTiles(data, balances)
@@ -208,6 +212,79 @@ struct EmployeeRecordsView: View {
         if case .loaded = state {} else { state = .loading }
         do { state = .loaded(try await HRMSAPI.shared.employeeRecords(id: employee.id)) }
         catch { state = .failed((error as? LocalizedError)?.errorDescription ?? "Could not load records.") }
+    }
+}
+
+/// "Month for pay": a month filter and four cards for that month — Annual Leave, No Pay Leave,
+/// MC ("No Pay MC" for interns, "Paid MC" for staff) and Payback (Alfred, 26 Nov 2026: "easier for us to
+/// compute the payout"). Hidden on an older server that has no `pay-month` endpoint.
+struct PayMonthSection: View {
+    let employeeId: String
+    @State private var month = AttendanceMonth.current()
+    @State private var data: PayMonthSummary?
+    @State private var unavailable = false
+
+    var body: some View {
+        if !unavailable {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Label("Month for pay", systemImage: "calendar.badge.clock")
+                        .font(.headline).foregroundStyle(Theme.ink)
+                    Spacer(minLength: 0)
+                    Button { month = AttendanceMonth.shift(month, by: -1) } label: {
+                        Image(systemName: "chevron.left").padding(6)
+                    }
+                    .accessibilityLabel("Previous month")
+                    .accessibilityIdentifier("records.payMonth.previous")
+                    Text(AttendanceMonth.label(month))
+                        .font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Theme.ink)
+                        .accessibilityIdentifier("records.payMonth.month")
+                    Button { month = AttendanceMonth.shift(month, by: 1) } label: {
+                        Image(systemName: "chevron.right").padding(6)
+                    }
+                    .accessibilityLabel("Next month")
+                    .accessibilityIdentifier("records.payMonth.next")
+                }
+                .foregroundStyle(Theme.sky)
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    ForEach(data?.tiles ?? placeholders) { t in
+                        Card {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 5) {
+                                    RoundedRectangle(cornerRadius: 2).fill(Color(hex: t.color)).frame(width: 9, height: 9)
+                                    Text(t.label).font(.caption.weight(.semibold)).foregroundStyle(Theme.mist)
+                                        .lineLimit(1).minimumScaleFactor(0.8)
+                                }
+                                Text(data == nil ? "—" : t.value)
+                                    .font(.title3.weight(.bold)).monospacedDigit().foregroundStyle(Theme.ink)
+                                Text(t.hint).font(.caption2).foregroundStyle(Theme.mist).lineLimit(2)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("records.payMonth.\(t.label)")
+                    }
+                }
+                .opacity(data?.month == month ? 1 : 0.5)
+            }
+            .task(id: month) { await load() }
+        }
+    }
+
+    private var placeholders: [PayMonthSummary.Tile] {
+        ["Annual Leave", "No Pay Leave", "MC", "Payback"].map { .init(label: $0, value: "—", hint: " ", color: 0x6B7280) }
+    }
+
+    private func load() async {
+        do {
+            let d = try await HRMSAPI.shared.payMonth(employeeId: employeeId, month: month)
+            if d.month == month || data == nil { data = d }
+        } catch is CancellationError {
+        } catch {
+            if (error as? URLError)?.code == .cancelled { return }
+            // An older server (404) or no access: leave the section out rather than show an error.
+            if data == nil { unavailable = true }
+        }
     }
 }
 

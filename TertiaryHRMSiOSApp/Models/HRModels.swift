@@ -454,9 +454,12 @@ struct TeamCalendarResponse: Codable {
     var ownWorkdays: [Int]? = nil
     /// Colour + emoji legend (`CalendarLegendTable` falls back to the built-in table).
     var categories: [CalendarCategoryInfo]? = nil
+    /// Approved No Pay Leave paybacks (web 26 Nov 2026; absent on an older server) — approvers:
+    /// everyone's; others: their own. Feed the month totals' "Payback" chip.
+    var paybacks: [TeamPaybackEntry]? = nil
 
     enum CodingKeys: String, CodingKey {
-        case year, canSeeTypes, entries, holidays, people, timeOff, birthdays, ownWorkdays, categories
+        case year, canSeeTypes, entries, holidays, people, timeOff, birthdays, ownWorkdays, categories, paybacks
     }
 }
 
@@ -474,6 +477,7 @@ extension TeamCalendarResponse {
         birthdays = (try? c.decodeIfPresent([TeamBirthday].self, forKey: .birthdays)) ?? nil
         ownWorkdays = (try? c.decodeIfPresent([Int].self, forKey: .ownWorkdays)) ?? nil
         categories = (try? c.decodeIfPresent([CalendarCategoryInfo].self, forKey: .categories)) ?? nil
+        paybacks = (try? c.decodeIfPresent([TeamPaybackEntry].self, forKey: .paybacks)) ?? nil
     }
 }
 
@@ -844,6 +848,41 @@ struct RecordsBalance: Codable, Identifiable, Equatable {
     static func days(_ v: Double) -> String {
         v.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", v) : String(format: "%.1f", v)
     }
+}
+
+/// `GET /api/mobile/employees/{id}/pay-month?month=YYYY-MM` (web 26 Nov 2026): the four figures for
+/// working out one person's pay that month — Annual Leave, No Pay Leave, MC ("No Pay MC" for interns,
+/// "Paid MC" for staff) and Payback (off days worked). Counted the way the payslip counts them.
+struct PayMonthSummary: Codable, Equatable {
+    /// "YYYY-MM"
+    let month: String
+    var intern: Bool = false
+    let annualLeaveDays: Double
+    let noPayLeaveDays: Double
+    let mcDays: Double
+    let mcPaid: Bool
+    let mcLabel: String
+    let paybackDays: Double
+
+    struct Tile: Identifiable, Equatable {
+        let label: String
+        let value: String
+        let hint: String
+        let color: UInt32
+        var id: String { label }
+    }
+
+    var tiles: [Tile] {
+        [
+            .init(label: "Annual Leave", value: Self.days(annualLeaveDays), hint: "Paid", color: 0xF59E0B),
+            .init(label: "No Pay Leave", value: Self.days(noPayLeaveDays), hint: "Deducted", color: 0x64748B),
+            .init(label: mcLabel, value: Self.days(mcDays), hint: mcPaid ? "Paid" : "Deducted", color: 0xEC4899),
+            .init(label: "Payback", value: Self.days(paybackDays), hint: "Off days worked, added back", color: 0x10B981),
+        ]
+    }
+
+    /// "1 day", "2.5 days", "0 days".
+    static func days(_ n: Double) -> String { "\(CalendarMonthSummary.number(n)) \(n == 1 ? "day" : "days")" }
 }
 
 /// Every punch on record, newest first, with all-time totals.

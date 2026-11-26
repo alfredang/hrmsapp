@@ -394,6 +394,11 @@ enum PreviewData {
         ])
 
     // MARK: Attendance history + admin summary
+    static func payMonth(month: String) -> PayMonthSummary {
+        PayMonthSummary(month: month, intern: true, annualLeaveDays: 1, noPayLeaveDays: 2, mcDays: 1.5,
+                        mcPaid: false, mcLabel: "No Pay MC", paybackDays: 1)
+    }
+
     static func employeeRecords(id: String) -> EmployeeRecords {
         let person = employees.employees.first { $0.id == id }
         let thisMonth = attendanceHistory(month: AttendanceMonth.current())

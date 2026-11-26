@@ -437,6 +437,25 @@ final class NeatUITests: XCTestCase {
 
     /// Team → a person (25 Nov 2026): Leave / MC / No Pay Leave tiles show taken and balance;
     /// clock-in history only for interns (staff do not clock in).
+    /// Team → a person: "Month for pay" with a month filter and four cards (Alfred, 26 Nov 2026).
+    func testRecordsMonthForPay() {
+        let app = launch(["-uiPreviewTab", "3"])
+        let staff = app.staticTexts["Jasmine Lee"]
+        XCTAssertTrue(staff.waitForExistence(timeout: 10))
+        staff.tap()
+        let month = app.staticTexts["records.payMonth.month"]
+        XCTAssertTrue(month.waitForExistence(timeout: 10))
+        let first = month.label
+        XCTAssertTrue(app.otherElements["records.payMonth.Annual Leave"].waitForExistence(timeout: 5)
+                      || app.staticTexts["Annual Leave"].exists)
+        XCTAssertTrue(app.staticTexts["No Pay Leave"].exists)
+        XCTAssertTrue(app.staticTexts["No Pay MC"].exists)
+        XCTAssertTrue(app.staticTexts["Payback"].exists)
+        snap(app, "records-pay-month")
+        app.buttons["records.payMonth.previous"].tap()
+        XCTAssertNotEqual(app.staticTexts["records.payMonth.month"].label, first)
+    }
+
     func testRecordsShowBalancesAndClockOnlyForInterns() {
         let app = launch(["-uiPreviewTab", "3"])
         let staff = app.staticTexts["Jasmine Lee"]

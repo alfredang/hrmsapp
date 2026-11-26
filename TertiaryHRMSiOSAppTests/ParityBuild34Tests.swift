@@ -286,10 +286,37 @@ final class ParityBuild34Tests: XCTestCase {
                                                         holidayKeys: CalendarMonthSummary.holidayKeys(r, calendar: cal), calendar: cal)
         XCTAssertEqual(s, PersonMonthSummary(noPayLeaveDays: 2, timeOffHours: 2, offDays: 1))
         XCTAssertEqual(CalendarMonthSummary.tiles(s).map { "\($0.label): \($0.value)" },
-                       ["Annual Leave: 0 days", "Medical Leave: 0 days", "No Pay Leave: 2 days", "Time Off: 2 h + 1 off day"])
-        let more = PersonMonthSummary(annualLeaveDays: 1, medicalLeaveDays: 0.5, otherLeaveDays: 0.33, timeOffHours: 3.5, offDays: 2)
-        XCTAssertEqual(CalendarMonthSummary.tiles(more).map(\.value), ["1 day", "0.5 days", "0 days", "0.33 days", "3.5 h + 2 off days"])
+                       ["Annual Leave: 0 days", "Medical Leave: 0 days", "No Pay Leave: 2 days", "Payback: 0 days"])
+        let more = PersonMonthSummary(annualLeaveDays: 1, medicalLeaveDays: 0.5, otherLeaveDays: 0.33, timeOffHours: 3.5, offDays: 2,
+                                      paybackDays: 1.5)
+        XCTAssertEqual(CalendarMonthSummary.tiles(more).map(\.value), ["1 day", "0.5 days", "0 days", "0.33 days", "1.5 days"])
         XCTAssertEqual(CalendarMonthSummary.holidayKeys(r, calendar: cal), ["2026-12-25"])
+    }
+
+    func testPaybacksReplaceTimeOffAndComeOffNoPayLeave() throws {
+        // Web 26 Nov 2026: "Payback" chip = off days worked in the month; a paid-back No Pay Leave day
+        // no longer counts under No Pay Leave.
+        let body = #"{"year":2026,"canSeeTypes":true,"holidays":[],"entries":[{"id":"npl1","employeeId":"e1","employeeName":"A","department":null,"startDate":"2026-11-02","endDate":"2026-11-03","days":2,"halfDay":false,"leaveType":"No Pay Leave","isSelf":false,"category":"NO_PAY_LEAVE"}],"paybacks":[{"id":"p1","employeeId":"e1","leaveRequestId":"npl1","nplDate":"2026-11-02T00:00:00.000Z","workDate":"2026-11-07T00:00:00.000Z","days":1,"isSelf":false},{"id":"p2","employeeId":"e1","leaveRequestId":"npl1","nplDate":"2026-11-03T00:00:00.000Z","workDate":"2026-12-05T00:00:00.000Z","days":0.5,"isSelf":false},{"id":"p3","employeeId":"e2","leaveRequestId":"x","workDate":"2026-11-07T00:00:00.000Z","days":1,"isSelf":false}]}"#
+        let r = try JSONDecoder().decode(TeamCalendarResponse.self, from: data(body))
+        XCTAssertEqual(r.paybacks?.count, 3)
+        let events = CalendarMonthSummary.events(r, calendar: cal)
+        let nov = CalendarMonthSummary.personMonthSummary(events, personId: "e1", year: 2026, month: 11, calendar: cal)
+        XCTAssertEqual(nov.noPayLeaveDays, 0.5)
+        XCTAssertEqual(nov.paybackDays, 1)
+        XCTAssertEqual(CalendarMonthSummary.personMonthSummary(events, personId: "e1", year: 2026, month: 12, calendar: cal).paybackDays, 0.5)
+        XCTAssertEqual(CalendarMonthSummary.tiles(nov).last?.label, "Payback")
+        XCTAssertFalse(CalendarMonthSummary.tiles(nov).contains { $0.label == "Time Off" })
+        XCTAssertEqual(CalendarLegendTable(nil).hex(CalendarCategory.payback), 0x10B981)
+    }
+
+    func testPayMonthDecodesAndLabelsTheMcCard() throws {
+        let intern = try JSONDecoder().decode(PayMonthSummary.self, from: data(#"{"month":"2026-09","intern":true,"annualLeaveDays":1,"noPayLeaveDays":2.5,"mcDays":2,"mcPaid":false,"mcLabel":"No Pay MC","paybackDays":0.5}"#))
+        XCTAssertEqual(intern.tiles.map { "\($0.label): \($0.value) (\($0.hint))" },
+                       ["Annual Leave: 1 day (Paid)", "No Pay Leave: 2.5 days (Deducted)", "No Pay MC: 2 days (Deducted)",
+                        "Payback: 0.5 days (Off days worked, added back)"])
+        let staff = try JSONDecoder().decode(PayMonthSummary.self, from: data(#"{"month":"2026-09","intern":false,"annualLeaveDays":0,"noPayLeaveDays":0,"mcDays":1,"mcPaid":true,"mcLabel":"Paid MC","paybackDays":0}"#))
+        XCTAssertEqual(staff.tiles[2].label, "Paid MC")
+        XCTAssertEqual(staff.tiles[2].hint, "Paid")
     }
 
     // MARK: - Profile: Work Schedule

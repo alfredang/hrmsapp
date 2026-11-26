@@ -25,6 +25,10 @@ enum CalendarCategory {
     static let otherLeave = "OTHER_LEAVE"
     static let timeOff = "TIME_OFF"
     static let birthday = "BIRTHDAY"
+    /// Month totals only (not drawn, not in the legend): an approved payback, on the off day worked.
+    static let payback = "PAYBACK"
+    /// The web's `PAYBACK_CHIP_COLOR`.
+    static let paybackColor: UInt32 = 0x10B981
 
     /// The web's table (calendar-categories.ts, legend order), used when the server sends none.
     static let fallback: [CalendarCategoryInfo] = [
@@ -57,7 +61,10 @@ struct CalendarLegendTable: Equatable {
     func info(_ key: String) -> CalendarCategoryInfo? { rows.first { $0.key == key } }
     func label(_ key: String) -> String { info(key)?.label ?? key }
     /// 24-bit colour; grey (#6b7280, the web's default) for an unknown category.
-    func hex(_ key: String) -> UInt32 { info(key).flatMap { Self.parseHex($0.color) } ?? 0x6B7280 }
+    func hex(_ key: String) -> UInt32 {
+        if key == CalendarCategory.payback { return CalendarCategory.paybackColor }
+        return info(key).flatMap { Self.parseHex($0.color) } ?? 0x6B7280
+    }
     /// The emoji in front of a title ("" when the category has none).
     func emoji(_ key: String) -> String {
         if let e = info(key)?.emoji, !e.isEmpty { return e }
@@ -85,6 +92,19 @@ struct CalendarLegendTable: Equatable {
 
 /// Approved time off or an intern's full-day Off Day (`timeOff`). Approvers get everyone's,
 /// others only their own.
+/// One approved No Pay Leave payback of `GET /api/mobile/team-calendar` → `paybacks` (web 26 Nov 2026):
+/// the off day worked (`workDate`) to pay back a No Pay Leave day of request `leaveRequestId` (= `entries[].id`).
+struct TeamPaybackEntry: Codable, Identifiable, Equatable {
+    let id: String
+    let employeeId: String
+    var leaveRequestId: String? = nil
+    var nplDate: String? = nil
+    /// ISO date (`@db.Date`, read by its yyyy-MM-dd part).
+    let workDate: String?
+    /// 1 = full day, 0.5 = half day.
+    let days: Double
+}
+
 struct TeamTimeOffEntry: Codable, Identifiable, Equatable {
     let id: String
     let employeeId: String
@@ -321,6 +341,8 @@ struct PersonMonthSummary: Equatable {
     var timeOffHours: Double = 0
     /// Approved full-day Off Days (interns).
     var offDays: Int = 0
+    /// Approved paybacks: off days worked in the month to pay back No Pay Leave (web 26 Nov 2026).
+    var paybackDays: Double = 0
 }
 
 enum CalendarMonthSummary {
@@ -354,6 +376,10 @@ enum CalendarMonthSummary {
             let start = calendar.startOfDay(for: e.start)
             let end = calendar.startOfDay(for: e.end)
 
+            if e.category == CalendarCategory.payback {
+                if inMonth(start) { out.paybackDays += e.days ?? 1 }
+                continue
+            }
             if e.category == CalendarCategory.timeOff {
                 guard inMonth(start) else { continue }
                 if e.allDay { out.offDays += 1 } else { out.timeOffHours += e.hours ?? 0 }
@@ -394,16 +420,28 @@ enum CalendarMonthSummary {
         out.noPayLeaveDays = round2(out.noPayLeaveDays)
         out.otherLeaveDays = round2(out.otherLeaveDays)
         out.timeOffHours = round2(out.timeOffHours)
+        out.paybackDays = round2(out.paybackDays)
         return out
     }
 
-    /// The month-total events of the whole response: every leave with a known category, and time off.
+    /// The month-total events of the whole response: every leave with a known category, time off and
+    /// paybacks. As on the web, a paid-back No Pay Leave day no longer counts under No Pay Leave.
     static func events(_ data: TeamCalendarResponse, calendar: Calendar = TeamCalendarItem.calendar) -> [CalendarSummaryEvent] {
         var out: [CalendarSummaryEvent] = []
+        var paidBack: [String: Double] = [:]
+        for p in data.paybacks ?? [] {
+            if let id = p.leaveRequestId { paidBack[id, default: 0] += p.days }
+        }
         for e in data.entries {
             guard let cat = e.resolvedCategory, let s = TeamCalendarItem.day(e.startDate, calendar) else { continue }
+            let days = cat == CalendarCategory.noPayLeave ? e.days - min(e.days, paidBack[e.id] ?? 0) : e.days
             out.append(.init(category: cat, start: s, end: TeamCalendarItem.day(e.endDate, calendar) ?? s,
-                             allDay: true, personId: e.employeeId, days: e.days))
+                             allDay: true, personId: e.employeeId, days: days))
+        }
+        for p in data.paybacks ?? [] {
+            guard let d = TeamCalendarItem.day(p.workDate, calendar) else { continue }
+            out.append(.init(category: CalendarCategory.payback, start: d, end: d, allDay: true,
+                             personId: p.employeeId, days: p.days))
         }
         for t in data.timeOff ?? [] {
             guard let d = TeamCalendarItem.day(t.date, calendar) else { continue }
@@ -425,8 +463,8 @@ enum CalendarMonthSummary {
         var id: String { label }
     }
 
-    /// The web's chips: Annual / Medical / No Pay Leave, Other Leave only when > 0, then Time Off
-    /// "X h" plus " + N off day(s)".
+    /// The web's chips: Annual / Medical / No Pay Leave, Other Leave only when > 0, then Payback
+    /// (Alfred, 26 Nov 2026: shown instead of Time Off).
     static func tiles(_ s: PersonMonthSummary) -> [Tile] {
         func days(_ n: Double) -> String { "\(number(n)) \(n == 1 ? "day" : "days")" }
         var out: [Tile] = [
@@ -437,8 +475,7 @@ enum CalendarMonthSummary {
         if s.otherLeaveDays > 0 {
             out.append(.init(label: "Other Leave", value: days(s.otherLeaveDays), category: CalendarCategory.otherLeave))
         }
-        let off = s.offDays > 0 ? " + \(s.offDays) off \(s.offDays == 1 ? "day" : "days")" : ""
-        out.append(.init(label: "Time Off", value: "\(number(s.timeOffHours)) h\(off)", category: CalendarCategory.timeOff))
+        out.append(.init(label: "Payback", value: days(s.paybackDays), category: CalendarCategory.payback))
         return out
     }
 
