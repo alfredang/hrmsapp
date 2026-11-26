@@ -193,6 +193,10 @@ final class NeatUITests: XCTestCase {
             app = launch([role, "-uiPreviewOpen", "more"])
             XCTAssertTrue(app.buttons["more.row.profile"].waitForExistence(timeout: 10))
             XCTAssertFalse(app.buttons["more.row.cpfsubmissions"].exists, "\(role): no CPF Submissions")
+            // Everyone sees their own payslips, interns included (Alfred, 26 Nov 2026).
+            let payslips = app.buttons["more.row.payslips"]
+            for _ in 0..<4 where !payslips.exists { app.swipeUp() }
+            XCTAssertTrue(payslips.exists, "\(role): Payslips in More → Finance")
             app.terminate()
         }
         app = launch(["-uiPreviewStaff", "-uiPreviewOpen", "payslips"])

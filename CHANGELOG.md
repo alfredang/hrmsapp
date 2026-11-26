@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.25] — 2026-11-26 (build 57; 1.24 build 56 is live)
+**What's New (user-facing):**
+> Interns can now see their own payslips (More > Finance > Payslips): the monthly allowance, any MC / No Pay Leave deduction, any payback added back and the take-home pay.
+
+### Build 57
+Status (26 Nov 2026): 1.24 build 56 was approved and released (READY_FOR_SALE) before build 57 was ready, so build 57 ships as a new version 1.25 (an upload under a released version fails with 90062). Build 57 VALID, attached, submitted (review submission 3e443f41): WAITING_FOR_REVIEW. Review notes start with "Version 1.25: Interns can now see their own payslips."
+- `MoreView`: More → Finance always lists **Payslips**, interns included (was `if !intern`; Alfred, 26 Nov 2026: interns see their own payslips; web 9992329). The payslip screen already renders intern payslips (flat allowance, "CPF: None", MC / No Pay Leave deduction, payback add-back).
+- UI test `testCpfSubmissionsForAdminsAndAccountantsOnly` now also checks that staff and interns have `more.row.payslips`.
+
 ## [1.24] — 2026-11-26 (build 56 replaces build 55 in App Review; 1.23 build 54 is live)
 **What's New (user-facing):**
 > Payslips now show your gross pay, any No Pay Leave payback added back, MC / No Pay Leave deductions, your CPF and the company's CPF (interns have no CPF) and your take-home pay. Admins and accountants can see and open past CPF submission statements, and each payslip links to its CPF statement. Admins: the tab bar now has SOP after Team, and leave management moves to Home (Leave & MC) and More. Trainer Admins get an SOP tab too.
