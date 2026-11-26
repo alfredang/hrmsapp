@@ -5,7 +5,7 @@
 > Interns can now see their own payslips (More > Finance > Payslips): the monthly allowance, any MC / No Pay Leave deduction, any payback added back and the take-home pay. Admins: each person's page in Team has a month filter with that month's Annual Leave, No Pay Leave, MC (No Pay MC for interns, Paid MC for staff) and Payback, and the calendar's month totals show Payback instead of Time Off.
 
 ### Build 58
-Status (26 Nov 2026): replaces build 57 in App Review. Server web 29dc0a9 (pay-month endpoint, team-calendar `paybacks`).
+Status (26 Nov 2026): build 58 VALID, attached, submitted (review submission 245d9934): WAITING_FOR_REVIEW; build 57's submission (3e443f41) cancelled. What's New updated. Demo login and the pay-month endpoint checked on production first. Server web 29dc0a9 (pay-month endpoint, team-calendar `paybacks`).
 - **Month for pay** (Alfred, 26 Nov 2026: "easier for us to compute the payout"): `PayMonthSection` under the header of Team → person (`EmployeeRecordsView`), month arrows (`AttendanceMonth`), four cards from `GET /api/mobile/employees/{id}/pay-month?month=YYYY-MM` (`PayMonthSummary`): Annual Leave (Paid), No Pay Leave (Deducted), `mcLabel` ("No Pay MC" interns, Deducted / "Paid MC" staff, Paid), Payback (off days worked, added back). Hidden on a server without the endpoint. UI test `testRecordsMonthForPay`.
 - **Calendar month totals**: the Time Off chip is replaced by **Payback** (`TeamCalendarResponse.paybacks`, colour #10b981, the web's `PAYBACK_CHIP_COLOR`); a paid-back No Pay Leave day no longer counts under No Pay Leave (web parity). Test `testPaybacksReplaceTimeOffAndComeOffNoPayLeave`.
 
